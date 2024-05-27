@@ -209,8 +209,9 @@ func (ost OrderStorage) ListOrders(userID string, limit int) error {
 	}
 
 	var userOrders []Order
+	//If Order issued it cant be displayed
 	for _, order := range orders {
-		if order.RecipientID == userID {
+		if order.RecipientID == userID && !order.Issued {
 			userOrders = append(userOrders, order)
 			if len(userOrders) == limit {
 				break

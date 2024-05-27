@@ -75,5 +75,5 @@ func (e OrderCantBeReturnedError) Error() string {
 type EmptyOrderListError struct{}
 
 func (e EmptyOrderListError) Error() string {
-	return "there are no orders for this user"
+	return "there are no orders for this user or they all are issued"
 }
