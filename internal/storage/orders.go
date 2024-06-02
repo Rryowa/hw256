@@ -25,10 +25,19 @@ type Order struct {
 
 type OrderStorage struct {
 	fileName string
+	//To optimize search
+	orders map[string]Order
+
+	//To keep order in ListReturns and ListOrders
+	orderIDs []string
 }
 
 func NewOrderStorage(fileName string) OrderStorage {
-	return OrderStorage{fileName: fileName}
+	return OrderStorage{
+		fileName: fileName,
+		orders:   make(map[string]Order),
+		orderIDs: []string{},
+	}
 }
 
 func (ost OrderStorage) AcceptOrder(order Order) error {
@@ -41,15 +50,10 @@ func (ost OrderStorage) AcceptOrder(order Order) error {
 		return util.InvalidDateError{}
 	}
 
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-
-	for _, existingOrder := range orders {
-		if existingOrder.ID == order.ID {
-			return util.ExistingOrderError{}
-		}
+	if _, exists := ost.orders[order.ID]; !exists {
+		ost.orderIDs = append(ost.orderIDs, order.ID)
+	} else {
+		return util.ExistingOrderError{}
 	}
 
 	fmt.Println("Calculating hash...")
@@ -59,31 +63,18 @@ func (ost OrderStorage) AcceptOrder(order Order) error {
 		order.Hash = hash.GenerateHash()
 	}
 
-	orders = append(orders, order)
+	ost.orders[order.ID] = order
 
 	fmt.Println("Order accepted.")
-	return ost.writeOrders(orders)
+	return ost.writeOrders(ost.orders)
 }
 
 func (ost OrderStorage) ReturnOrderToCourier(orderID string) error {
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-
-	sort.Slice(orders, func(i, j int) bool {
-		return orders[i].ID < orders[j].ID
-	})
-	index := binarySearch(orders, orderID)
-	if index == -1 {
+	var order Order
+	if v, exists := ost.orders[orderID]; exists {
+		order = v
+	} else {
 		return util.OrderNotFoundError{}
-	}
-
-	order := orders[index]
-	if time.Now().After(order.StorageUntil) && !order.Issued {
-		orders = append(orders[:index], orders[index+1:]...)
-		log.Println("Order returned.")
-		return ost.writeOrders(orders)
 	}
 
 	if order.Issued {
@@ -94,30 +85,25 @@ func (ost OrderStorage) ReturnOrderToCourier(orderID string) error {
 		return util.OrderIsNotExpiredError{}
 	}
 
-	return util.OrderNotFoundError{}
+	delete(ost.orders, orderID)
+	log.Println("Order returned.")
+	return ost.writeOrders(ost.orders)
 }
 
 func (ost OrderStorage) IssueOrders(orderIDs []string) error {
 	if len(orderIDs) == 0 {
 		return util.OrderIdsNotProvidedError{}
 	}
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-	sort.Slice(orders, func(i, j int) bool {
-		return orders[i].ID < orders[j].ID
-	})
 
 	var recipientID string
-	var index int
 	for i, orderID := range orderIDs {
-		index = binarySearch(orders, orderID)
-		if index == -1 {
+		var order Order
+		if v, exists := ost.orders[orderID]; exists {
+			order = v
+		} else {
 			return util.OrderNotFoundError{}
 		}
 
-		order := orders[index]
 		if time.Now().After(order.StorageUntil) {
 			return util.OrderIsExpiredError{}
 		}
@@ -136,28 +122,22 @@ func (ost OrderStorage) IssueOrders(orderIDs []string) error {
 				return util.OrdersRecipientDiffersError{}
 			}
 		}
-		orders[index].Issued = true
-		orders[index].IssuedAt = time.Now()
+		order.Issued = true
+		order.IssuedAt = time.Now()
+		ost.orders[order.ID] = order
 		log.Println("Order issued.")
 	}
-	return ost.writeOrders(orders)
+	return ost.writeOrders(ost.orders)
 }
 
 func (ost OrderStorage) AcceptReturn(orderID, userID string) error {
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-
-	sort.Slice(orders, func(i, j int) bool {
-		return orders[i].ID < orders[j].ID
-	})
-	index := binarySearch(orders, orderID)
-	if index == -1 {
+	var order Order
+	if v, exists := ost.orders[orderID]; exists {
+		order = v
+	} else {
 		return util.OrderNotFoundError{}
 	}
 
-	order := orders[index]
 	if order.RecipientID != userID {
 		return util.OrderDoesNotBelongError{}
 	}
@@ -169,48 +149,36 @@ func (ost OrderStorage) AcceptReturn(orderID, userID string) error {
 	}
 
 	order.Returned = true
-	orders[index] = order
+	ost.orders[order.ID] = order
 
 	fmt.Println("Return accepted.")
-	return ost.writeOrders(orders)
+	return ost.writeOrders(ost.orders)
 }
 
 func (ost OrderStorage) ListReturns(page, pageSize int) error {
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-
-	var returns []Order
-	for _, order := range orders {
-		if order.Returned {
-			returns = append(returns, order)
-		}
-	}
-
 	start := (page - 1) * pageSize
-	if start >= len(returns) {
+	if start >= len(ost.orderIDs) {
 		return nil
 	}
 
 	end := start + pageSize
-	if end > len(returns) {
-		end = len(returns)
+	if end > len(ost.orderIDs) {
+		end = len(ost.orderIDs)
 	}
 
+	var returns []Order
+	for _, id := range ost.orderIDs[start:end] {
+		returns = append(returns, ost.orders[id])
+	}
 	ost.PrintList(returns[start:end])
 	return nil
 }
 
 func (ost OrderStorage) ListOrders(userID string, limit int) error {
-	orders, err := ost.readOrders()
-	if err != nil {
-		return err
-	}
-
 	var userOrders []Order
 	//If Order issued it cant be displayed
-	for _, order := range orders {
+	for _, id := range ost.orderIDs {
+		order := ost.orders[id]
 		if order.RecipientID == userID && !order.Issued {
 			userOrders = append(userOrders, order)
 			if len(userOrders) == limit {
@@ -219,9 +187,6 @@ func (ost OrderStorage) ListOrders(userID string, limit int) error {
 		}
 	}
 
-	if len(userOrders) == 0 {
-		return util.EmptyOrderListError{}
-	}
 	// Sort orders by StorageUntil date in descending order
 	sort.Slice(userOrders, func(i, j int) bool {
 		return userOrders[i].StorageUntil.Before(userOrders[j].StorageUntil)
@@ -240,41 +205,12 @@ func (ost OrderStorage) createFile() error {
 	return nil
 }
 
-func (ost OrderStorage) readOrders() ([]Order, error) {
-	b, err := os.ReadFile(ost.fileName)
-	if err != nil {
-		return nil, err
-	}
-
-	var orders []Order
-	if err := json.Unmarshal(b, &orders); err != nil {
-		orders = []Order{}
-	}
-
-	return orders, nil
-}
-
-func (ost OrderStorage) writeOrders(orders []Order) error {
+func (ost OrderStorage) writeOrders(orders map[string]Order) error {
 	bWrite, err := json.MarshalIndent(orders, "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(ost.fileName, bWrite, 0666)
-}
-
-func binarySearch(orders []Order, orderID string) int {
-	low, high := 0, len(orders)-1
-	for low <= high {
-		mid := (low + high) / 2
-		if orders[mid].ID == orderID {
-			return mid
-		} else if orders[mid].ID < orderID {
-			low = mid + 1
-		} else {
-			high = mid - 1
-		}
-	}
-	return -1
 }
 
 func (ost OrderStorage) PrintList(orders []Order) {
