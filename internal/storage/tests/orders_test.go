@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var testFile = "test.json"
+const testFile = "test.json"
 
 func setupStorage(t *testing.T) *storage.OrderStorage {
 	t.Helper()

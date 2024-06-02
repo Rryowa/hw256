@@ -158,7 +158,10 @@ func (ost *OrderStorage) ListReturns(page, pageSize int) error {
 
 	var returns []entities.Order
 	for _, id := range ost.orderIDs[start:end] {
-		returns = append(returns, ost.orders[id])
+		order := ost.orders[id]
+		if order.Returned {
+			returns = append(returns, order)
+		}
 	}
 	ost.PrintList(returns[start:end])
 	return nil
@@ -196,10 +199,10 @@ func (ost *OrderStorage) UpdateCache() error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		fmt.Fprint(writer, ". ")
 		writer.Flush()
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 	fmt.Fprintln(writer)
 	writer.Flush()

@@ -8,10 +8,11 @@ import (
 	"os"
 )
 
+const (
+	ordersName = "orders.json"
+)
+
 func main() {
-	const (
-		ordersName = "orders.json"
-	)
 	fileService := file.NewFileService(ordersName)
 	orderStorage := storage.NewOrderStorage(fileService)
 	commands := cli.NewCLI(orderStorage)
@@ -19,6 +20,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println("done")
+	fmt.Println("Bye!")
 
 }

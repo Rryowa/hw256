@@ -38,27 +38,27 @@ func NewCLI(s Service) CLI {
 			},
 			{
 				name:        acceptOrder,
-				description: "Принять заказ: accept --id=12345 --r_id=54321 --date=2077-06-06",
+				description: "Принять заказ: accept -id=12345 -u_id=54321 -date=2077-06-06",
 			},
 			{
 				name:        returnOrderToCourier,
-				description: "Вернуть заказ курьеру: return_courier --id=12345",
+				description: "Вернуть заказ курьеру: return_courier -id=12345",
 			},
 			{
 				name:        issueOrders,
-				description: "Выдать заказ клиенту: issue --ids=1,2,3",
+				description: "Выдать заказ клиенту: issue -ids=1,2,3",
 			},
 			{
 				name:        acceptReturn,
-				description: "Принять возврат: accept_return --id=1 --r_id=2",
+				description: "Принять возврат: accept_return -id=1 -u_id=2",
 			},
 			{
 				name:        listReturns,
-				description: "Вывести список возвратов: list_returns --page=1 --size=10",
+				description: "Список возвратов: list_returns -page=1 -size=10",
 			},
 			{
 				name:        listOrders,
-				description: "Вывести список заказов отсортированный\n	 	по Сроку хранения: list_orders --u_id=1 --limit=3",
+				description: "Список заказов: list_orders -u_id=1 -limit=3",
 			},
 			{
 				name:        exit,
@@ -87,7 +87,7 @@ func (c CLI) Run() error {
 			c.help()
 		case acceptOrder:
 			if err := c.acceptOrder(args[1:]); err != nil {
-				log.Println("Error executing command:", err)
+				log.Println(err)
 			}
 		case returnOrderToCourier:
 			if err := c.returnOrderToCourier(args[1:]); err != nil {
@@ -124,9 +124,9 @@ func (c CLI) updateCache() error {
 func (c CLI) acceptOrder(args []string) error {
 	var id, recipientId, dateStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use --id=12345")
-	fs.StringVar(&recipientId, "r_id", "0", "use --r_id=54321")
-	fs.StringVar(&dateStr, "date", "0", "use --date=2024-06-06")
+	fs.StringVar(&id, "id", "0", "use -id=12345")
+	fs.StringVar(&recipientId, "u_id", "0", "use -u_id=54321")
+	fs.StringVar(&dateStr, "date", "0", "use -date=2024-06-06")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -139,7 +139,7 @@ func (c CLI) acceptOrder(args []string) error {
 	}
 	storageUntil, err := time.Parse(time.DateOnly, dateStr)
 	if err != nil {
-		log.Println("Error parsing date:", err)
+		log.Println("error parsing date:", err)
 		return err
 	}
 
@@ -155,7 +155,7 @@ func (c CLI) acceptOrder(args []string) error {
 func (c CLI) returnOrderToCourier(args []string) error {
 	var id string
 	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use --id=12345")
+	fs.StringVar(&id, "id", "0", "use -id=12345")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -170,7 +170,7 @@ func (c CLI) returnOrderToCourier(args []string) error {
 func (c CLI) issueOrders(args []string) error {
 	var idString string
 	fs := flag.NewFlagSet(issueOrders, flag.ContinueOnError)
-	fs.StringVar(&idString, "ids", "", "use --ids=1,2,3")
+	fs.StringVar(&idString, "ids", "", "use -ids=1,2,3")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -181,8 +181,8 @@ func (c CLI) issueOrders(args []string) error {
 func (c CLI) acceptReturn(args []string) error {
 	var id, recipientId string
 	fs := flag.NewFlagSet(acceptReturn, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use --id=12345")
-	fs.StringVar(&recipientId, "r_id", "0", "use --r_id=54321")
+	fs.StringVar(&id, "id", "0", "use -id=12345")
+	fs.StringVar(&recipientId, "u_id", "0", "use -u_id=54321")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -199,8 +199,8 @@ func (c CLI) acceptReturn(args []string) error {
 func (c CLI) listReturns(args []string) error {
 	var page, size string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&page, "page", "0", "use --page=1")
-	fs.StringVar(&size, "size", "0", "use --size=10")
+	fs.StringVar(&page, "page", "0", "use -page=1")
+	fs.StringVar(&size, "size", "0", "use -size=10")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -220,8 +220,8 @@ func (c CLI) listReturns(args []string) error {
 func (c CLI) listOrders(args []string) error {
 	var userId, limit string
 	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
-	fs.StringVar(&userId, "u_id", "0", "use --u_id=1")
-	fs.StringVar(&limit, "limit", "0", "use --limit=3")
+	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
+	fs.StringVar(&limit, "limit", "0", "use -limit=3")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -236,9 +236,19 @@ func (c CLI) listOrders(args []string) error {
 }
 
 func (c CLI) help() {
-	fmt.Println("command list:")
+	fmt.Println("Command list:")
+	fmt.Printf("%-15s | %-25s | %s\n", "Command", "Description", "Example")
+	fmt.Println("---------------------------------------------------------------------------------------------------")
 	for _, cmd := range c.commandList {
-		fmt.Println("  ", cmd.name, cmd.description)
+		parts := strings.SplitN(cmd.description, ":", 2)
+		description := ""
+		example := ""
+		if len(parts) > 0 {
+			description = strings.TrimSpace(parts[0])
+		}
+		if len(parts) > 1 {
+			example = strings.TrimSpace(parts[1])
+		}
+		fmt.Printf("%-15s | %-25s | %s\n", cmd.name, description, example)
 	}
-	return
 }
