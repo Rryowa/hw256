@@ -2,6 +2,8 @@ package tests_test
 
 import (
 	"errors"
+	"homework-1/internal/entities"
+	"homework-1/internal/file"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"log"
@@ -12,18 +14,19 @@ import (
 
 var testFile = "test.json"
 
-func setupStorage(t *testing.T) storage.OrderStorage {
+func setupStorage(t *testing.T) *storage.OrderStorage {
 	t.Helper()
 	err := os.Remove(testFile)
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatal(err)
 	}
-	return storage.NewOrderStorage(testFile)
+	fileService := file.NewFileService(testFile)
+	return storage.NewOrderStorage(fileService)
 }
 
-func newOrder(id, recipientID, hash string, date string, issued bool) storage.Order {
+func newOrder(id, recipientID, hash string, date string, issued bool) entities.Order {
 	storageUntil, _ := time.Parse(time.DateOnly, date)
-	return storage.Order{
+	return entities.Order{
 		ID:           id,
 		RecipientID:  recipientID,
 		StorageUntil: storageUntil,
@@ -142,7 +145,7 @@ func TestAcceptReturnOrderDoesNotBelong(t *testing.T) {
 func TestAcceptReturnOrderHasNotBeenIssued(t *testing.T) {
 	ost := setupStorage(t)
 	storageUntil, _ := time.Parse(time.DateOnly, "2024-06-29")
-	order := storage.Order{
+	order := entities.Order{
 		ID:           "1",
 		RecipientID:  "2",
 		StorageUntil: storageUntil,
@@ -160,7 +163,7 @@ func TestAcceptReturnOrderHasNotBeenIssued(t *testing.T) {
 func TestAcceptReturnOrderCantBeReturnedAfter48Hours(t *testing.T) {
 	ost := setupStorage(t)
 	storageUntil, _ := time.Parse(time.DateOnly, "2024-06-29")
-	order := storage.Order{
+	order := entities.Order{
 		ID:           "1",
 		RecipientID:  "2",
 		StorageUntil: storageUntil,
@@ -179,7 +182,7 @@ func TestAcceptReturnOrderCantBeReturnedAfter48Hours(t *testing.T) {
 func TestAcceptReturnSuccessful(t *testing.T) {
 	ost := setupStorage(t)
 	storageUntil, _ := time.Parse(time.DateOnly, "2024-06-29")
-	order := storage.Order{
+	order := entities.Order{
 		ID:           "1",
 		RecipientID:  "2",
 		StorageUntil: storageUntil,

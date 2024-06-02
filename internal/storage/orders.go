@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"encoding/json"
-	"errors"
+	"bufio"
 	"fmt"
+	"homework-1/internal/entities"
+	"homework-1/internal/file"
 	"homework-1/internal/util"
 	"homework-1/pkg/hash"
 	"log"
@@ -13,37 +14,27 @@ import (
 	"time"
 )
 
-type Order struct {
-	ID           string    `json:"id"`
-	RecipientID  string    `json:"r_id"`
-	StorageUntil time.Time `json:"storage_until"`
-	Issued       bool      `json:"issued"`
-	IssuedAt     time.Time `json:"issued_at"`
-	Returned     bool      `json:"returned"`
-	Hash         string    `json:"hash"`
-}
-
 type OrderStorage struct {
-	fileName string
+	fileService file.FileService
 	//To optimize search
-	orders map[string]Order
+	orders map[string]entities.Order
 
 	//To keep order in ListReturns and ListOrders
 	orderIDs []string
 }
 
-func NewOrderStorage(fileName string) OrderStorage {
-	return OrderStorage{
-		fileName: fileName,
-		orders:   make(map[string]Order),
-		orderIDs: []string{},
+func NewOrderStorage(fs file.FileService) *OrderStorage {
+	return &OrderStorage{
+		fileService: fs,
+		orders:      make(map[string]entities.Order),
+		orderIDs:    []string{},
 	}
 }
 
-func (ost OrderStorage) AcceptOrder(order Order) error {
-	if _, err := os.Stat(ost.fileName); errors.Is(err, os.ErrNotExist) {
-		if errCreateFile := ost.createFile(); errCreateFile != nil {
-			return errCreateFile
+func (ost *OrderStorage) AcceptOrder(order entities.Order) error {
+	if err := ost.fileService.CheckFile(); err != nil {
+		if err = ost.fileService.CreateFile(); err != nil {
+			return err
 		}
 	}
 	if !order.StorageUntil.After(time.Now()) {
@@ -57,7 +48,6 @@ func (ost OrderStorage) AcceptOrder(order Order) error {
 	}
 
 	fmt.Println("Calculating hash...")
-
 	//to skip generating in tests
 	if len(order.Hash) == 0 {
 		order.Hash = hash.GenerateHash()
@@ -66,11 +56,11 @@ func (ost OrderStorage) AcceptOrder(order Order) error {
 	ost.orders[order.ID] = order
 
 	fmt.Println("Order accepted.")
-	return ost.writeOrders(ost.orders)
+	return ost.fileService.Write(ost.orders)
 }
 
-func (ost OrderStorage) ReturnOrderToCourier(orderID string) error {
-	var order Order
+func (ost *OrderStorage) ReturnOrderToCourier(orderID string) error {
+	var order entities.Order
 	if v, exists := ost.orders[orderID]; exists {
 		order = v
 	} else {
@@ -87,17 +77,17 @@ func (ost OrderStorage) ReturnOrderToCourier(orderID string) error {
 
 	delete(ost.orders, orderID)
 	log.Println("Order returned.")
-	return ost.writeOrders(ost.orders)
+	return ost.fileService.Write(ost.orders)
 }
 
-func (ost OrderStorage) IssueOrders(orderIDs []string) error {
+func (ost *OrderStorage) IssueOrders(orderIDs []string) error {
 	if len(orderIDs) == 0 {
 		return util.OrderIdsNotProvidedError{}
 	}
 
 	var recipientID string
 	for i, orderID := range orderIDs {
-		var order Order
+		var order entities.Order
 		if v, exists := ost.orders[orderID]; exists {
 			order = v
 		} else {
@@ -127,11 +117,11 @@ func (ost OrderStorage) IssueOrders(orderIDs []string) error {
 		ost.orders[order.ID] = order
 		log.Println("Order issued.")
 	}
-	return ost.writeOrders(ost.orders)
+	return ost.fileService.Write(ost.orders)
 }
 
-func (ost OrderStorage) AcceptReturn(orderID, userID string) error {
-	var order Order
+func (ost *OrderStorage) AcceptReturn(orderID, userID string) error {
+	var order entities.Order
 	if v, exists := ost.orders[orderID]; exists {
 		order = v
 	} else {
@@ -152,10 +142,10 @@ func (ost OrderStorage) AcceptReturn(orderID, userID string) error {
 	ost.orders[order.ID] = order
 
 	fmt.Println("Return accepted.")
-	return ost.writeOrders(ost.orders)
+	return ost.fileService.Write(ost.orders)
 }
 
-func (ost OrderStorage) ListReturns(page, pageSize int) error {
+func (ost *OrderStorage) ListReturns(page, pageSize int) error {
 	start := (page - 1) * pageSize
 	if start >= len(ost.orderIDs) {
 		return nil
@@ -166,7 +156,7 @@ func (ost OrderStorage) ListReturns(page, pageSize int) error {
 		end = len(ost.orderIDs)
 	}
 
-	var returns []Order
+	var returns []entities.Order
 	for _, id := range ost.orderIDs[start:end] {
 		returns = append(returns, ost.orders[id])
 	}
@@ -174,8 +164,9 @@ func (ost OrderStorage) ListReturns(page, pageSize int) error {
 	return nil
 }
 
-func (ost OrderStorage) ListOrders(userID string, limit int) error {
-	var userOrders []Order
+func (ost *OrderStorage) ListOrders(userID string, limit int) error {
+	var userOrders []entities.Order
+
 	//If Order issued it cant be displayed
 	for _, id := range ost.orderIDs {
 		order := ost.orders[id]
@@ -196,24 +187,30 @@ func (ost OrderStorage) ListOrders(userID string, limit int) error {
 	return nil
 }
 
-func (ost OrderStorage) createFile() error {
-	f, err := os.Create(ost.fileName)
+func (ost *OrderStorage) UpdateCache() error {
+	fmt.Println("Updating cache")
+	writer := bufio.NewWriter(os.Stdout)
+
+	var err error
+	ost.orders, ost.orderIDs, err = ost.fileService.Read()
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	for i := 0; i < 4; i++ {
+		fmt.Fprint(writer, ". ")
+		writer.Flush()
+		time.Sleep(500 * time.Millisecond)
+	}
+	fmt.Fprintln(writer)
+	writer.Flush()
 	return nil
 }
 
-func (ost OrderStorage) writeOrders(orders map[string]Order) error {
-	bWrite, err := json.MarshalIndent(orders, "", "  ")
-	if err != nil {
-		return err
+func (ost *OrderStorage) PrintList(orders []entities.Order) {
+	if len(orders) == 0 {
+		fmt.Println("There are no orders or they all issued!")
+		return
 	}
-	return os.WriteFile(ost.fileName, bWrite, 0666)
-}
-
-func (ost OrderStorage) PrintList(orders []Order) {
 	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "RecipientID", "StorageUntil", "Issued", "IssuedAt", "Returned")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range orders {

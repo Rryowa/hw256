@@ -1,5 +1,11 @@
 package util
 
+type CreateFileError struct{}
+
+func (e CreateFileError) Error() string {
+	return "create file error"
+}
+
 type InvalidDateError struct{}
 
 func (e InvalidDateError) Error() string {

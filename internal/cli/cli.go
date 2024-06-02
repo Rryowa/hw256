@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"homework-1/internal/storage"
+	"homework-1/internal/entities"
 	"log"
 	"os"
 	"strconv"
@@ -14,7 +14,8 @@ import (
 )
 
 type Service interface {
-	AcceptOrder(order storage.Order) error
+	UpdateCache() error
+	AcceptOrder(order entities.Order) error
 	ReturnOrderToCourier(orderID string) error
 	IssueOrders(orderIDs []string) error
 	AcceptReturn(orderID, userID string) error
@@ -69,6 +70,7 @@ func NewCLI(s Service) CLI {
 
 func (c CLI) Run() error {
 	scanner := bufio.NewScanner(os.Stdin)
+	c.updateCache()
 	for {
 		fmt.Print("> ")
 		scanner.Scan()
@@ -115,6 +117,10 @@ func (c CLI) Run() error {
 	}
 }
 
+func (c CLI) updateCache() error {
+	return c.Service.UpdateCache()
+}
+
 func (c CLI) acceptOrder(args []string) error {
 	var id, recipientId, dateStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
@@ -137,7 +143,7 @@ func (c CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	return c.Service.AcceptOrder(storage.Order{
+	return c.Service.AcceptOrder(entities.Order{
 		ID:           id,
 		RecipientID:  recipientId,
 		Issued:       false,
