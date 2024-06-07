@@ -6,35 +6,38 @@ import (
 	"flag"
 	"fmt"
 	"homework-1/internal/entities"
+	"homework-1/internal/service"
 	"log"
 	"os"
+	"os/signal"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 )
 
-type Service interface {
-	UpdateCache() error
-	AcceptOrder(order entities.Order) error
-	ReturnOrderToCourier(orderID string) error
-	IssueOrders(orderIDs []string) error
-	AcceptReturn(orderID, userID string) error
-	ListReturns(page, pageSize int) error
-	ListOrders(userID string, limit int) error
-}
-
 type CLI struct {
-	Service
-	commandList []command
+	validationService service.ValidationService
+	orderService      service.OrderService
+	fileService       service.FileService
+	commandList       []command
+
+	goroutineIDCounter uint64
+	workerPool         chan struct{}
 }
 
-func NewCLI(s Service) CLI {
-	return CLI{
-		Service: s,
+func NewCLI(v service.ValidationService, o service.OrderService, f service.FileService) *CLI {
+	return &CLI{
+		validationService: v,
+		orderService:      o,
+		fileService:       f,
 		commandList: []command{
 			{
 				name:        help,
-				description: "Cправка",
+				description: "Справка",
 			},
 			{
 				name:        acceptOrder,
@@ -61,6 +64,10 @@ func NewCLI(s Service) CLI {
 				description: "Список заказов: list_orders -u_id=1 -limit=3",
 			},
 			{
+				name:        setWorkers,
+				description: "Количество работающих гоферов: set_workers -n=1",
+			},
+			{
 				name:        exit,
 				description: "Выход",
 			},
@@ -68,91 +75,198 @@ func NewCLI(s Service) CLI {
 	}
 }
 
-func (c CLI) Run() error {
+func (c *CLI) Run() error {
+	if err := c.updateCache(); err != nil {
+		return err
+	}
 	scanner := bufio.NewScanner(os.Stdin)
-	c.updateCache()
-	for {
-		fmt.Print("> ")
-		scanner.Scan()
-		input := scanner.Text()
-		if len(input) == 0 {
-			fmt.Println("command isn't set")
-			continue
-		}
+	commandChannel := make(chan struct {
+		input string
+		gid   uint64
+	})
+	var wg sync.WaitGroup
 
-		args := strings.Split(input, " ")
-		commandName := args[0]
-		switch commandName {
-		case help:
-			c.help()
-		case acceptOrder:
-			if err := c.acceptOrder(args[1:]); err != nil {
-				log.Println(err)
+	c.workerPool = make(chan struct{}, runtime.GOMAXPROCS(0))
+
+	// Handle shutdown
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+
+	done := make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case <-signalChannel:
+				fmt.Println("\nReceived shutdown signal")
+				close(done)
+				close(commandChannel)
+				return
+			case cmd, ok := <-commandChannel:
+				if !ok {
+					return
+				}
+				//Выделить гофера для работы
+				c.workerPool <- struct{}{}
+				wg.Add(1)
+				go func(input string, gid uint64) {
+					defer func() {
+						wg.Done()
+						//Gopher is free
+						<-c.workerPool
+						//Decrement goroutine id
+						atomic.AddUint64(&c.goroutineIDCounter, ^uint64(0))
+					}()
+					c.processCommand(input, gid)
+				}(cmd.input, cmd.gid)
 			}
-		case returnOrderToCourier:
-			if err := c.returnOrderToCourier(args[1:]); err != nil {
-				log.Println(err)
-			}
-		case issueOrders:
-			if err := c.issueOrders(args[1:]); err != nil {
-				log.Println(err)
-			}
-		case acceptReturn:
-			if err := c.acceptReturn(args[1:]); err != nil {
-				log.Println(err)
-			}
-		case listReturns:
-			if err := c.listReturns(args[1:]); err != nil {
-				log.Println(err)
-			}
-		case listOrders:
-			if err := c.listOrders(args[1:]); err != nil {
-				log.Println(err)
-			}
-		case "exit":
-			return nil
-		default:
-			fmt.Println("Unknown command. Type 'help' for a list of commands.")
 		}
+	}()
+
+	go func() {
+		for {
+			if scanner.Scan() {
+				input := scanner.Text()
+				if len(input) > 0 {
+					gid := atomic.AddUint64(&c.goroutineIDCounter, 1) - 1
+					select {
+					case commandChannel <- struct {
+						input string
+						gid   uint64
+					}{input, gid}:
+					case <-done:
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	<-done    // Block until done is closed
+	wg.Wait() // Wait for all goroutines to finish
+	fmt.Println("All goroutines finished. Exiting...")
+	return nil
+}
+
+func (c *CLI) processCommand(input string, gid uint64) {
+	args := strings.Split(input, " ")
+	commandName := args[0]
+
+	fmt.Printf("\nGoroutine %d started %s task...\n", gid, commandName)
+	defer func(gid uint64) {
+		fmt.Printf("Goroutine %d finished %s task!\n", gid, commandName)
+	}(gid)
+
+	switch commandName {
+	case help:
+		c.help()
+	case acceptOrder:
+		if err := c.acceptOrder(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case returnOrderToCourier:
+		if err := c.returnOrderToCourier(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case issueOrders:
+		if err := c.issueOrders(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case acceptReturn:
+		if err := c.acceptReturn(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case listReturns:
+		if err := c.listReturns(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case listOrders:
+		if err := c.listOrders(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case setWorkers:
+		if err := c.setWorkers(args[1:]); err != nil {
+			log.Println(err)
+		}
+	case exit:
+		os.Exit(0)
+	default:
+		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
 }
 
-func (c CLI) updateCache() error {
-	return c.Service.UpdateCache()
+func (c *CLI) setWorkers(args []string) error {
+	var ns string
+	fs := flag.NewFlagSet(setWorkers, flag.ContinueOnError)
+	fs.StringVar(&ns, "n", "0", "use -n=1")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if len(ns) == 0 {
+		return errors.New("number of goroutines is required")
+	}
+	n, err := strconv.Atoi(ns)
+	if err != nil {
+		return errors.Join(err, errors.New("invalid argument"))
+	}
+	if n < 1 {
+		return errors.New("number of goroutines must be > 0")
+	}
+
+	newPool := make(chan struct{}, n)
+
+	// Move gophers to the new pool
+	for i := 0; i < cap(c.workerPool); i++ {
+		select {
+		case w := <-c.workerPool:
+			newPool <- w
+		default:
+			// No more gophers in the old pool
+			break
+		}
+	}
+
+	close(c.workerPool)
+
+	c.workerPool = newPool
+
+	fmt.Printf("Number of goroutines set to %d\n", n)
+	return nil
 }
 
-func (c CLI) acceptOrder(args []string) error {
-	var id, recipientId, dateStr string
+func (c *CLI) updateCache() error {
+	if err := c.fileService.CheckFile(); err != nil {
+		return err
+	}
+
+	return c.orderService.UpdateCache()
+}
+
+func (c *CLI) acceptOrder(args []string) error {
+	var id, userId, dateStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
 	fs.StringVar(&id, "id", "0", "use -id=12345")
-	fs.StringVar(&recipientId, "u_id", "0", "use -u_id=54321")
+	fs.StringVar(&userId, "u_id", "0", "use -u_id=54321")
 	fs.StringVar(&dateStr, "date", "0", "use -date=2024-06-06")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if len(id) == 0 {
-		return errors.New("id is empty")
-	}
-	if len(recipientId) == 0 {
-		return errors.New("recipient id is empty")
-	}
-	storageUntil, err := time.Parse(time.DateOnly, dateStr)
-	if err != nil {
-		log.Println("error parsing date:", err)
+
+	if err := c.validationService.AcceptValidation(id, userId, dateStr); err != nil {
 		return err
 	}
 
-	return c.Service.AcceptOrder(entities.Order{
-		ID:           id,
-		RecipientID:  recipientId,
-		Issued:       false,
-		Returned:     false,
-		StorageUntil: storageUntil,
-	})
+	orders := c.orderService.AcceptOrder(id, userId, dateStr)
+
+	if err := c.fileService.Write(orders); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c CLI) returnOrderToCourier(args []string) error {
+func (c *CLI) returnOrderToCourier(args []string) error {
 	var id string
 	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
 	fs.StringVar(&id, "id", "0", "use -id=12345")
@@ -160,14 +274,21 @@ func (c CLI) returnOrderToCourier(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if len(id) == 0 {
-		return errors.New("id is empty")
+
+	if err := c.validationService.ReturnToCourierValidation(id); err != nil {
+		return err
 	}
 
-	return c.Service.ReturnOrderToCourier(id)
+	orders := c.orderService.ReturnOrderToCourier(id)
+
+	if err := c.fileService.Write(orders); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c CLI) issueOrders(args []string) error {
+func (c *CLI) issueOrders(args []string) error {
 	var idString string
 	fs := flag.NewFlagSet(issueOrders, flag.ContinueOnError)
 	fs.StringVar(&idString, "ids", "", "use -ids=1,2,3")
@@ -175,28 +296,43 @@ func (c CLI) issueOrders(args []string) error {
 		return err
 	}
 	ids := strings.Split(idString, ",")
-	return c.Service.IssueOrders(ids)
+
+	if err := c.validationService.IssueValidation(ids); err != nil {
+		return err
+	}
+
+	orders := c.orderService.IssueOrders(ids)
+
+	if err := c.fileService.Write(orders); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c CLI) acceptReturn(args []string) error {
-	var id, recipientId string
+func (c *CLI) acceptReturn(args []string) error {
+	var id, userId string
 	fs := flag.NewFlagSet(acceptReturn, flag.ContinueOnError)
 	fs.StringVar(&id, "id", "0", "use -id=12345")
-	fs.StringVar(&recipientId, "u_id", "0", "use -u_id=54321")
+	fs.StringVar(&userId, "u_id", "0", "use -u_id=54321")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if len(id) == 0 {
-		return errors.New("id is empty")
-	}
-	if len(recipientId) == 0 {
-		return errors.New("recipient id is empty")
+
+	if err := c.validationService.ReturnValidation(id, userId); err != nil {
+		return err
 	}
 
-	return c.Service.AcceptReturn(id, recipientId)
+	orders := c.orderService.AcceptReturn(id)
+
+	if err := c.fileService.Write(orders); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (c CLI) listReturns(args []string) error {
+func (c *CLI) listReturns(args []string) error {
 	var page, size string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
 	fs.StringVar(&page, "page", "0", "use -page=1")
@@ -214,10 +350,11 @@ func (c CLI) listReturns(args []string) error {
 		return err
 	}
 
-	return c.Service.ListReturns(p, ps)
+	printList(c.orderService.ListReturns(p, ps))
+	return nil
 }
 
-func (c CLI) listOrders(args []string) error {
+func (c *CLI) listOrders(args []string) error {
 	var userId, limit string
 	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
 	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
@@ -232,10 +369,31 @@ func (c CLI) listOrders(args []string) error {
 		return err
 	}
 
-	return c.Service.ListOrders(userId, l)
+	printList(c.orderService.ListOrders(userId, l))
+	return nil
 }
 
-func (c CLI) help() {
+func printList(Orders []entities.Order) {
+	if len(Orders) == 0 {
+		fmt.Println("There are no Orders or they all issued!")
+		return
+	}
+	//To prettify output
+	time.Sleep(500 * time.Millisecond)
+	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
+	fmt.Println(strings.Repeat("-", 100))
+	for _, order := range Orders {
+		fmt.Printf("%-20s %-20s %-20s %-10v %-20s %-10v\n",
+			order.ID,
+			order.UserID,
+			order.StorageUntil.Format("2006-01-02 15:04:05"),
+			order.Issued,
+			order.IssuedAt.Format("2006-01-02 15:04:05"),
+			order.Returned)
+	}
+}
+
+func (c *CLI) help() {
 	fmt.Println("Command list:")
 	fmt.Printf("%-15s | %-25s | %s\n", "Command", "Description", "Example")
 	fmt.Println("---------------------------------------------------------------------------------------------------")

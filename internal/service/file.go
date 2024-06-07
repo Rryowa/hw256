@@ -1,4 +1,4 @@
-package file
+package service
 
 import (
 	"encoding/json"
@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"homework-1/internal/entities"
 	"os"
+	"sync"
 )
 
-// FileService defines file operations
+// FileService defines storage operations
 type FileService interface {
-	CreateFile() error
 	CheckFile() error
 	Write(map[string]entities.Order) error
 	Read() (map[string]entities.Order, []string, error)
+	IsEmpty() (bool, error)
 }
 
 type file struct {
 	fileName string
+	mu       sync.Mutex
 }
 
 func NewFileService(fileName string) FileService {
@@ -26,23 +28,18 @@ func NewFileService(fileName string) FileService {
 
 func (fs *file) CheckFile() error {
 	if _, err := os.Stat(fs.fileName); errors.Is(err, os.ErrNotExist) {
-		return os.ErrNotExist
-	} else {
-		return nil
+		file, err := os.Create(fs.fileName)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 	}
-}
-
-func (fs *file) CreateFile() error {
-	file, err := os.Create(fs.fileName)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer file.Close()
-
 	return nil
 }
 
 func (fs *file) Write(orders map[string]entities.Order) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 	bWrite, err := json.MarshalIndent(orders, "", "  ")
 	if err != nil {
 		return err
@@ -51,9 +48,11 @@ func (fs *file) Write(orders map[string]entities.Order) error {
 }
 
 func (fs *file) Read() (map[string]entities.Order, []string, error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
 	file, err := os.Open(fs.fileName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open file: %w", err)
+		return nil, nil, fmt.Errorf("failed to open storage: %w", err)
 	}
 	defer file.Close()
 
@@ -69,4 +68,18 @@ func (fs *file) Read() (map[string]entities.Order, []string, error) {
 	}
 
 	return orders, ids, nil
+}
+
+func (fs *file) IsEmpty() (bool, error) {
+	if err := fs.CheckFile(); err != nil {
+		return false, err
+	}
+	file, err := os.Stat(fs.fileName)
+	if err != nil {
+		return false, err
+	}
+	if file.Size() != 0 {
+		return false, nil
+	}
+	return true, nil
 }

@@ -1,0 +1,127 @@
+package service
+
+import (
+	"errors"
+	"homework-1/internal/entities"
+	"homework-1/internal/storage"
+	"homework-1/internal/util"
+	"strconv"
+	"time"
+)
+
+var o = entities.Order{}
+
+type ValidationService interface {
+	AcceptValidation(id, userId, dateStr string) error
+	ReturnToCourierValidation(id string) error
+	IssueValidation(ids []string) error
+	ReturnValidation(id, userId string) error
+}
+
+type orderValidator struct {
+	storage *storage.OrderStorage
+}
+
+func NewOrderValidator(storage *storage.OrderStorage) ValidationService {
+	return &orderValidator{storage: storage}
+}
+
+func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
+	storageUntil, err := time.Parse(time.DateOnly, dateStr)
+	if err != nil {
+		return errors.New("error parsing date")
+	}
+	if storageUntil.Before(time.Now()) {
+		return util.InvalidDateError{}
+	}
+
+	if len(id) == 0 {
+		return util.OrderIdsNotProvidedError{}
+	}
+
+	if len(userId) == 0 {
+		return util.UserIdIsNotProvided{}
+	}
+
+	if v.storage.Exists(id) {
+		return util.ExistingOrderError{}
+	}
+
+	return nil
+}
+
+func (v *orderValidator) ReturnToCourierValidation(id string) error {
+	if len(id) == 0 {
+		return util.OrderIdsNotProvidedError{}
+	}
+
+	if !v.storage.Exists(id) {
+		return util.OrderNotFoundError{}
+	}
+
+	_, err := strconv.Atoi(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *orderValidator) IssueValidation(ids []string) error {
+	if len(ids) == 0 {
+		return util.UserIdIsNotProvided{}
+	}
+
+	var recipientID string
+	for i, id := range ids {
+		if !v.storage.Exists(id) {
+			return util.OrderNotFoundError{}
+		}
+		order := v.storage.Get(id)
+
+		if time.Now().After(order.StorageUntil) {
+			return util.OrderIsExpiredError{}
+		}
+		if order.Issued {
+			return util.OrderIssuedError{}
+		}
+		if order.Returned {
+			return util.OrdersReturnedError{}
+		}
+
+		//check if recipients equal
+		if i == 0 {
+			recipientID = order.UserID
+		} else {
+			if order.UserID != recipientID {
+				return util.OrdersRecipientDiffersError{}
+			}
+		}
+	}
+	return nil
+}
+
+func (v *orderValidator) ReturnValidation(id, userId string) error {
+	if len(id) == 0 {
+		return util.OrderIdsNotProvidedError{}
+	}
+
+	if len(userId) == 0 {
+		return util.UserIdIsNotProvided{}
+	}
+
+	if !v.storage.Exists(id) {
+		return util.OrderNotFoundError{}
+	}
+	order := v.storage.Get(id)
+
+	if order.UserID != userId {
+		return util.OrderDoesNotBelongError{}
+	}
+	if !order.Issued {
+		return util.OrderHasNotBeenIssuedError{}
+	}
+	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
+		return util.OrderCantBeReturnedError{}
+	}
+	return nil
+}
