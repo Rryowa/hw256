@@ -2,14 +2,11 @@ package service
 
 import (
 	"errors"
-	"homework-1/internal/entities"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"strconv"
 	"time"
 )
-
-var o = entities.Order{}
 
 type ValidationService interface {
 	AcceptValidation(id, userId, dateStr string) error

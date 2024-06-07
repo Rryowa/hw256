@@ -66,8 +66,8 @@ func NewCLI(v service.ValidationService, o service.OrderService, f service.FileS
 				description: "Список заказов: list_orders -u_id=1 -limit=3",
 			},
 			{
-				name:        setWorkers,
-				description: "Количество работающих гоферов: set_workers -n=1",
+				name:        setMaxGoroutines,
+				description: "Максимальное кол-во горутин: set_mg -n=1",
 			},
 			{
 				name:        exit,
@@ -79,7 +79,6 @@ func NewCLI(v service.ValidationService, o service.OrderService, f service.FileS
 	return cli
 }
 
-// TODO: START OF REFACTOR
 func (c *CLI) Run() error {
 	if err := c.updateCache(); err != nil {
 		return err
@@ -89,7 +88,7 @@ func (c *CLI) Run() error {
 	commandChannel := make(chan string)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
-	err := c.setWorkers([]string{"-n", strconv.Itoa(runtime.GOMAXPROCS(0))})
+	err := c.setMaxGoroutines([]string{"-n", strconv.Itoa(runtime.GOMAXPROCS(0))})
 	if err != nil {
 		return err
 	}
@@ -125,9 +124,6 @@ func (c *CLI) Run() error {
 					c.cond.Signal()
 					c.mu.Unlock()
 				}(cmd)
-				//TODO:remove
-			case <-done:
-				return
 			}
 		}
 	}()
@@ -153,9 +149,9 @@ func (c *CLI) Run() error {
 	return nil
 }
 
-func (c *CLI) setWorkers(args []string) error {
+func (c *CLI) setMaxGoroutines(args []string) error {
 	var ns string
-	fs := flag.NewFlagSet(setWorkers, flag.ContinueOnError)
+	fs := flag.NewFlagSet(setMaxGoroutines, flag.ContinueOnError)
 	fs.StringVar(&ns, "n", "0", "use -n=1")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -216,8 +212,8 @@ func (c *CLI) processCommand(input string, gid uint64) {
 		if err := c.listOrders(args[1:]); err != nil {
 			log.Println(err)
 		}
-	case setWorkers:
-		if err := c.setWorkers(args[1:]); err != nil {
+	case setMaxGoroutines:
+		if err := c.setMaxGoroutines(args[1:]); err != nil {
 			log.Println(err)
 		}
 	case exit:
@@ -372,7 +368,7 @@ func printList(Orders []entities.Order) {
 		return
 	}
 	//To prettify output
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(250 * time.Millisecond)
 	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range Orders {

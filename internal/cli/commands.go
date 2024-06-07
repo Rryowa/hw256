@@ -8,7 +8,7 @@ const (
 	acceptReturn         = "accept_return"
 	listReturns          = "list_returns"
 	listOrders           = "list_orders"
-	setWorkers           = "set_workers"
+	setMaxGoroutines     = "set_mg"
 	exit                 = "exit"
 )
 
