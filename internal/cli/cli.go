@@ -25,12 +25,14 @@ type CLI struct {
 	fileService       service.FileService
 	commandList       []command
 
-	goroutineIDCounter uint64
-	workerPool         chan struct{}
+	maxGoroutines    uint64
+	activeGoroutines uint64
+	mu               sync.Mutex
+	cond             *sync.Cond
 }
 
 func NewCLI(v service.ValidationService, o service.OrderService, f service.FileService) *CLI {
-	return &CLI{
+	cli := &CLI{
 		validationService: v,
 		orderService:      o,
 		fileService:       f,
@@ -73,26 +75,27 @@ func NewCLI(v service.ValidationService, o service.OrderService, f service.FileS
 			},
 		},
 	}
+	cli.cond = sync.NewCond(&cli.mu)
+	return cli
 }
 
+// TODO: START OF REFACTOR
 func (c *CLI) Run() error {
 	if err := c.updateCache(); err != nil {
 		return err
 	}
 	scanner := bufio.NewScanner(os.Stdin)
-	commandChannel := make(chan struct {
-		input string
-		gid   uint64
-	})
-	var wg sync.WaitGroup
 
-	c.workerPool = make(chan struct{}, runtime.GOMAXPROCS(0))
-
-	// Handle shutdown
+	commandChannel := make(chan string)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+	err := c.setWorkers([]string{"-n", strconv.Itoa(runtime.GOMAXPROCS(0))})
+	if err != nil {
+		return err
+	}
 
 	done := make(chan struct{})
+	var wg sync.WaitGroup
 
 	go func() {
 		for {
@@ -106,19 +109,25 @@ func (c *CLI) Run() error {
 				if !ok {
 					return
 				}
-				//Выделить гофера для работы
-				c.workerPool <- struct{}{}
+				for atomic.LoadUint64(&c.activeGoroutines) >= atomic.LoadUint64(&c.maxGoroutines) {
+					c.mu.Lock()
+					c.cond.Wait()
+					c.mu.Unlock()
+				}
+				atomic.AddUint64(&c.activeGoroutines, 1)
+
 				wg.Add(1)
-				go func(input string, gid uint64) {
-					defer func() {
-						wg.Done()
-						//Gopher is free
-						<-c.workerPool
-						//Decrement goroutine id
-						atomic.AddUint64(&c.goroutineIDCounter, ^uint64(0))
-					}()
-					c.processCommand(input, gid)
-				}(cmd.input, cmd.gid)
+				go func(cmd string) {
+					defer wg.Done()
+					c.processCommand(cmd, atomic.LoadUint64(&c.activeGoroutines))
+					atomic.AddUint64(&c.activeGoroutines, ^uint64(0))
+					c.mu.Lock()
+					c.cond.Signal()
+					c.mu.Unlock()
+				}(cmd)
+				//TODO:remove
+			case <-done:
+				return
 			}
 		}
 	}()
@@ -128,12 +137,8 @@ func (c *CLI) Run() error {
 			if scanner.Scan() {
 				input := scanner.Text()
 				if len(input) > 0 {
-					gid := atomic.AddUint64(&c.goroutineIDCounter, 1) - 1
 					select {
-					case commandChannel <- struct {
-						input string
-						gid   uint64
-					}{input, gid}:
+					case commandChannel <- input:
 					case <-done:
 						return
 					}
@@ -145,6 +150,33 @@ func (c *CLI) Run() error {
 	<-done    // Block until done is closed
 	wg.Wait() // Wait for all goroutines to finish
 	fmt.Println("All goroutines finished. Exiting...")
+	return nil
+}
+
+func (c *CLI) setWorkers(args []string) error {
+	var ns string
+	fs := flag.NewFlagSet(setWorkers, flag.ContinueOnError)
+	fs.StringVar(&ns, "n", "0", "use -n=1")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if len(ns) == 0 {
+		return errors.New("number of goroutines is required")
+	}
+	n, err := strconv.Atoi(ns)
+	if err != nil {
+		return errors.Join(err, errors.New("invalid argument"))
+	}
+	if n < 1 {
+		return errors.New("number of goroutines must be > 0")
+	}
+
+	atomic.StoreUint64(&c.maxGoroutines, uint64(n))
+	c.mu.Lock()
+	c.cond.Broadcast()
+	c.mu.Unlock()
+
+	fmt.Printf("Number of goroutines set to %d\n", n)
 	return nil
 }
 
@@ -193,45 +225,6 @@ func (c *CLI) processCommand(input string, gid uint64) {
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
-}
-
-func (c *CLI) setWorkers(args []string) error {
-	var ns string
-	fs := flag.NewFlagSet(setWorkers, flag.ContinueOnError)
-	fs.StringVar(&ns, "n", "0", "use -n=1")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if len(ns) == 0 {
-		return errors.New("number of goroutines is required")
-	}
-	n, err := strconv.Atoi(ns)
-	if err != nil {
-		return errors.Join(err, errors.New("invalid argument"))
-	}
-	if n < 1 {
-		return errors.New("number of goroutines must be > 0")
-	}
-
-	newPool := make(chan struct{}, n)
-
-	// Move gophers to the new pool
-	for i := 0; i < cap(c.workerPool); i++ {
-		select {
-		case w := <-c.workerPool:
-			newPool <- w
-		default:
-			// No more gophers in the old pool
-			break
-		}
-	}
-
-	close(c.workerPool)
-
-	c.workerPool = newPool
-
-	fmt.Printf("Number of goroutines set to %d\n", n)
-	return nil
 }
 
 func (c *CLI) updateCache() error {
