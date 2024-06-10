@@ -88,7 +88,7 @@ func (c *CLI) Run() error {
 	commandChannel := make(chan string)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
-	err := c.setMaxGoroutines([]string{"-n", strconv.Itoa(runtime.GOMAXPROCS(0))})
+	err := c.setMaxGoroutines(fmt.Sprintf("set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))))
 	if err != nil {
 		return err
 	}
@@ -108,22 +108,35 @@ func (c *CLI) Run() error {
 				if !ok {
 					return
 				}
-				for atomic.LoadUint64(&c.activeGoroutines) >= atomic.LoadUint64(&c.maxGoroutines) {
-					c.mu.Lock()
-					c.cond.Wait()
-					c.mu.Unlock()
-				}
-				atomic.AddUint64(&c.activeGoroutines, 1)
+				if strings.HasPrefix(cmd, exit) {
+					done <- struct{}{}
+				} else if strings.HasPrefix(cmd, setMaxGoroutines) {
+					wg.Add(1)
+					go func(cmd string) {
+						defer wg.Done()
+						if err := c.setMaxGoroutines(cmd); err != nil {
+							log.Fatal(err)
+						}
+					}(cmd)
+				} else {
+					wg.Add(1)
+					go func(cmd string) {
+						defer wg.Done()
+						c.mu.Lock()
+						for atomic.LoadUint64(&c.activeGoroutines) >= atomic.LoadUint64(&c.maxGoroutines) {
+							c.cond.Wait()
+						}
+						c.mu.Unlock()
 
-				wg.Add(1)
-				go func(cmd string) {
-					defer wg.Done()
-					c.processCommand(cmd, atomic.LoadUint64(&c.activeGoroutines))
-					atomic.AddUint64(&c.activeGoroutines, ^uint64(0))
-					c.mu.Lock()
-					c.cond.Signal()
-					c.mu.Unlock()
-				}(cmd)
+						atomic.AddUint64(&c.activeGoroutines, 1)
+						c.processCommand(cmd, atomic.LoadUint64(&c.activeGoroutines))
+						atomic.AddUint64(&c.activeGoroutines, ^uint64(0))
+
+						c.mu.Lock()
+						c.cond.Signal()
+						c.mu.Unlock()
+					}(cmd)
+				}
 			}
 		}
 	}()
@@ -149,7 +162,9 @@ func (c *CLI) Run() error {
 	return nil
 }
 
-func (c *CLI) setMaxGoroutines(args []string) error {
+func (c *CLI) setMaxGoroutines(input string) error {
+	args := strings.Split(input, " ")
+	args = args[1:]
 	var ns string
 	fs := flag.NewFlagSet(setMaxGoroutines, flag.ContinueOnError)
 	fs.StringVar(&ns, "n", "0", "use -n=1")
@@ -168,9 +183,6 @@ func (c *CLI) setMaxGoroutines(args []string) error {
 	}
 
 	atomic.StoreUint64(&c.maxGoroutines, uint64(n))
-	c.mu.Lock()
-	c.cond.Broadcast()
-	c.mu.Unlock()
 
 	fmt.Printf("Number of goroutines set to %d\n", n)
 	return nil
@@ -212,12 +224,6 @@ func (c *CLI) processCommand(input string, gid uint64) {
 		if err := c.listOrders(args[1:]); err != nil {
 			log.Println(err)
 		}
-	case setMaxGoroutines:
-		if err := c.setMaxGoroutines(args[1:]); err != nil {
-			log.Println(err)
-		}
-	case exit:
-		os.Exit(0)
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
