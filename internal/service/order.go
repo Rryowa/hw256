@@ -42,10 +42,29 @@ func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entit
 		StorageUntil: storageUntil,
 	}
 
-	fmt.Println("Calculating hash...")
-	// to skip generating in tests
-	order.Hash = hash.GenerateHash()
+	fmt.Print("Calculating hash.")
 
+	ticker := time.NewTicker(time.Second)
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				fmt.Print(" .")
+			}
+		}
+	}()
+
+	go func(order *entities.Order, ticker *time.Ticker, done chan struct{}) {
+		order.Hash = hash.GenerateHash()
+		ticker.Stop()
+		done <- struct{}{}
+	}(&order, ticker, done)
+
+	<-done
+	fmt.Println()
 	log.Println("Order accepted.")
 
 	os.storage.Add(order)

@@ -13,6 +13,7 @@ type ValidationService interface {
 	ReturnToCourierValidation(id string) error
 	IssueValidation(ids []string) error
 	ReturnValidation(id, userId string) error
+	SetMaxGoroutinesValidation(ns string) error
 }
 
 type orderValidator struct {
@@ -119,6 +120,20 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 	}
 	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
 		return util.OrderCantBeReturnedError{}
+	}
+	return nil
+}
+
+func (v *orderValidator) SetMaxGoroutinesValidation(ns string) error {
+	if len(ns) == 0 {
+		return errors.New("number of goroutines is required")
+	}
+	n, err := strconv.Atoi(ns)
+	if err != nil {
+		return errors.Join(err, errors.New("invalid argument"))
+	}
+	if n < 1 {
+		return errors.New("number of goroutines must be > 0")
 	}
 	return nil
 }
