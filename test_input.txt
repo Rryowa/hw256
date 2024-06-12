@@ -23,6 +23,7 @@ accept -id=1 -u_id=1 -date=2077-07-07
 accept -id=2 -u_id=1 -date=2077-07-07
 accept -id=3 -u_id=1 -date=2077-07-07
 accept -id=4 -u_id=1 -date=2077-07-07
+
 (wait)
 
 return_courier -id=1
