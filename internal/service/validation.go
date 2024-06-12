@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"homework-1/internal/entities"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"strconv"
@@ -13,6 +14,8 @@ type ValidationService interface {
 	ReturnToCourierValidation(id string) error
 	IssueValidation(ids []string) error
 	ReturnValidation(id, userId string) error
+	ListReturnsValidation(page, size string) ([]entities.Order, error)
+	ListOrdersValidation(userId, limit string) ([]entities.Order, error)
 }
 
 type orderValidator struct {
@@ -128,4 +131,24 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 		return util.OrderCantBeReturnedError{}
 	}
 	return v.fileService.Write(v.orderService.Return(order))
+}
+
+func (v *orderValidator) ListReturnsValidation(page, size string) ([]entities.Order, error) {
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+	ps, err := strconv.Atoi(size)
+	if err != nil {
+		return nil, err
+	}
+	return v.orderService.ListReturns(p, ps), nil
+}
+
+func (v *orderValidator) ListOrdersValidation(userId, limit string) ([]entities.Order, error) {
+	l, err := strconv.Atoi(limit)
+	if err != nil {
+		return nil, err
+	}
+	return v.orderService.ListOrders(userId, l), nil
 }

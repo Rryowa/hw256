@@ -22,6 +22,7 @@ func NewOrderStorage() *OrderStorage {
 func (ost *OrderStorage) DeleteAll(id string) map[string]entities.Order {
 	orderIds := ost.GetOrderIds()
 	sort.Strings(orderIds)
+	//Binary search
 	index := sort.SearchStrings(orderIds, id)
 
 	ost.Mu.Lock()
@@ -36,11 +37,6 @@ func (ost *OrderStorage) DeleteAll(id string) map[string]entities.Order {
 	ost.Mu.Unlock()
 
 	return ost.GetOrders()
-}
-
-func (ost *OrderStorage) UpdateAll(m map[string]entities.Order, ids []string) {
-	ost.updateOrders(m)
-	ost.updateOrderIds(ids)
 }
 
 func (ost *OrderStorage) Get(id string) entities.Order {
@@ -76,18 +72,10 @@ func (ost *OrderStorage) Add(order entities.Order) {
 	ost.OrderIDs = append(ost.OrderIDs, order.ID)
 }
 
-func (ost *OrderStorage) updateOrders(m map[string]entities.Order) {
+func (ost *OrderStorage) Update(order entities.Order) {
 	ost.Mu.Lock()
 	defer ost.Mu.Unlock()
-	ost.Orders = make(map[string]entities.Order, len(m))
-	ost.Orders = m
-}
-
-func (ost *OrderStorage) updateOrderIds(ids []string) {
-	ost.Mu.Lock()
-	defer ost.Mu.Unlock()
-	ost.OrderIDs = make([]string, len(ids))
-	copy(ost.OrderIDs, ids)
+	ost.Orders[order.ID] = order
 }
 
 func (ost *OrderStorage) Exists(id string) bool {

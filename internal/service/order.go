@@ -81,7 +81,7 @@ func (os *orderService) IssueOrders(OrderIDs []string) map[string]entities.Order
 		order.Issued = true
 		order.IssuedAt = time.Now()
 
-		os.storage.Add(order)
+		os.storage.Update(order)
 
 		log.Println("Order issued.")
 	}
@@ -90,7 +90,7 @@ func (os *orderService) IssueOrders(OrderIDs []string) map[string]entities.Order
 
 func (os *orderService) Return(order entities.Order) map[string]entities.Order {
 	order.Returned = true
-	os.storage.Add(order)
+	os.storage.Update(order)
 
 	log.Println("Return accepted.")
 	return os.storage.GetOrders()
