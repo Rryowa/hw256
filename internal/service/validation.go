@@ -17,11 +17,17 @@ type ValidationService interface {
 }
 
 type orderValidator struct {
-	storage *storage.OrderStorage
+	storage      *storage.OrderStorage
+	orderService OrderService
+	fileService  FileService
 }
 
-func NewOrderValidator(storage *storage.OrderStorage) ValidationService {
-	return &orderValidator{storage: storage}
+func NewOrderValidator(storage *storage.OrderStorage, orderService OrderService, fileService FileService) ValidationService {
+	return &orderValidator{
+		storage:      storage,
+		orderService: orderService,
+		fileService:  fileService,
+	}
 }
 
 func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
@@ -45,7 +51,9 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return util.ExistingOrderError{}
 	}
 
-	return nil
+	orders := v.orderService.AcceptOrder(id, userId, dateStr)
+
+	return v.fileService.Write(orders)
 }
 
 func (v *orderValidator) ReturnToCourierValidation(id string) error {

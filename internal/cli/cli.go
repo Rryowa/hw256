@@ -29,11 +29,9 @@ type CLI struct {
 	activeGoroutines uint64
 }
 
-func NewCLI(v service.ValidationService, o service.OrderService, f service.FileService) *CLI {
+func NewCLI(v service.ValidationService) *CLI {
 	return &CLI{
 		validationService: v,
-		orderService:      o,
-		fileService:       f,
 		commandList: []command{
 			{
 				name:        help,
@@ -228,17 +226,7 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	if err := c.validationService.AcceptValidation(idStr, userId, dateStr); err != nil {
-		return err
-	}
-
-	orders := c.orderService.AcceptOrder(idStr, userId, dateStr)
-
-	if err := c.fileService.Write(orders); err != nil {
-		return err
-	}
-
-	return nil
+	return c.validationService.AcceptValidation(idStr, userId, dateStr)
 }
 
 func (c *CLI) returnOrderToCourier(args []string) error {
