@@ -27,7 +27,6 @@ type CLI struct {
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
-	semaphore        chan struct{}
 }
 
 func NewCLI(v service.ValidationService, o service.OrderService, f service.FileService) *CLI {
@@ -80,31 +79,32 @@ func (c *CLI) Run() error {
 	//if err := c.updateCache(); err != nil {
 	//	return err
 	//}
-
-	c.semaphore = make(chan struct{}, 1)
 	commandChannel := make(chan string)
 	done := make(chan struct{})
+	semaphore := make(chan struct{}, 1)
+	var wg sync.WaitGroup
+
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
-	if err := c.setMaxGoroutines(fmt.Sprintf("set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))), c.semaphore); err != nil {
+	if err := c.setMaxGoroutines(fmt.Sprintf(
+		"set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))), semaphore,
+	); err != nil {
 		return err
 	}
-
-	var wg sync.WaitGroup
 
 	//Reader
 	scanner := bufio.NewScanner(os.Stdin)
 	go reader(scanner, commandChannel, done)
 
 	//Handler
-	go c.handler(signalChannel, commandChannel, c.semaphore, done, &wg)
+	go c.handler(signalChannel, commandChannel, semaphore, done, &wg)
 
 	<-done
 
 	wg.Wait()
 
 	//close where created
-	close(c.semaphore)
+	close(semaphore)
 	fmt.Println("All goroutines finished. Exiting...")
 
 	return nil

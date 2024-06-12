@@ -64,8 +64,12 @@ func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entit
 	}(&order, ticker, done)
 
 	<-done
+
+	//To prettify Ticker
+	time.Sleep(50 * time.Millisecond)
 	fmt.Println()
-	log.Println("Order accepted.")
+
+	fmt.Println("Order accepted!")
 
 	os.storage.Add(order)
 	return os.storage.GetOrders()
