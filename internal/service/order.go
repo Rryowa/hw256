@@ -17,18 +17,15 @@ type OrderService interface {
 	AcceptReturn(orderID string) map[string]entities.Order
 	ListReturns(page, pageSize int) []entities.Order
 	ListOrders(userId string, limit int) []entities.Order
-	UpdateCache() error
 }
 
 type orderService struct {
-	storage     *storage.OrderStorage
-	fileService FileService
+	storage *storage.OrderStorage
 }
 
-func NewOrderService(storage *storage.OrderStorage, service FileService) OrderService {
+func NewOrderService(storage *storage.OrderStorage) OrderService {
 	return &orderService{
-		storage:     storage,
-		fileService: service,
+		storage: storage,
 	}
 }
 
@@ -154,27 +151,4 @@ func (os *orderService) ListOrders(userId string, limit int) []entities.Order {
 	})
 
 	return userOrders
-}
-
-func (os *orderService) UpdateCache() error {
-	fmt.Println("Updating cache...")
-	if os.fileService == nil {
-		return fmt.Errorf("fileService is nil")
-	}
-
-	f, err := os.fileService.IsEmpty()
-	if err != nil {
-		return err
-	}
-	if f {
-		return nil
-	}
-	orders, orderIDs, err := os.fileService.Read()
-	if err != nil {
-		return err
-	}
-
-	os.storage.UpdateAll(orders, orderIDs)
-
-	return nil
 }
