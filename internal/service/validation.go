@@ -13,7 +13,6 @@ type ValidationService interface {
 	ReturnToCourierValidation(id string) error
 	IssueValidation(ids []string) error
 	ReturnValidation(id, userId string) error
-	SetMaxGoroutinesValidation(ns string) error
 }
 
 type orderValidator struct {
@@ -51,9 +50,7 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return util.ExistingOrderError{}
 	}
 
-	orders := v.orderService.AcceptOrder(id, userId, dateStr)
-
-	return v.fileService.Write(orders)
+	return v.fileService.Write(v.orderService.AcceptOrder(id, userId, dateStr))
 }
 
 func (v *orderValidator) ReturnToCourierValidation(id string) error {
@@ -69,7 +66,8 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return v.fileService.Write(v.orderService.ReturnOrderToCourier(id))
 }
 
 func (v *orderValidator) IssueValidation(ids []string) error {
@@ -103,7 +101,7 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 			}
 		}
 	}
-	return nil
+	return v.fileService.Write(v.orderService.IssueOrders(ids))
 }
 
 func (v *orderValidator) ReturnValidation(id, userId string) error {
@@ -129,19 +127,5 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
 		return util.OrderCantBeReturnedError{}
 	}
-	return nil
-}
-
-func (v *orderValidator) SetMaxGoroutinesValidation(ns string) error {
-	if len(ns) == 0 {
-		return errors.New("number of goroutines is required")
-	}
-	n, err := strconv.Atoi(ns)
-	if err != nil {
-		return errors.Join(err, errors.New("invalid argument"))
-	}
-	if n < 1 {
-		return errors.New("number of goroutines must be > 0")
-	}
-	return nil
+	return v.fileService.Write(v.orderService.Return(order))
 }

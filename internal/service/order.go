@@ -14,7 +14,7 @@ type OrderService interface {
 	AcceptOrder(id, userId, dateStr string) map[string]entities.Order
 	ReturnOrderToCourier(orderID string) map[string]entities.Order
 	IssueOrders(OrderIDs []string) map[string]entities.Order
-	AcceptReturn(orderID string) map[string]entities.Order
+	Return(order entities.Order) map[string]entities.Order
 	ListReturns(page, pageSize int) []entities.Order
 	ListOrders(userId string, limit int) []entities.Order
 }
@@ -88,13 +88,12 @@ func (os *orderService) IssueOrders(OrderIDs []string) map[string]entities.Order
 	return os.storage.GetOrders()
 }
 
-func (os *orderService) AcceptReturn(orderID string) map[string]entities.Order {
-	order := os.storage.Get(orderID)
+func (os *orderService) Return(order entities.Order) map[string]entities.Order {
 	order.Returned = true
 	os.storage.Add(order)
 
 	log.Println("Return accepted.")
-	return os.storage.Orders
+	return os.storage.GetOrders()
 }
 
 func (os *orderService) ListReturns(page, pageSize int) []entities.Order {

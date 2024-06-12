@@ -21,8 +21,6 @@ import (
 
 type CLI struct {
 	validationService service.ValidationService
-	orderService      service.OrderService
-	fileService       service.FileService
 	commandList       []command
 
 	maxGoroutines    uint64
@@ -161,6 +159,7 @@ func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	if len(ns) == 0 {
 		return errors.New("number of goroutines is required")
 	}
@@ -202,14 +201,14 @@ func (c *CLI) processCommand(input string) {
 		if err := c.acceptReturn(args[1:]); err != nil {
 			log.Println(err)
 		}
-	case listReturns:
-		if err := c.listReturns(args[1:]); err != nil {
-			log.Println(err)
-		}
-	case listOrders:
-		if err := c.listOrders(args[1:]); err != nil {
-			log.Println(err)
-		}
+	//case listReturns:
+	//	if err := c.listReturns(args[1:]); err != nil {
+	//		log.Println(err)
+	//	}
+	//case listOrders:
+	//	if err := c.listOrders(args[1:]); err != nil {
+	//		log.Println(err)
+	//	}
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
@@ -238,17 +237,7 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 		return err
 	}
 
-	if err := c.validationService.ReturnToCourierValidation(id); err != nil {
-		return err
-	}
-
-	orders := c.orderService.ReturnOrderToCourier(id)
-
-	if err := c.fileService.Write(orders); err != nil {
-		return err
-	}
-
-	return nil
+	return c.validationService.ReturnToCourierValidation(id)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -260,17 +249,7 @@ func (c *CLI) issueOrders(args []string) error {
 	}
 	ids := strings.Split(idString, ",")
 
-	if err := c.validationService.IssueValidation(ids); err != nil {
-		return err
-	}
-
-	orders := c.orderService.IssueOrders(ids)
-
-	if err := c.fileService.Write(orders); err != nil {
-		return err
-	}
-
-	return nil
+	return c.validationService.IssueValidation(ids)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -282,59 +261,49 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	if err := c.validationService.ReturnValidation(id, userId); err != nil {
-		return err
-	}
-
-	orders := c.orderService.AcceptReturn(id)
-
-	if err := c.fileService.Write(orders); err != nil {
-		return err
-	}
-
-	return nil
+	return c.validationService.ReturnValidation(id, userId)
 }
 
-func (c *CLI) listReturns(args []string) error {
-	var page, size string
-	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&page, "page", "0", "use -page=1")
-	fs.StringVar(&size, "size", "0", "use -size=10")
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	p, err := strconv.Atoi(page)
-	if err != nil {
-		return err
-	}
-	ps, err := strconv.Atoi(size)
-	if err != nil {
-		return err
-	}
-
-	printList(c.orderService.ListReturns(p, ps))
-	return nil
-}
-
-func (c *CLI) listOrders(args []string) error {
-	var userId, limit string
-	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
-	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
-	fs.StringVar(&limit, "limit", "0", "use -limit=3")
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	l, err := strconv.Atoi(limit)
-	if err != nil {
-		return err
-	}
-
-	printList(c.orderService.ListOrders(userId, l))
-	return nil
-}
+//func (c *CLI) listReturns(args []string) error {
+//	var page, size string
+//	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
+//	fs.StringVar(&page, "page", "0", "use -page=1")
+//	fs.StringVar(&size, "size", "0", "use -size=10")
+//
+//	if err := fs.Parse(args); err != nil {
+//		return err
+//	}
+//	p, err := strconv.Atoi(page)
+//	if err != nil {
+//		return err
+//	}
+//	ps, err := strconv.Atoi(size)
+//	if err != nil {
+//		return err
+//	}
+//
+//	printList(c.orderService.ListReturns(p, ps))
+//	return nil
+//}
+//
+//func (c *CLI) listOrders(args []string) error {
+//	var userId, limit string
+//	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
+//	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
+//	fs.StringVar(&limit, "limit", "0", "use -limit=3")
+//
+//	if err := fs.Parse(args); err != nil {
+//		return err
+//	}
+//
+//	l, err := strconv.Atoi(limit)
+//	if err != nil {
+//		return err
+//	}
+//
+//	printList(c.orderService.ListOrders(userId, l))
+//	return nil
+//}
 
 func printList(Orders []entities.Order) {
 	if len(Orders) == 0 {
