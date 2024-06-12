@@ -79,18 +79,19 @@ func (c *CLI) Run() error {
 	//if err := c.updateCache(); err != nil {
 	//	return err
 	//}
+
+	semaphore := make(chan struct{}, 1)
 	commandChannel := make(chan string)
 	done := make(chan struct{})
-	semaphore := make(chan struct{}, 1)
-	var wg sync.WaitGroup
-
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 	if err := c.setMaxGoroutines(fmt.Sprintf(
-		"set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))), semaphore,
-	); err != nil {
+		"set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))),
+		&semaphore); err != nil {
 		return err
 	}
+
+	var wg sync.WaitGroup
 
 	//Reader
 	scanner := bufio.NewScanner(os.Stdin)
@@ -110,6 +111,8 @@ func (c *CLI) Run() error {
 	return nil
 }
 
+// TODO: move signal handler to a sep goroutine
+// TODO: move setMaxGoroutines handler to a sep goroutine
 func (c *CLI) handler(signalChannel chan os.Signal, commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
 	for {
 		select {
@@ -118,13 +121,14 @@ func (c *CLI) handler(signalChannel chan os.Signal, commandChannel chan string, 
 			done <- struct{}{}
 			return
 		case cmd, ok := <-commandChannel:
+			//TODO: remove !ok?
 			if !ok {
 				return
 			}
 			if strings.HasPrefix(cmd, exit) {
 				done <- struct{}{}
 			} else if strings.HasPrefix(cmd, setMaxGoroutines) {
-				if err := c.setMaxGoroutines(cmd, semaphore); err != nil {
+				if err := c.setMaxGoroutines(cmd, &semaphore); err != nil {
 					log.Fatal(err)
 				}
 			} else {
@@ -155,6 +159,7 @@ func reader(scanner *bufio.Scanner, commandChannel chan string, done chan struct
 			if len(input) > 0 {
 				select {
 				case commandChannel <- input:
+					//TODO: remove <-done?
 				case <-done:
 					return
 				}
@@ -164,7 +169,7 @@ func reader(scanner *bufio.Scanner, commandChannel chan string, done chan struct
 }
 
 // TODO: add set active goroutines to 0 after set of max
-func (c *CLI) setMaxGoroutines(input string, semaphore chan struct{}) error {
+func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 	args := strings.Split(input, " ")
 	args = args[1:]
 	var ns string
@@ -185,7 +190,8 @@ func (c *CLI) setMaxGoroutines(input string, semaphore chan struct{}) error {
 	}
 
 	atomic.StoreUint64(&c.maxGoroutines, uint64(n))
-	semaphore = make(chan struct{}, n)
+	*semaphore = make(chan struct{}, n)
+
 	fmt.Printf("Number of goroutines set to %d\n", n)
 	return nil
 }
@@ -235,9 +241,9 @@ func (c *CLI) updateCache() error {
 }
 
 func (c *CLI) acceptOrder(args []string) error {
-	var id, userId, dateStr string
+	var idStr, userId, dateStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use -id=12345")
+	fs.StringVar(&idStr, "id", "0", "use -id=12345")
 	fs.StringVar(&userId, "u_id", "0", "use -u_id=54321")
 	fs.StringVar(&dateStr, "date", "0", "use -date=2024-06-06")
 
@@ -245,11 +251,11 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	if err := c.validationService.AcceptValidation(id, userId, dateStr); err != nil {
+	if err := c.validationService.AcceptValidation(idStr, userId, dateStr); err != nil {
 		return err
 	}
 
-	orders := c.orderService.AcceptOrder(id, userId, dateStr)
+	orders := c.orderService.AcceptOrder(idStr, userId, dateStr)
 
 	if err := c.fileService.Write(orders); err != nil {
 		return err

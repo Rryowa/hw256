@@ -14,6 +14,6 @@ build:
 
 run: build
 	@echo "Running the CLI application..."
-	@$(BIN_DIR)/$(BINARY_NAME)
+	@$(BIN_DIR)/$(BINARY_NAME) cat < test_input.txt
 
 .PHONY: all build run
