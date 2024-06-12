@@ -83,6 +83,7 @@ func (c *CLI) Run() error {
 	semaphore := make(chan struct{}, 1)
 	commandChannel := make(chan string)
 	done := make(chan struct{})
+
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 	if err := c.setMaxGoroutines(fmt.Sprintf(
@@ -93,51 +94,54 @@ func (c *CLI) Run() error {
 
 	var wg sync.WaitGroup
 
+	go signalListener(signalChannel, done)
+
 	//Reader
-	scanner := bufio.NewScanner(os.Stdin)
-	go reader(scanner, commandChannel, done)
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			commandChannel <- scanner.Text()
+		}
+	}()
 
 	//Handler
-	go c.handler(signalChannel, commandChannel, semaphore, done, &wg)
+	go c.commandHandler(commandChannel, semaphore, done, &wg)
 
 	<-done
 
 	wg.Wait()
 
-	//close where created
+	//Close where created
 	close(semaphore)
 	fmt.Println("All goroutines finished. Exiting...")
 
 	return nil
 }
 
-// TODO: move signal handler to a sep goroutine
-// TODO: move setMaxGoroutines handler to a sep goroutine
-func (c *CLI) handler(signalChannel chan os.Signal, commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
+func signalListener(signalChannel chan os.Signal, done chan struct{}) {
 	for {
-		select {
-		case <-signalChannel:
-			fmt.Println("\nReceived shutdown signal")
-			done <- struct{}{}
-			return
-		case cmd, ok := <-commandChannel:
-			//TODO: remove !ok?
-			if !ok {
-				return
-			}
-			if strings.HasPrefix(cmd, exit) {
-				done <- struct{}{}
-			} else if strings.HasPrefix(cmd, setMaxGoroutines) {
-				if err := c.setMaxGoroutines(cmd, &semaphore); err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				wg.Add(1)
-				atomic.AddUint64(&c.activeGoroutines, 1)
-				id := atomic.LoadUint64(&c.activeGoroutines)
+		<-signalChannel
+		fmt.Println("\nReceived shutdown signal")
+		done <- struct{}{}
+	}
+}
 
-				go c.worker(cmd, id, semaphore, wg)
+func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
+	for {
+		cmd := <-commandChannel
+
+		if strings.HasPrefix(cmd, exit) {
+			done <- struct{}{}
+		} else if strings.HasPrefix(cmd, setMaxGoroutines) {
+			if err := c.setMaxGoroutines(cmd, &semaphore); err != nil {
+				log.Fatal(err)
 			}
+		} else {
+			wg.Add(1)
+			atomic.AddUint64(&c.activeGoroutines, 1)
+			id := atomic.LoadUint64(&c.activeGoroutines)
+
+			go c.worker(cmd, id, semaphore, wg)
 		}
 	}
 }
@@ -146,29 +150,14 @@ func (c *CLI) worker(cmd string, id uint64, semaphore chan struct{}, wg *sync.Wa
 	defer wg.Done()
 	log.Printf("Worker %d: Waiting to acquire semaphore\n", id)
 	semaphore <- struct{}{}
+
 	log.Printf("Worker %d: Working\n", id)
 	c.processCommand(cmd)
-	<-semaphore
+
 	log.Printf("Worker %d: Semaphore released\n\n", id)
+	<-semaphore
 }
 
-func reader(scanner *bufio.Scanner, commandChannel chan string, done chan struct{}) {
-	for {
-		if scanner.Scan() {
-			input := scanner.Text()
-			if len(input) > 0 {
-				select {
-				case commandChannel <- input:
-					//TODO: remove <-done?
-				case <-done:
-					return
-				}
-			}
-		}
-	}
-}
-
-// TODO: add set active goroutines to 0 after set of max
 func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 	args := strings.Split(input, " ")
 	args = args[1:]
