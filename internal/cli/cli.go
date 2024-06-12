@@ -76,10 +76,6 @@ func NewCLI(v service.ValidationService, o service.OrderService, f service.FileS
 }
 
 func (c *CLI) Run() error {
-	//if err := c.updateCache(); err != nil {
-	//	return err
-	//}
-
 	semaphore := make(chan struct{}, 1)
 	commandChannel := make(chan string)
 	done := make(chan struct{})
@@ -219,14 +215,6 @@ func (c *CLI) processCommand(input string) {
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
-}
-
-func (c *CLI) updateCache() error {
-	if err := c.fileService.CheckFile(); err != nil {
-		return err
-	}
-
-	return c.orderService.UpdateCache()
 }
 
 func (c *CLI) acceptOrder(args []string) error {

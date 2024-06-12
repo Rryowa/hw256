@@ -13,10 +13,10 @@ const (
 )
 
 func main() {
+	fileService := service.NewFileService(fileName)
 	orderStorage := storage.NewOrderStorage()
 	validationService := service.NewOrderValidator(orderStorage)
-	fileService := service.NewFileService(fileName)
-	orderService := service.NewOrderService(orderStorage, fileService)
+	orderService := service.NewOrderService(orderStorage)
 
 	commands := cli.NewCLI(validationService, orderService, fileService)
 	if err := commands.Run(); err != nil {
