@@ -1,0 +1,34 @@
+goroutines change test
+----------------------
+accept -id=1 -u_id=1 -date=2077-07-07
+accept -id=2 -u_id=1 -date=2077-07-07
+accept -id=3 -u_id=1 -date=2077-07-07
+accept -id=4 -u_id=1 -date=2077-07-07
+set_mg -n=1
+accept -id=5 -u_id=1 -date=2077-07-07
+accept -id=6 -u_id=1 -date=2077-07-07
+accept -id=7 -u_id=1 -date=2077-07-07
+set_mg -n=12
+accept -id=8 -u_id=1 -date=2077-07-07
+accept -id=9 -u_id=1 -date=2077-07-07
+accept -id=10 -u_id=1 -date=2077-07-07
+accept -id=11 -u_id=1 -date=2077-07-07
+accept -id=12 -u_id=1 -date=2077-07-07
+exit
+
+-----------------------
+all functions test
+-----------------------
+accept -id=1 -u_id=1 -date=2077-07-07
+accept -id=2 -u_id=1 -date=2077-07-07
+accept -id=3 -u_id=1 -date=2077-07-07
+accept -id=4 -u_id=1 -date=2077-07-07
+
+(wait)
+
+return_courier -id=1
+issue -ids=2,3
+accept_return -id=2 -u_id=1
+list_returns -page=1 -size=10
+list_orders -u_id=1 -limit=3
+exit
