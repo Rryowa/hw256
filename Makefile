@@ -1,8 +1,7 @@
 # Variables
 BINARY_NAME=cli
-BIN_DIR=internal/bin
-CMD_DIR=internal/cmd
-ORDERS_FILE=orders.json
+BIN_DIR=bin
+CMD_DIR=cmd
 
 all: build
 
@@ -15,6 +14,6 @@ build:
 
 run: build
 	@echo "Running the CLI application..."
-	@$(BIN_DIR)/$(BINARY_NAME) --orders=$(ORDERS_FILE)
+	@$(BIN_DIR)/$(BINARY_NAME)
 
 .PHONY: all build run

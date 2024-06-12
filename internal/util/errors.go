@@ -3,7 +3,7 @@ package util
 type CreateFileError struct{}
 
 func (e CreateFileError) Error() string {
-	return "create file error"
+	return "create storage error"
 }
 
 type InvalidDateError struct{}
@@ -24,6 +24,12 @@ func (e OrderNotFoundError) Error() string {
 	return "order not found"
 }
 
+type OrderIsExpiredError struct{}
+
+func (e OrderIsExpiredError) Error() string {
+	return "order is expired"
+}
+
 type OrderIsNotExpiredError struct{}
 
 func (e OrderIsNotExpiredError) Error() string {
@@ -39,13 +45,13 @@ func (e OrderIssuedError) Error() string {
 type OrderIdsNotProvidedError struct{}
 
 func (e OrderIdsNotProvidedError) Error() string {
-	return "order id's not provided"
+	return "order id is not provided"
 }
 
-type OrderIsExpiredError struct{}
+type UserIdIsNotProvided struct{}
 
-func (e OrderIsExpiredError) Error() string {
-	return "order is expired"
+func (e UserIdIsNotProvided) Error() string {
+	return "user id is not provided"
 }
 
 type OrdersRecipientDiffersError struct{}
@@ -76,10 +82,4 @@ type OrderCantBeReturnedError struct{}
 
 func (e OrderCantBeReturnedError) Error() string {
 	return "return period has expired"
-}
-
-type EmptyOrderListError struct{}
-
-func (e EmptyOrderListError) Error() string {
-	return "there are no orders for this user or they all are issued"
 }
