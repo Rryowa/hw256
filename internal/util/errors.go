@@ -1,85 +1,31 @@
 package util
 
-type CreateFileError struct{}
+import "errors"
 
-func (e CreateFileError) Error() string {
-	return "create storage error"
-}
+var ErrInvalidDate = errors.New("error - invalid date")
 
-type InvalidDateError struct{}
+var ErrOrderExists = errors.New("error - order already exists")
 
-func (e InvalidDateError) Error() string {
-	return "invalid date"
-}
+var ErrOrderNotFound = errors.New("error - order not found")
 
-type ExistingOrderError struct{}
+var ErrOrderIdInvalid = errors.New("error - order id must be number")
 
-func (e ExistingOrderError) Error() string {
-	return "order already exists"
-}
+var ErrOrderExpired = errors.New("error - order is expired")
 
-type OrderNotFoundError struct{}
+var ErrOrderNotIssued = errors.New("error - order is not issued")
 
-func (e OrderNotFoundError) Error() string {
-	return "order not found"
-}
+var ErrOrderIssued = errors.New("error - order is issued")
 
-type OrderIsExpiredError struct{}
+var ErrOrderIdNotProvided = errors.New("error - order id is not provided")
 
-func (e OrderIsExpiredError) Error() string {
-	return "order is expired"
-}
+var ErrUserIdNotProvided = errors.New("error - user ids is not provided")
 
-type OrderIsNotExpiredError struct{}
+var ErrOrdersUserDiffers = errors.New("error - order's user differs")
 
-func (e OrderIsNotExpiredError) Error() string {
-	return "order is not expired"
-}
+var ErrOrderReturned = errors.New("error - order has been returned")
 
-type OrderIssuedError struct{}
+var ErrOrderDoesNotBelong = errors.New("error - order does not belong to user")
 
-func (e OrderIssuedError) Error() string {
-	return "order has been issued"
-}
+var ErrReturnPeriodExpired = errors.New("error - order cant be returned (period is expired)")
 
-type OrderIdsNotProvidedError struct{}
-
-func (e OrderIdsNotProvidedError) Error() string {
-	return "order id is not provided"
-}
-
-type UserIdIsNotProvided struct{}
-
-func (e UserIdIsNotProvided) Error() string {
-	return "user id is not provided"
-}
-
-type OrdersRecipientDiffersError struct{}
-
-func (e OrdersRecipientDiffersError) Error() string {
-	return "all orders must belong to the same recipient"
-}
-
-type OrdersReturnedError struct{}
-
-func (e OrdersReturnedError) Error() string {
-	return "order has been returned"
-}
-
-type OrderDoesNotBelongError struct{}
-
-func (e OrderDoesNotBelongError) Error() string {
-	return "order does not belong to recipient"
-}
-
-type OrderHasNotBeenIssuedError struct{}
-
-func (e OrderHasNotBeenIssuedError) Error() string {
-	return "order has not been issued"
-}
-
-type OrderCantBeReturnedError struct{}
-
-func (e OrderCantBeReturnedError) Error() string {
-	return "return period has expired"
-}
+var ErrCreateFile = errors.New("error - create file error")

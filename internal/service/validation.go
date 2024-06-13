@@ -38,19 +38,19 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return errors.New("error parsing date")
 	}
 	if storageUntil.Before(time.Now()) {
-		return util.InvalidDateError{}
+		return util.ErrInvalidDate
 	}
 
 	if len(id) == 0 {
-		return util.OrderIdsNotProvidedError{}
+		return util.ErrOrderIdNotProvided
 	}
 
 	if len(userId) == 0 {
-		return util.UserIdIsNotProvided{}
+		return util.ErrUserIdNotProvided
 	}
 
 	if v.storage.Exists(id) {
-		return util.ExistingOrderError{}
+		return util.ErrOrderExists
 	}
 
 	return v.fileService.Write(v.orderService.AcceptOrder(id, userId, dateStr))
@@ -58,16 +58,20 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 
 func (v *orderValidator) ReturnToCourierValidation(id string) error {
 	if len(id) == 0 {
-		return util.OrderIdsNotProvidedError{}
+		return util.ErrOrderIdNotProvided
+	}
+
+	if _, err := strconv.Atoi(id); err != nil {
+		return util.ErrOrderIdInvalid
+	}
+
+	order := v.storage.Get(id)
+	if order.Issued {
+		return util.ErrOrderIssued
 	}
 
 	if !v.storage.Exists(id) {
-		return util.OrderNotFoundError{}
-	}
-
-	_, err := strconv.Atoi(id)
-	if err != nil {
-		return err
+		return util.ErrOrderNotFound
 	}
 
 	return v.fileService.Write(v.orderService.ReturnOrderToCourier(id))
@@ -75,32 +79,32 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 
 func (v *orderValidator) IssueValidation(ids []string) error {
 	if len(ids) == 0 {
-		return util.UserIdIsNotProvided{}
+		return util.ErrUserIdNotProvided
 	}
 
 	var recipientID string
 	for i, id := range ids {
 		if !v.storage.Exists(id) {
-			return util.OrderNotFoundError{}
+			return util.ErrOrderNotFound
 		}
 		order := v.storage.Get(id)
 
 		if time.Now().After(order.StorageUntil) {
-			return util.OrderIsExpiredError{}
+			return util.ErrOrderExpired
 		}
 		if order.Issued {
-			return util.OrderIssuedError{}
+			return util.ErrOrderIssued
 		}
 		if order.Returned {
-			return util.OrdersReturnedError{}
+			return util.ErrOrderReturned
 		}
 
-		//check if recipients equal
+		//Check if users are equal
 		if i == 0 {
 			recipientID = order.UserID
 		} else {
 			if order.UserID != recipientID {
-				return util.OrdersRecipientDiffersError{}
+				return util.ErrOrdersUserDiffers
 			}
 		}
 	}
@@ -109,26 +113,26 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 
 func (v *orderValidator) ReturnValidation(id, userId string) error {
 	if len(id) == 0 {
-		return util.OrderIdsNotProvidedError{}
+		return util.ErrOrderIdNotProvided
 	}
 
 	if len(userId) == 0 {
-		return util.UserIdIsNotProvided{}
+		return util.ErrUserIdNotProvided
 	}
 
 	if !v.storage.Exists(id) {
-		return util.OrderNotFoundError{}
+		return util.ErrOrderNotFound
 	}
 	order := v.storage.Get(id)
 
 	if order.UserID != userId {
-		return util.OrderDoesNotBelongError{}
+		return util.ErrOrderDoesNotBelong
 	}
 	if !order.Issued {
-		return util.OrderHasNotBeenIssuedError{}
+		return util.ErrOrderNotIssued
 	}
 	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
-		return util.OrderCantBeReturnedError{}
+		return util.ErrReturnPeriodExpired
 	}
 	return v.fileService.Write(v.orderService.Return(order))
 }

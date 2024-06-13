@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"homework-1/internal/entities"
+	"homework-1/internal/util"
 	"os"
 	"sync"
 )
@@ -30,7 +31,7 @@ func (fs *file) CheckFile() error {
 	if _, err := os.Stat(fs.fileName); errors.Is(err, os.ErrNotExist) {
 		file, err := os.Create(fs.fileName)
 		if err != nil {
-			return err
+			return util.ErrCreateFile
 		}
 		defer file.Close()
 	}
