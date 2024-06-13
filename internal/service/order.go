@@ -11,7 +11,7 @@ import (
 )
 
 type OrderService interface {
-	AcceptOrder(id, userId, dateStr string) map[string]entities.Order
+	PrepareOrder(id, userId, dateStr string) entities.Order
 	ReturnOrderToCourier(orderID string) map[string]entities.Order
 	IssueOrders(OrderIDs []string) map[string]entities.Order
 	Return(order entities.Order) map[string]entities.Order
@@ -29,7 +29,7 @@ func NewOrderService(storage *storage.OrderStorage) OrderService {
 	}
 }
 
-func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entities.Order {
+func (os *orderService) PrepareOrder(id, userId, dateStr string) entities.Order {
 	storageUntil, _ := time.Parse(time.DateOnly, dateStr)
 	order := entities.Order{
 		ID:           id,
@@ -66,8 +66,7 @@ func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entit
 	//time.Sleep(50 * time.Millisecond)
 	fmt.Println("\nOrder accepted!")
 
-	os.storage.Add(order)
-	return os.storage.GetOrders()
+	return order
 }
 
 func (os *orderService) ReturnOrderToCourier(orderID string) map[string]entities.Order {
@@ -93,7 +92,7 @@ func (os *orderService) Return(order entities.Order) map[string]entities.Order {
 	os.storage.Update(order)
 
 	log.Println("Return accepted.")
-	return os.storage.GetOrders()
+	return order
 }
 
 func (os *orderService) ListReturns(page, pageSize int) []entities.Order {

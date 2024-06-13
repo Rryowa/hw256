@@ -21,14 +21,16 @@ type ValidationService interface {
 type orderValidator struct {
 	storage      *storage.OrderStorage
 	orderService OrderService
-	fileService  FileService
+	repository   *storage.SQLRepository
+	//fileService  FileService
 }
 
-func NewOrderValidator(storage *storage.OrderStorage, orderService OrderService, fileService FileService) ValidationService {
+func NewOrderValidator(storage *storage.OrderStorage, orderService OrderService, repository *storage.SQLRepository) ValidationService {
 	return &orderValidator{
 		storage:      storage,
 		orderService: orderService,
-		fileService:  fileService,
+		repository:   repository,
+		//fileService:  fileService,
 	}
 }
 
@@ -53,7 +55,9 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return util.ErrOrderExists
 	}
 
-	return v.fileService.Write(v.orderService.AcceptOrder(id, userId, dateStr))
+	//return v.fileService.Write(v.orderService.AcceptOrder(id, userId, dateStr))
+	order := v.orderService.PrepareOrder(id, userId, dateStr)
+	return v.repository.Insert(order)
 }
 
 func (v *orderValidator) ReturnToCourierValidation(id string) error {
@@ -74,7 +78,7 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 		return util.ErrOrderNotFound
 	}
 
-	return v.fileService.Write(v.orderService.ReturnOrderToCourier(id))
+	return v.repository.Delete(v.orderService.ReturnOrderToCourier(id))
 }
 
 func (v *orderValidator) IssueValidation(ids []string) error {
@@ -108,7 +112,7 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 			}
 		}
 	}
-	return v.fileService.Write(v.orderService.IssueOrders(ids))
+	return v.repository.Update(v.orderService.IssueOrders(ids))
 }
 
 func (v *orderValidator) ReturnValidation(id, userId string) error {
@@ -134,9 +138,10 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
 		return util.ErrReturnPeriodExpired
 	}
-	return v.fileService.Write(v.orderService.Return(order))
+	return v.repository.Update(v.orderService.Return(order))
 }
 
+// TODO: add to repository ListReturns and ListOrders realisatioin
 func (v *orderValidator) ListReturnsValidation(page, size string) ([]entities.Order, error) {
 	p, err := strconv.Atoi(page)
 	if err != nil {
