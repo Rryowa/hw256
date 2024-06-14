@@ -11,4 +11,5 @@ type Storage interface {
 	ListReturns(limit, offset int) ([]models.Order, error)
 	ListOrders(userId string, limit int) ([]models.Order, error)
 	ApplyMigrations(direction string) error
+	AnalyzeQueryPlan(query string, args ...interface{}) error
 }
