@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"homework-1/internal/storage"
 	"homework-1/pkg/hash"
 	"time"
@@ -10,11 +10,11 @@ import (
 
 type OrderService interface {
 	Exists(id string) bool
-	Get(id string) entities.Order
+	Get(id string) models.Order
 	Delete(id string)
-	Return(order entities.Order) entities.Order
-	Accept(id, userId string, storageUntil time.Time) entities.Order
-	IssueOrders(orders []entities.Order) []entities.Order
+	Return(order models.Order) models.Order
+	Accept(id, userId string, storageUntil time.Time) models.Order
+	IssueOrders(orders []models.Order) []models.Order
 }
 
 type orderService struct {
@@ -27,27 +27,21 @@ func NewOrderService() OrderService {
 	}
 }
 
-func (os *orderService) Exists(id string) bool {
-	return os.cache.Exist(id)
-}
+func (os *orderService) Exists(id string) bool { return os.cache.Exist(id) }
 
-func (os *orderService) Get(id string) entities.Order {
-	return os.cache.Get(id)
-}
+func (os *orderService) Get(id string) models.Order { return os.cache.Get(id) }
 
-func (os *orderService) Delete(id string) {
-	os.Delete(id)
-}
+func (os *orderService) Delete(id string) { os.Delete(id) }
 
-func (os *orderService) Return(order entities.Order) entities.Order {
+func (os *orderService) Return(order models.Order) models.Order {
 	order.Returned = true
 	os.cache.Update(order)
 
 	return order
 }
 
-func (os *orderService) Accept(id, userId string, storageUntil time.Time) entities.Order {
-	order := entities.Order{
+func (os *orderService) Accept(id, userId string, storageUntil time.Time) models.Order {
+	order := models.Order{
 		ID:           id,
 		UserID:       userId,
 		Issued:       false,
@@ -70,7 +64,7 @@ func (os *orderService) Accept(id, userId string, storageUntil time.Time) entiti
 		}
 	}()
 
-	go func(order *entities.Order, ticker *time.Ticker, done chan struct{}) {
+	go func(order *models.Order, ticker *time.Ticker, done chan struct{}) {
 		order.Hash = hash.GenerateHash()
 		ticker.Stop()
 		done <- struct{}{}
@@ -83,8 +77,8 @@ func (os *orderService) Accept(id, userId string, storageUntil time.Time) entiti
 	return order
 }
 
-func (os *orderService) IssueOrders(orders []entities.Order) []entities.Order {
-	modifiedOrders := make([]entities.Order, 0)
+func (os *orderService) IssueOrders(orders []models.Order) []models.Order {
+	modifiedOrders := make([]models.Order, 0)
 	for _, order := range orders {
 		order.Issued = true
 		order.IssuedAt = time.Now()

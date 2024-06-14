@@ -2,14 +2,14 @@ package util
 
 import (
 	"github.com/joho/godotenv"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"log"
 	"os"
 	"strconv"
 	"time"
 )
 
-func NewConfig() *entities.Config {
+func NewConfig() *models.Config {
 	err := godotenv.Load("internal/util/.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
@@ -20,7 +20,7 @@ func NewConfig() *entities.Config {
 		log.Fatalf("err converting MAX_ATTEMPTS: %v", err)
 	}
 
-	return &entities.Config{
+	return &models.Config{
 		User:        os.Getenv("POSTGRES_USER"),
 		Password:    os.Getenv("POSTGRES_PASSWORD"),
 		Host:        os.Getenv("DB_HOST"),

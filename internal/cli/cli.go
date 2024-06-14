@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"homework-1/internal/service"
 	"log"
 	"os"
@@ -305,7 +305,7 @@ func (c *CLI) listOrders(args []string) error {
 	return nil
 }
 
-func printList(Orders []entities.Order) {
+func printList(Orders []models.Order) {
 	if len(Orders) == 0 {
 		defer fmt.Printf("\n\n")
 	}

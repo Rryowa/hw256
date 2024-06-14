@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"strconv"
@@ -14,16 +14,16 @@ type ValidationService interface {
 	ReturnToCourierValidation(id string) error
 	IssueValidation(ids []string) error
 	ReturnValidation(id, userId string) error
-	ListReturnsValidation(page, size string) ([]entities.Order, error)
-	ListOrdersValidation(userId, limit string) ([]entities.Order, error)
+	ListReturnsValidation(page, size string) ([]models.Order, error)
+	ListOrdersValidation(userId, limit string) ([]models.Order, error)
 }
 
 type orderValidator struct {
-	repository   *storage.SQLRepository
+	repository   storage.Storage
 	orderService OrderService
 }
 
-func NewOrderValidator(repository *storage.SQLRepository, orderService OrderService) ValidationService {
+func NewOrderValidator(repository storage.Storage, orderService OrderService) ValidationService {
 	return &orderValidator{
 		repository:   repository,
 		orderService: orderService,
@@ -60,7 +60,7 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	var orders []entities.Order
+	var orders []models.Order
 	var recipientID string
 	for i, id := range ids {
 		if !v.orderService.Exists(id) {
@@ -151,7 +151,7 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 	return v.repository.Delete(id)
 }
 
-func (v *orderValidator) ListReturnsValidation(limit, offset string) ([]entities.Order, error) {
+func (v *orderValidator) ListReturnsValidation(limit, offset string) ([]models.Order, error) {
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
@@ -160,15 +160,19 @@ func (v *orderValidator) ListReturnsValidation(limit, offset string) ([]entities
 	if err != nil {
 		return nil, err
 	}
+	//To ensure that all operations have been performed
+	time.Sleep(200 * time.Millisecond)
 
 	return v.repository.ListReturns(limitInt, offsetInt)
 }
 
-func (v *orderValidator) ListOrdersValidation(userId, limit string) ([]entities.Order, error) {
+func (v *orderValidator) ListOrdersValidation(userId, limit string) ([]models.Order, error) {
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
 	}
+	//To ensure that all operations have been performed
+	time.Sleep(200 * time.Millisecond)
 
 	return v.repository.ListOrders(userId, limitInt)
 }

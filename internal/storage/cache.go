@@ -1,22 +1,22 @@
 package storage
 
 import (
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"sync"
 )
 
 type Cache struct {
-	cache map[string]entities.Order
+	cache map[string]models.Order
 	mu    sync.RWMutex
 }
 
 func NewCache() *Cache {
 	return &Cache{
-		cache: make(map[string]entities.Order),
+		cache: make(map[string]models.Order),
 	}
 }
 
-func (c *Cache) Get(id string) entities.Order {
+func (c *Cache) Get(id string) models.Order {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	order := c.cache[id]
@@ -34,7 +34,7 @@ func (c *Cache) Exist(id string) bool {
 	}
 }
 
-func (c *Cache) Update(order entities.Order) {
+func (c *Cache) Update(order models.Order) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	c.cache[order.ID] = order
