@@ -10,15 +10,9 @@ import (
 	"log"
 )
 
-const (
-	fileName = "orders.json"
-)
-
 func main() {
-	orderStorage := storage.NewOrderStorage()
 	repository := storage.NewSQLRepository(context.Background(), util.NewConfig())
-	orderService := service.NewOrderService(orderStorage)
-	validationService := service.NewOrderValidator(orderStorage, orderService, repository)
+	validationService := service.NewOrderValidator(repository)
 
 	commands := cli.NewCLI(validationService)
 	if err := commands.Run(); err != nil {

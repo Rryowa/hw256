@@ -183,23 +183,29 @@ func (c *CLI) processCommand(input string) {
 	commandName := args[0]
 
 	switch commandName {
-	case help:
-		c.help()
 	case acceptOrder:
 		if err := c.acceptOrder(args[1:]); err != nil {
 			log.Println(err)
-		}
-	case returnOrderToCourier:
-		if err := c.returnOrderToCourier(args[1:]); err != nil {
-			log.Println(err)
+		} else {
+			log.Println("Order accepted.")
 		}
 	case issueOrders:
 		if err := c.issueOrders(args[1:]); err != nil {
 			log.Println(err)
+		} else {
+			log.Println("Order issued.")
 		}
 	case acceptReturn:
 		if err := c.acceptReturn(args[1:]); err != nil {
 			log.Println(err)
+		} else {
+			log.Println("Return accepted.")
+		}
+	case returnOrderToCourier:
+		if err := c.returnOrderToCourier(args[1:]); err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Order returned.")
 		}
 	case listReturns:
 		if err := c.listReturns(args[1:]); err != nil {
@@ -209,6 +215,8 @@ func (c *CLI) processCommand(input string) {
 		if err := c.listOrders(args[1:]); err != nil {
 			log.Println(err)
 		}
+	case help:
+		c.help()
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
@@ -226,18 +234,6 @@ func (c *CLI) acceptOrder(args []string) error {
 	}
 
 	return c.validationService.AcceptValidation(idStr, userId, dateStr)
-}
-
-func (c *CLI) returnOrderToCourier(args []string) error {
-	var id string
-	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use -id=12345")
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	return c.validationService.ReturnToCourierValidation(id)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -262,6 +258,18 @@ func (c *CLI) acceptReturn(args []string) error {
 	}
 
 	return c.validationService.ReturnValidation(id, userId)
+}
+
+func (c *CLI) returnOrderToCourier(args []string) error {
+	var id string
+	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
+	fs.StringVar(&id, "id", "0", "use -id=12345")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	return c.validationService.ReturnToCourierValidation(id)
 }
 
 func (c *CLI) listReturns(args []string) error {

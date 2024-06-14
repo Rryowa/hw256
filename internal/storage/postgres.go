@@ -3,7 +3,8 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/georgysavva/scany/pgxscan"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"homework-1/internal/entities"
 	"homework-1/internal/util"
 	"log"
@@ -29,16 +30,17 @@ func NewSQLRepository(ctx context.Context, cfg *entities.Config) *SQLRepository 
 		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		pool, err = pgxpool.New(ctxTimeout, connStr)
+		pool, err = pgxpool.Connect(ctxTimeout, connStr)
 		if err != nil {
-			return err
+			log.Fatal(err, "db connection error")
 		}
 		return nil
 	}, cfg.MaxAttempts, 5*time.Second)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err, "DoWithTries error")
 	}
+	log.Println("Connected to db")
 	return &SQLRepository{
 		pool: pool,
 		ctx:  ctx,
@@ -52,16 +54,16 @@ func (r *SQLRepository) Insert(order entities.Order) error {
 	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, hash) 
 	          VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.Hash)
+
 	return err
 }
 
 func (r *SQLRepository) Update(order entities.Order) error {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
-
-	query := `UPDATE orders SET user_id=$1, storage_until=$2, issued=$3, issued_at=$4, returned=$5, hash=$6
-              WHERE id=$7`
-	_, err := r.pool.Exec(r.ctx, query, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.Hash, order.ID)
+	query := `UPDATE orders SET storage_until=$1, issued=$2, issued_at=$3, returned=$4
+              WHERE id=$5`
+	_, err := r.pool.Exec(r.ctx, query, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.ID)
 	return err
 }
 
@@ -78,7 +80,7 @@ func (r *SQLRepository) Delete(id string) error {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
 
-	_, err := r.pool.Exec(context.Background(), `DELETE FROM orders WHERE id=$1`, id)
+	_, err := r.pool.Exec(r.ctx, `DELETE FROM orders WHERE id=$1`, id)
 	if err != nil {
 		return err
 	}
@@ -86,47 +88,62 @@ func (r *SQLRepository) Delete(id string) error {
 	return nil
 }
 
-func (r *SQLRepository) GetOrders() (map[string]entities.Order, error) {
+func (r *SQLRepository) Get(id string) (entities.Order, error) {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
 
-	rows, err := r.pool.Query(r.ctx, `SELECT id, user_id, storage_until, issued, issued_at, returned, hash FROM orders`)
-	if err != nil {
-		return nil, err
+	var order entities.Order
+	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, hash FROM orders WHERE id=$1`
+	//err := r.pool.QueryRow(r.ctx, query, id).Scan(&order.ID, &order.UserID, &order.StorageUntil, &order.Issued, &order.IssuedAt, &order.Returned, &order.Hash)
+	//if err != nil {
+	//	return entities.Order{}, err
+	//}
+	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
+		return entities.Order{}, err
 	}
-	defer rows.Close()
-
-	orders := make(map[string]entities.Order)
-	for rows.Next() {
-		var order entities.Order
-		err := rows.Scan(&order.ID, &order.UserID, &order.StorageUntil, &order.Issued, &order.IssuedAt, &order.Returned, &order.Hash)
-		if err != nil {
-			return nil, err
-		}
-		orders[order.ID] = order
-	}
-	return orders, nil
+	return order, nil
 }
 
-func (r *SQLRepository) GetOrderIds() ([]string, error) {
-	r.Mu.Lock()
-	defer r.Mu.Unlock()
-
-	query := `SELECT id FROM orders`
-	rows, err := r.pool.Query(context.Background(), query)
+func (r *SQLRepository) ListReturns(limit, offset int) ([]entities.Order, error) {
+	query := `
+        SELECT id, user_id, storage_until, issued, issued_at, returned
+        FROM orders
+        WHERE returned = TRUE
+        ORDER BY id
+        LIMIT $1 OFFSET $2
+    `
+	rows, err := r.pool.Query(r.ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var orderIDs []string
-	for rows.Next() {
-		var id string
-		err := rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-		orderIDs = append(orderIDs, id)
+	var returns []entities.Order
+	if err := pgxscan.ScanAll(&returns, rows); err != nil {
+		return nil, err
 	}
-	return orderIDs, nil
+	return returns, nil
+}
+
+func (r *SQLRepository) ListOrders(userId string, limit int) ([]entities.Order, error) {
+	query := `
+        SELECT id, user_id, issued, storage_until, returned
+        FROM orders
+        WHERE user_id = $1 AND issued = FALSE
+        ORDER BY storage_until DESC
+        LIMIT $2
+    `
+
+	rows, err := r.pool.Query(r.ctx, query, userId, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userOrders []entities.Order
+	if err := pgxscan.ScanAll(&userOrders, rows); err != nil {
+		return nil, err
+	}
+
+	return userOrders, nil
 }

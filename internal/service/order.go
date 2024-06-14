@@ -3,34 +3,11 @@ package service
 import (
 	"fmt"
 	"homework-1/internal/entities"
-	"homework-1/internal/storage"
 	"homework-1/pkg/hash"
-	"log"
-	"sort"
 	"time"
 )
 
-type OrderService interface {
-	PrepareOrder(id, userId, dateStr string) entities.Order
-	ReturnOrderToCourier(orderID string) map[string]entities.Order
-	IssueOrders(OrderIDs []string) map[string]entities.Order
-	Return(order entities.Order) map[string]entities.Order
-	ListReturns(page, pageSize int) []entities.Order
-	ListOrders(userId string, limit int) []entities.Order
-}
-
-type orderService struct {
-	storage *storage.OrderStorage
-}
-
-func NewOrderService(storage *storage.OrderStorage) OrderService {
-	return &orderService{
-		storage: storage,
-	}
-}
-
-func (os *orderService) PrepareOrder(id, userId, dateStr string) entities.Order {
-	storageUntil, _ := time.Parse(time.DateOnly, dateStr)
+func Accept(id, userId string, storageUntil time.Time) entities.Order {
 	order := entities.Order{
 		ID:           id,
 		UserID:       userId,
@@ -62,91 +39,20 @@ func (os *orderService) PrepareOrder(id, userId, dateStr string) entities.Order 
 
 	<-done
 
-	//To prettify Ticker
-	//time.Sleep(50 * time.Millisecond)
-	fmt.Println("\nOrder accepted!")
-
 	return order
 }
 
-func (os *orderService) ReturnOrderToCourier(orderID string) map[string]entities.Order {
-	log.Println("Order returned.")
-	return os.storage.DeleteAll(orderID)
-}
-
-func (os *orderService) IssueOrders(OrderIDs []string) map[string]entities.Order {
-	for _, id := range OrderIDs {
-		order := os.storage.Get(id)
+func IssueOrders(orders []entities.Order) []entities.Order {
+	for _, order := range orders {
 		order.Issued = true
 		order.IssuedAt = time.Now()
-
-		os.storage.Update(order)
-
-		log.Println("Order issued.")
 	}
-	return os.storage.GetOrders()
+
+	return orders
 }
 
-func (os *orderService) Return(order entities.Order) map[string]entities.Order {
+func Return(order entities.Order) entities.Order {
 	order.Returned = true
-	os.storage.Update(order)
 
-	log.Println("Return accepted.")
 	return order
-}
-
-func (os *orderService) ListReturns(page, pageSize int) []entities.Order {
-	orderIds := os.storage.GetOrderIds()
-	ln := len(orderIds)
-	start := (page - 1) * pageSize
-	if start >= ln {
-		return nil
-	}
-
-	end := start + pageSize
-	if end > ln {
-		end = ln
-	}
-
-	var returns []entities.Order
-	for _, id := range orderIds[start:end] {
-		order := os.storage.Get(id)
-		if order.Returned {
-			returns = append(returns, order)
-		}
-	}
-
-	// Calculate the start and end indices for slicing
-	returnsStart := 0
-	if start < len(returns) {
-		returnsStart = start
-	}
-	returnsEnd := end - start
-	if returnsEnd > len(returns) {
-		returnsEnd = len(returns)
-	}
-
-	return returns[returnsStart:returnsEnd]
-}
-
-func (os *orderService) ListOrders(userId string, limit int) []entities.Order {
-	var userOrders []entities.Order
-	orderIds := os.storage.GetOrderIds()
-
-	for _, id := range orderIds {
-		order := os.storage.Get(id)
-		if order.UserID == userId && !order.Issued {
-			userOrders = append(userOrders, order)
-			if len(userOrders) == limit {
-				break
-			}
-		}
-	}
-
-	// Sort Orders by StorageUntil date in descending order
-	sort.Slice(userOrders, func(i, j int) bool {
-		return userOrders[i].StorageUntil.Before(userOrders[j].StorageUntil)
-	})
-
-	return userOrders
 }
