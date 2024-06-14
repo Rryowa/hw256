@@ -12,7 +12,8 @@ import (
 
 func main() {
 	repository := storage.NewSQLRepository(context.Background(), util.NewConfig())
-	validationService := service.NewOrderValidator(repository)
+	orderService := service.NewOrderService()
+	validationService := service.NewOrderValidator(repository, orderService)
 
 	commands := cli.NewCLI(validationService)
 	if err := commands.Run(); err != nil {

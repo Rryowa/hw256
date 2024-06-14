@@ -5,7 +5,6 @@ import (
 	"homework-1/internal/entities"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
-	"log"
 	"strconv"
 	"time"
 )
@@ -20,12 +19,14 @@ type ValidationService interface {
 }
 
 type orderValidator struct {
-	repository *storage.SQLRepository
+	repository   *storage.SQLRepository
+	orderService OrderService
 }
 
-func NewOrderValidator(repository *storage.SQLRepository) ValidationService {
+func NewOrderValidator(repository *storage.SQLRepository, orderService OrderService) ValidationService {
 	return &orderValidator{
-		repository: repository,
+		repository:   repository,
+		orderService: orderService,
 	}
 }
 
@@ -46,20 +47,13 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	exists, err := v.repository.Exists(id)
-	if err != nil {
-		return err
-	}
-	if exists {
+	if v.orderService.Exists(id) {
 		return util.ErrOrderExists
 	}
 
-	order := Accept(id, userId, storageUntil)
+	order := v.orderService.Accept(id, userId, storageUntil)
 	return v.repository.Insert(order)
 }
-
-//TODO: WHY ISSUE OT WORKING PROPERLY IF REPEAT SAME issue -ids=2,3
-//TODO IT WONT DISPLAY ERROR!
 
 func (v *orderValidator) IssueValidation(ids []string) error {
 	if len(ids) == 0 {
@@ -69,18 +63,11 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 	var orders []entities.Order
 	var recipientID string
 	for i, id := range ids {
-		exists, err := v.repository.Exists(id)
-		if err != nil {
-			return err
-		}
-		if !exists {
+		if !v.orderService.Exists(id) {
 			return util.ErrOrderNotFound
 		}
 
-		order, err := v.repository.Get(id)
-		if err != nil {
-			return err
-		}
+		order := v.orderService.Get(id)
 
 		if time.Now().After(order.StorageUntil) {
 			return util.ErrOrderExpired
@@ -103,13 +90,9 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 		orders = append(orders, order)
 	}
 
-	for _, order := range IssueOrders(orders) {
-		if err := v.repository.Update(order); err != nil {
-			return err
-		}
-		log.Println("Order issued.")
-	}
-	return nil
+	modifiedOrders := v.orderService.IssueOrders(orders)
+
+	return v.repository.IssueUpdate(modifiedOrders)
 }
 
 func (v *orderValidator) ReturnValidation(id, userId string) error {
@@ -121,17 +104,11 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	exists, err := v.repository.Exists(id)
-	if err != nil {
-		return err
-	}
-	if !exists {
+	if !v.orderService.Exists(id) {
 		return util.ErrOrderNotFound
 	}
-	order, err := v.repository.Get(id)
-	if err != nil {
-		return err
-	}
+
+	order := v.orderService.Get(id)
 
 	if order.UserID != userId {
 		return util.ErrOrderDoesNotBelong
@@ -143,7 +120,8 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 		return util.ErrReturnPeriodExpired
 	}
 
-	return v.repository.Update(Return(order))
+	orderModified := v.orderService.Return(order)
+	return v.repository.Update(orderModified)
 }
 
 func (v *orderValidator) ReturnToCourierValidation(id string) error {
@@ -155,18 +133,11 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 		return util.ErrOrderIdInvalid
 	}
 
-	exists, err := v.repository.Exists(id)
-	if err != nil {
-		return err
-	}
-	if !exists {
+	if !v.orderService.Exists(id) {
 		return util.ErrOrderNotFound
 	}
 
-	order, err := v.repository.Get(id)
-	if err != nil {
-		return err
-	}
+	order := v.orderService.Get(id)
 
 	if order.Issued {
 		return util.ErrOrderIssued

@@ -16,7 +16,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 )
 
 type CLI struct {
@@ -53,7 +52,7 @@ func NewCLI(v service.ValidationService) *CLI {
 			},
 			{
 				name:        listReturns,
-				description: "Список возвратов: list_returns -page=1 -size=10",
+				description: "Список возвратов: list_returns -limit=1 -offset=0",
 			},
 			{
 				name:        listOrders,
@@ -192,8 +191,6 @@ func (c *CLI) processCommand(input string) {
 	case issueOrders:
 		if err := c.issueOrders(args[1:]); err != nil {
 			log.Println(err)
-		} else {
-			log.Println("Order issued.")
 		}
 	case acceptReturn:
 		if err := c.acceptReturn(args[1:]); err != nil {
@@ -273,16 +270,16 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 }
 
 func (c *CLI) listReturns(args []string) error {
-	var page, size string
+	var limit, offset string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&page, "page", "0", "use -page=1")
-	fs.StringVar(&size, "size", "0", "use -size=10")
+	fs.StringVar(&limit, "limit", "0", "use -limit=1")
+	fs.StringVar(&offset, "offset", "0", "use -offset=0")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	orderIDs, err := c.validationService.ListReturnsValidation(page, size)
+	orderIDs, err := c.validationService.ListReturnsValidation(limit, offset)
 	if err != nil {
 		return err
 	}
@@ -310,11 +307,8 @@ func (c *CLI) listOrders(args []string) error {
 
 func printList(Orders []entities.Order) {
 	if len(Orders) == 0 {
-		fmt.Println("There are no Orders or they all issued!")
-		return
+		defer fmt.Printf("\n\n")
 	}
-	//To prettify output
-	time.Sleep(250 * time.Millisecond)
 	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range Orders {
@@ -330,7 +324,7 @@ func printList(Orders []entities.Order) {
 
 func (c *CLI) help() {
 	fmt.Println("Command list:")
-	fmt.Printf("%-15s | %-25s | %s\n", "Command", "Description", "Example")
+	fmt.Printf("%-15s | %-30s | %s\n", "Command", "Description", "Example")
 	fmt.Println("---------------------------------------------------------------------------------------------------")
 	for _, cmd := range c.commandList {
 		parts := strings.SplitN(cmd.description, ":", 2)
@@ -342,6 +336,6 @@ func (c *CLI) help() {
 		if len(parts) > 1 {
 			example = strings.TrimSpace(parts[1])
 		}
-		fmt.Printf("%-15s | %-25s | %s\n", cmd.name, description, example)
+		fmt.Printf("%-15s | %-30s | %s\n", cmd.name, description, example)
 	}
 }
