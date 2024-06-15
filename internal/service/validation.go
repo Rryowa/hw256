@@ -23,10 +23,9 @@ type orderValidator struct {
 	orderService OrderService
 }
 
-func NewOrderValidator(repository storage.Storage, orderService OrderService) ValidationService {
+func NewOrderValidator(repository storage.Storage) ValidationService {
 	return &orderValidator{
-		repository:   repository,
-		orderService: orderService,
+		repository: repository,
 	}
 }
 
@@ -47,11 +46,11 @@ func (v *orderValidator) AcceptValidation(id, userId, dateStr string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	if v.orderService.Exists(id) {
+	if v.repository.Exists(id) {
 		return util.ErrOrderExists
 	}
 
-	order := v.orderService.Accept(id, userId, storageUntil)
+	order := Accept(id, userId, storageUntil)
 	return v.repository.Insert(order)
 }
 
@@ -63,11 +62,11 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 	var orders []models.Order
 	var recipientID string
 	for i, id := range ids {
-		if !v.orderService.Exists(id) {
+		if !v.repository.Exists(id) {
 			return util.ErrOrderNotFound
 		}
 
-		order := v.orderService.Get(id)
+		order := v.repository.Get(id)
 
 		if time.Now().After(order.StorageUntil) {
 			return util.ErrOrderExpired
@@ -90,7 +89,7 @@ func (v *orderValidator) IssueValidation(ids []string) error {
 		orders = append(orders, order)
 	}
 
-	modifiedOrders := v.orderService.IssueOrders(orders)
+	modifiedOrders := IssueOrders(orders)
 
 	return v.repository.IssueUpdate(modifiedOrders)
 }
@@ -104,11 +103,11 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	if !v.orderService.Exists(id) {
+	if !v.repository.Exists(id) {
 		return util.ErrOrderNotFound
 	}
 
-	order := v.orderService.Get(id)
+	order := v.repository.Get(id)
 
 	if order.UserID != userId {
 		return util.ErrOrderDoesNotBelong
@@ -120,7 +119,7 @@ func (v *orderValidator) ReturnValidation(id, userId string) error {
 		return util.ErrReturnPeriodExpired
 	}
 
-	orderModified := v.orderService.Return(order)
+	orderModified := Return(order)
 	return v.repository.Update(orderModified)
 }
 
@@ -133,11 +132,11 @@ func (v *orderValidator) ReturnToCourierValidation(id string) error {
 		return util.ErrOrderIdInvalid
 	}
 
-	if !v.orderService.Exists(id) {
+	if !v.repository.Exists(id) {
 		return util.ErrOrderNotFound
 	}
 
-	order := v.orderService.Get(id)
+	order := v.repository.Get(id)
 
 	if order.Issued {
 		return util.ErrOrderIssued
@@ -160,10 +159,8 @@ func (v *orderValidator) ListReturnsValidation(limit, offset string) ([]models.O
 	if err != nil {
 		return nil, err
 	}
-	//To ensure that all operations have been performed
-	time.Sleep(200 * time.Millisecond)
 
-	return v.repository.ListReturns(limitInt, offsetInt)
+	return v.repository.GetReturns(limitInt, offsetInt)
 }
 
 func (v *orderValidator) ListOrdersValidation(userId, limit string) ([]models.Order, error) {
@@ -171,8 +168,6 @@ func (v *orderValidator) ListOrdersValidation(userId, limit string) ([]models.Or
 	if err != nil {
 		return nil, err
 	}
-	//To ensure that all operations have been performed
-	time.Sleep(200 * time.Millisecond)
 
-	return v.repository.ListOrders(userId, limitInt)
+	return v.repository.GetOrders(userId, limitInt)
 }

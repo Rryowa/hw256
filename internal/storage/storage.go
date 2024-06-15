@@ -8,8 +8,9 @@ type Storage interface {
 	Update(order models.Order) error
 	IssueUpdate(orders []models.Order) error
 	Delete(id string) error
-	ListReturns(limit, offset int) ([]models.Order, error)
-	ListOrders(userId string, limit int) ([]models.Order, error)
-	ApplyMigrations(direction string) error
+	Exists(id string) bool
+	Get(id string) models.Order
+	GetReturns(limit, offset int) ([]models.Order, error)
+	GetOrders(userId string, limit int) ([]models.Order, error)
 	AnalyzeQueryPlan(query string, args ...interface{}) error
 }

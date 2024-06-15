@@ -15,18 +15,24 @@ func NewConfig() *models.Config {
 		log.Fatalf("err loading: %v", err)
 	}
 
-	maxAttempts, err := strconv.Atoi(os.Getenv("MAX_ATTEMPTS"))
+	attempts, err := strconv.Atoi(os.Getenv("ATTEMPTS"))
 	if err != nil {
-		log.Fatalf("err converting MAX_ATTEMPTS: %v", err)
+		log.Fatalf("err converting ATTEMPTS: %v\n", err)
+	}
+
+	timeout, err := time.ParseDuration(os.Getenv("TIMEOUT"))
+	if err != nil {
+		log.Fatalf("Error parsing TIMEOUT: %v\n", err)
 	}
 
 	return &models.Config{
-		User:        os.Getenv("POSTGRES_USER"),
-		Password:    os.Getenv("POSTGRES_PASSWORD"),
-		Host:        os.Getenv("DB_HOST"),
-		Port:        os.Getenv("DB_PORT"),
-		DBName:      os.Getenv("POSTGRES_DB"),
-		MaxAttempts: maxAttempts,
+		User:     os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		DBName:   os.Getenv("POSTGRES_DB"),
+		Attempts: attempts,
+		Timeout:  timeout,
 	}
 }
 

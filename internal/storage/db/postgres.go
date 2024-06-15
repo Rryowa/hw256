@@ -5,19 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
 	"homework-1/internal/models"
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"log"
 	"strings"
-	"time"
 )
 
 // repository field pool - concurrency-safe connection pool for pgx
@@ -32,7 +28,7 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 	var err error
 
 	err = util.DoWithTries(func() error {
-		ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+		ctxTimeout, cancel := context.WithTimeout(ctx, cfg.Timeout)
 		defer cancel()
 
 		pool, err = pgxpool.New(ctxTimeout, connStr)
@@ -41,7 +37,7 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 		}
 
 		return nil
-	}, cfg.MaxAttempts, 5*time.Second)
+	}, cfg.Attempts, cfg.Timeout)
 
 	if err != nil {
 		log.Fatal(err, "DoWithTries error")
@@ -130,7 +126,26 @@ func (r *repository) Delete(id string) error {
 	return nil
 }
 
-func (r *repository) ListReturns(limit, offset int) ([]models.Order, error) {
+func (r *repository) Exists(id string) bool {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM orders WHERE id=$1)`
+	if err := pgxscan.Get(r.ctx, r.pool, &exists, query, id); err != nil {
+		log.Println(err)
+	}
+	return exists
+}
+
+func (r *repository) Get(id string) models.Order {
+	var order models.Order
+	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, hash FROM orders WHERE id=$1`
+	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
+		log.Println(err)
+		return models.Order{}
+	}
+	return order
+}
+
+func (r *repository) GetReturns(limit, offset int) ([]models.Order, error) {
 	query := `
         SELECT id, user_id, storage_until, issued, issued_at, returned
         FROM orders
@@ -157,7 +172,7 @@ func (r *repository) ListReturns(limit, offset int) ([]models.Order, error) {
 	return returns, nil
 }
 
-func (r *repository) ListOrders(userId string, limit int) ([]models.Order, error) {
+func (r *repository) GetOrders(userId string, limit int) ([]models.Order, error) {
 	query := `
         SELECT id, user_id, issued, storage_until, returned
         FROM orders
@@ -181,42 +196,6 @@ func (r *repository) ListOrders(userId string, limit int) ([]models.Order, error
 		return nil, err
 	}
 	return userOrders, err
-}
-
-func (r *repository) ApplyMigrations(direction string) error {
-	db := stdlib.OpenDBFromPool(r.pool)
-	defer db.Close()
-
-	instance, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		log.Fatalf("Unable to create database instance: %v\n", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://./schema",
-		"cli", instance)
-	if err != nil {
-		log.Fatalf("Unable to create migrate instance: %v\n", err)
-	}
-
-	switch direction {
-	case "up":
-		err = m.Up()
-		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-			log.Fatalf("Unable to apply up migration: %v\n", err)
-		}
-		log.Println("Up migration applied successfully!")
-	case "down":
-		err = m.Down()
-		if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-			log.Fatalf("Unable to apply down migration: %v\n", err)
-		}
-		log.Println("Down migration applied successfully!")
-	default:
-		log.Fatalf("Invalid migration direction: %s\n", direction)
-	}
-
-	return nil
 }
 
 func (r *repository) AnalyzeQueryPlan(query string, args ...interface{}) error {
