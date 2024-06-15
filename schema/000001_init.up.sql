@@ -9,4 +9,4 @@ CREATE TABLE orders (
 );
 
 CREATE INDEX idx_orders_returned ON orders(returned);
-CREATE INDEX idx_orders_user_id_issued ON orders(user_id, issued);
+CREATE INDEX idx_orders_user_id_issued_storage_until ON orders(user_id, issued, storage_until DESC);

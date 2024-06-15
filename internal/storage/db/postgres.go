@@ -16,6 +16,7 @@ import (
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -232,6 +233,9 @@ func (r *repository) AnalyzeQueryPlan(query string, args ...interface{}) error {
 	}
 	defer rows.Close()
 
+	s := strings.ReplaceAll(query, "\t", "")
+	ss := strings.Split(s, " ")
+	fmt.Println(ss)
 	for rows.Next() {
 		var plan string
 		if err := rows.Scan(&plan); err != nil {
