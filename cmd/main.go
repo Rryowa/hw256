@@ -12,9 +12,9 @@ import (
 
 func main() {
 	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
-	validationService := service.NewOrderValidator(repository)
+	orderService := service.NewOrderService(repository)
 
-	commands := cli.NewCLI(validationService)
+	commands := cli.NewCLI(orderService)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}

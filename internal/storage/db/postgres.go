@@ -125,20 +125,11 @@ func (r *repository) Delete(id string) error {
 	return nil
 }
 
-func (r *repository) Exists(id string) bool {
-	var exists bool
-	query := `SELECT EXISTS(SELECT 1 FROM orders WHERE id=$1)`
-	if err := pgxscan.Get(r.ctx, r.pool, &exists, query, id); err != nil {
-		log.Println(err)
-	}
-	return exists
-}
-
 func (r *repository) Get(id string) models.Order {
 	var order models.Order
-	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, hash FROM orders WHERE id=$1`
+	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, hash FROM orders
+		      WHERE id=$1`
 	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
-		log.Println(err)
 		return models.Order{}
 	}
 	return order

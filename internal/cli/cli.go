@@ -19,16 +19,16 @@ import (
 )
 
 type CLI struct {
-	validationService service.ValidationService
-	commandList       []command
+	orderService service.OrderService
+	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(v service.ValidationService) *CLI {
+func NewCLI(os service.OrderService) *CLI {
 	return &CLI{
-		validationService: v,
+		orderService: os,
 		commandList: []command{
 			{
 				name:        help,
@@ -230,7 +230,7 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	return c.validationService.AcceptValidation(idStr, userId, dateStr)
+	return c.orderService.Accept(idStr, userId, dateStr)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -242,7 +242,7 @@ func (c *CLI) issueOrders(args []string) error {
 	}
 	ids := strings.Split(idString, ",")
 
-	return c.validationService.IssueValidation(ids)
+	return c.orderService.Issue(ids)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -254,7 +254,7 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	return c.validationService.ReturnValidation(id, userId)
+	return c.orderService.Return(id, userId)
 }
 
 func (c *CLI) returnOrderToCourier(args []string) error {
@@ -266,7 +266,7 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 		return err
 	}
 
-	return c.validationService.ReturnToCourierValidation(id)
+	return c.orderService.ReturnToCourier(id)
 }
 
 func (c *CLI) listReturns(args []string) error {
@@ -279,7 +279,7 @@ func (c *CLI) listReturns(args []string) error {
 		return err
 	}
 
-	orderIDs, err := c.validationService.ListReturnsValidation(limit, offset)
+	orderIDs, err := c.orderService.ListReturns(limit, offset)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (c *CLI) listOrders(args []string) error {
 		return err
 	}
 
-	orderIDs, err := c.validationService.ListOrdersValidation(userId, limit)
+	orderIDs, err := c.orderService.ListOrders(userId, limit)
 	if err != nil {
 		return err
 	}
