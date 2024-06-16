@@ -13,9 +13,7 @@ import (
 const (
 	user_id      = "1"
 	storageUntil = "2077-07-07 01:45:11.743128+03"
-	issued       = false
 	issuedAt     = "2028-08-08  12:32:19.743128+03"
-	returned     = false
 	hash         = "qwertyuiopasdfghjklyuasdfghjkzxcvbnm"
 )
 
@@ -89,7 +87,7 @@ func (repo *repository) InsertExplain() {
 	          VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	for i := 1; i <= 1000; i++ {
 		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
-			strconv.Itoa(i), user_id, storageUntil, issued, issuedAt, true, hash,
+			strconv.Itoa(i), user_id, storageUntil, false, issuedAt, false, hash,
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -108,7 +106,7 @@ func (repo *repository) UpdateExplain() {
               WHERE id=$4`
 	for i := 1; i <= 1000; i++ {
 		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
-			issued, issuedAt, returned, strconv.Itoa(i),
+			true, issuedAt, false, strconv.Itoa(i),
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -127,30 +125,6 @@ func (repo *repository) SelectExistsExplain() {
 	for i := 1; i <= 1000; i++ {
 		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
 			strconv.Itoa(i),
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		prepTimes = append(prepTimes, prepTime)
-		execTimes = append(execTimes, execTime)
-	}
-	fmt.Printf("Median Preparation Time: %.2f ms\n", median(prepTimes))
-	fmt.Printf("Median Execution Time: %.2f ms\n", median(execTimes))
-}
-
-func (repo *repository) SelectReturnsExplain() {
-	var prepTimes, execTimes []float64
-	query := `
-        SELECT id, user_id, storage_until, issued, issued_at, returned
-        FROM orders
-        WHERE returned = TRUE
-        ORDER BY id
-        LIMIT $1 OFFSET $2
-    `
-	for i := 1; i <= 1000; i++ {
-		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
-			1000, 0,
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -187,6 +161,30 @@ func (repo *repository) SelectOrdersExplain() {
 	fmt.Printf("Median Execution Time: %.2f ms\n", median(execTimes))
 }
 
+func (repo *repository) SelectReturnsExplain() {
+	var prepTimes, execTimes []float64
+	query := `
+        SELECT id, user_id, storage_until, issued, issued_at, returned
+        FROM orders
+        WHERE returned = TRUE
+        ORDER BY id
+        LIMIT $1 OFFSET $2
+    `
+	for i := 1; i <= 1000; i++ {
+		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
+			1000, 0,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		prepTimes = append(prepTimes, prepTime)
+		execTimes = append(execTimes, execTime)
+	}
+	fmt.Printf("Median Preparation Time: %.2f ms\n", median(prepTimes))
+	fmt.Printf("Median Execution Time: %.2f ms\n", median(execTimes))
+}
+
 func main() {
 	ctx := context.Background()
 	connString := "postgres://avrigne:8679@localhost/explain?sslmode=disable"
@@ -204,11 +202,9 @@ func main() {
 	repo := NewRepository(pool, ctx)
 
 	//Run one by one, using comment to exclude
-	//repo.InsertExplain()
+	repo.InsertExplain()
 	//repo.UpdateExplain()
 	//repo.SelectExistsExplain()
-
-	//Modify insert, to issued=true
 	//repo.SelectOrdersExplain()
 
 	//Modify insert, to returned=true

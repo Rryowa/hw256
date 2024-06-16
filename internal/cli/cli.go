@@ -307,7 +307,7 @@ func (c *CLI) listOrders(args []string) error {
 
 func printList(Orders []models.Order) {
 	if len(Orders) == 0 {
-		fmt.Printf("\n\n")
+		defer fmt.Printf("\n\n")
 	}
 	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
 	fmt.Println(strings.Repeat("-", 100))

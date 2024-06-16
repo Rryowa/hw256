@@ -15,11 +15,4 @@ run: build
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
-explain:
-	@mkdir -p $(BIN_DIR)
-	@go build -o $(BIN_DIR)/$(EXPLAIN_DIR) $(EXPLAIN_DIR)/$(EXPLAIN_DIR).go
-	@chmod +x $(BIN_DIR)/$(EXPLAIN_DIR)
-	@echo "Analysis..."
-	@$(BIN_DIR)/$(EXPLAIN_DIR)
-
-.PHONY: build run explain
+.PHONY: build run

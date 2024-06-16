@@ -9,6 +9,8 @@ CREATE TABLE orders (
     returned BOOLEAN NOT NULL,
     hash VARCHAR(255) NOT NULL
 );
+
+
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin

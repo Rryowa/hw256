@@ -28,7 +28,7 @@ accept -id=4 -u_id=1 -date=2077-07-07
 
 return_courier -id=1
 issue -ids=2,3
+list_orders -u_id=1 -limit=3
 accept_return -id=2 -u_id=1
 list_returns -limit=1 -offset=0
-list_orders -u_id=1 -limit=3
 exit

@@ -12,5 +12,4 @@ type Storage interface {
 	Get(id string) models.Order
 	GetReturns(limit, offset int) ([]models.Order, error)
 	GetOrders(userId string, limit int) ([]models.Order, error)
-	AnalyzeQueryPlan(query string, args ...interface{}) error
 }

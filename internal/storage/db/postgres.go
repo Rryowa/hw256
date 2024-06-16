@@ -13,7 +13,6 @@ import (
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"log"
-	"strings"
 )
 
 // repository field pool - concurrency-safe connection pool for pgx
@@ -196,36 +195,4 @@ func (r *repository) GetOrders(userId string, limit int) ([]models.Order, error)
 		return nil, err
 	}
 	return userOrders, err
-}
-
-func (r *repository) AnalyzeQueryPlan(query string, args ...interface{}) error {
-	conn, err := r.pool.Acquire(r.ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
-	explainQuery := "EXPLAIN (ANALYZE, VERBOSE) " + query
-	rows, err := conn.Query(r.ctx, explainQuery, args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	s := strings.ReplaceAll(query, "\t", "")
-	ss := strings.Split(s, " ")
-	fmt.Println(ss)
-	for rows.Next() {
-		var plan string
-		if err := rows.Scan(&plan); err != nil {
-			return err
-		}
-		fmt.Println(plan)
-	}
-
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	return nil
 }
