@@ -126,7 +126,7 @@ Planning Time: 0.062 ms
 Execution Time: 0.410 ms
 ```
   
-![img.png](img.png)  
+![img.png](img/img.png)  
   
 Median Preparation Time: 0.06 ms  
 Median Execution Time: 0.41 ms  
@@ -148,7 +148,7 @@ Execution Time: 0.287 ms
 Median Preparation Time: 0.06 ms  
 Median Execution Time: 0.28 ms  
   
-![img_2.png](img_2.png)  
+![img_2.png](img/img_2.png)  
   
 
 -----------------------------------------------------
@@ -171,7 +171,7 @@ Execution Time: 0.778 ms
 Median Preparation Time: 0.063 ms  
 Median Execution Time: 0.762 ms  
   
-![img_3.png](img_3.png)  
+![img_3.png](img/img_3.png)  
 
 
 ## SelectReturns with index
@@ -189,7 +189,7 @@ Execution Time: 0.277 ms
 Median Preparation Time: 0.05 ms  
 Median Execution Time: 0.29 ms  
   
-![img_4.png](img_4.png)  
+![img_4.png](img/img_4.png)  
   
 
 -----------------------------------------------------
@@ -227,7 +227,7 @@ Median Execution Time: 0.29 ms
 #### Execution Time
 (0.29 - 0.762) / 0.762 * 100 = -62% (decrease)
 
-Использование индекса обеспечивает отличное повышение производительности.
+Использование индекса обеспечивает отличное 62% повышение производительности.
 
 ## Вывод
 
