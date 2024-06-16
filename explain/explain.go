@@ -35,10 +35,10 @@ func main() {
 	repo := NewRepository(pool, ctx)
 
 	//Run one by one, using comment to exclude
-	repo.InsertExplain()
-	//repo.UpdateExplain()
+	//repo.InsertExplain()
 	//repo.SelectExistsExplain()
 	//repo.SelectOrdersExplain()
+	//repo.UpdateExplain()
 
 	//Modify insert, to returned=true
 	//repo.SelectReturnsExplain()
@@ -114,7 +114,7 @@ func (repo *repository) InsertExplain() {
 	          VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	for i := 1; i <= 1000; i++ {
 		prepTime, execTime, err := repo.AnalyzeQueryPlan(query,
-			strconv.Itoa(i), user_id, storageUntil, false, issuedAt, false, hash,
+			strconv.Itoa(i), user_id, storageUntil, false, issuedAt, true, hash,
 		)
 		if err != nil {
 			log.Fatal(err)

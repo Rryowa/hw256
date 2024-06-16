@@ -10,12 +10,12 @@ CREATE TABLE orders (
     hash VARCHAR(255) NOT NULL
 );
 
--- CREATE INDEX user_id_hash ON orders using hash(user_id);
--- CREATE INDEX storage_until_b_tree ON orders (storage_until DESC);
+CREATE INDEX user_id_storage_desc ON orders (user_id, storage_until DESC);
+CREATE INDEX id_sort ON orders (id ASC);
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
--- DROP INDEX user_id_hash;
--- DROP INDEX storage_until_b_tree;
+DROP INDEX user_id_storage_desc;
+DROP INDEX id_sort;
 DROP TABLE orders;
 -- +goose StatementEnd
