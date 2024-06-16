@@ -588,8 +588,11 @@ Planning Time: 0.036 ms
 Execution Time: 0.023 ms
 ```
 
-Median Preparation Time: 0.04 ms
-Median Execution Time: 0.02 ms
+Median Preparation Time: 0.04 ms  
+Median Execution Time: 0.02 ms  
+  
+![img_3.png](img_3.png)  
+
 
 ## Select exists with index
 
@@ -804,9 +807,11 @@ Planning Time: 0.093 ms
 Execution Time: 0.046 ms
 ```
 
-Median Preparation Time: 0.07 ms
-Median Execution Time: 0.042 ms
-
+Median Preparation Time: 0.07 ms  
+Median Execution Time: 0.042 ms  
+  
+![img_2.png](img_2.png)  
+  
 
 ----------------------------------------------------
 ## SelectOrders
@@ -990,8 +995,11 @@ Planning Time: 0.066 ms
 Execution Time: 0.431 ms
 ```
 
-Median Preparation Time: 0.05 ms
-Median Execution Time: 0.41 ms
+Median Preparation Time: 0.05 ms  
+Median Execution Time: 0.41 ms  
+  
+![img_4.png](img_4.png)  
+
 
 ## SelectOrders with index
 
@@ -1147,10 +1155,11 @@ Planning Time: 0.048 ms
 Execution Time: 0.447 ms
 ```
 
-Median Preparation Time: 0.06 ms
-Median Execution Time: 0.47 ms
-
-
+Median Preparation Time: 0.06 ms  
+Median Execution Time: 0.47 ms  
+  
+![img_1.png](img_1.png)  
+  
 -----------------------------------------------------
 ## SelectReturns
 
@@ -1311,9 +1320,11 @@ Planning Time: 0.088 ms
 Execution Time: 1.026 ms
 ```
 
-Median Preparation Time: 0.06 ms
-Median Execution Time: 0.76 ms
-
+Median Preparation Time: 0.06 ms  
+Median Execution Time: 0.76 ms  
+  
+![img_5.png](img_5.png)  
+  
 
 ## SelectReturns with index
 
@@ -1463,8 +1474,11 @@ Planning Time: 0.071 ms
 Execution Time: 0.765 ms
 ```
 
-Median Preparation Time: 0.06 ms
-Median Execution Time: 0.77 ms
+Median Preparation Time: 0.06 ms  
+Median Execution Time: 0.77 ms  
+ 
+![img_6.png](img_6.png)  
+  
 
 -----------------------------------------------------
 ## Insert, Update, Select exists:
