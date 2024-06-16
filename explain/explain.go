@@ -17,6 +17,33 @@ const (
 	hash         = "qwertyuiopasdfghjklyuasdfghjkzxcvbnm"
 )
 
+// TODO: test again with proper index drop!
+func main() {
+	ctx := context.Background()
+	connString := "postgres://avrigne:8679@localhost/explain?sslmode=disable"
+	config, err := pgxpool.ParseConfig(connString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pool.Close()
+
+	repo := NewRepository(pool, ctx)
+
+	//Run one by one, using comment to exclude
+	repo.InsertExplain()
+	//repo.UpdateExplain()
+	//repo.SelectExistsExplain()
+	//repo.SelectOrdersExplain()
+
+	//Modify insert, to returned=true
+	//repo.SelectReturnsExplain()
+}
+
 type repository struct {
 	pool *pgxpool.Pool
 	ctx  context.Context
@@ -183,30 +210,4 @@ func (repo *repository) SelectReturnsExplain() {
 	}
 	fmt.Printf("Median Preparation Time: %.2f ms\n", median(prepTimes))
 	fmt.Printf("Median Execution Time: %.2f ms\n", median(execTimes))
-}
-
-func main() {
-	ctx := context.Background()
-	connString := "postgres://avrigne:8679@localhost/explain?sslmode=disable"
-	config, err := pgxpool.ParseConfig(connString)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer pool.Close()
-
-	repo := NewRepository(pool, ctx)
-
-	//Run one by one, using comment to exclude
-	repo.InsertExplain()
-	//repo.UpdateExplain()
-	//repo.SelectExistsExplain()
-	//repo.SelectOrdersExplain()
-
-	//Modify insert, to returned=true
-	//repo.SelectReturnsExplain()
 }

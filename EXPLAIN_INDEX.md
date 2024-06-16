@@ -2,8 +2,10 @@
 **Запуск анализа:**  
 ```sh
 cd explain
+./explain_up.sh
 # Выбрать вид запроса в explain.go и запустить
 make explain
+./explain_down.sh
 ```
 
 ***Планировщик запросов Postgresql считает, что запрос с LIMIT не стоит
@@ -15,6 +17,7 @@ make explain
 CREATE INDEX user_id_hash ON orders using hash(user_id);
 CREATE INDEX storage_until_b_tree ON orders (storage_until DESC);
 ```
+
 ***Также было замечено отсутствие выгоды от испольования Hash индекса вместо B-Tree***  
 **Я решил, что использовать индексы в данном случае не целесообразно, т.к в основном
 Оператор ПВЗ будет выдавать и принимать заказы намного чаще чем выводить список**
@@ -77,82 +80,65 @@ Median Execution Time: 0.04 ms
 ## Insert with index
 
 ```
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.009..0.009 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.008..0.008 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '989'::text)
-Planning Time: 0.066 ms
-Execution Time: 0.028 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.005..0.005 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.004..0.004 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '990'::text)
-Planning Time: 0.054 ms
-Execution Time: 0.020 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.005..0.005 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.004..0.004 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '991'::text)
-Planning Time: 0.052 ms
-Execution Time: 0.021 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.007..0.007 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.006..0.006 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '992'::text)
-Planning Time: 0.068 ms
-Execution Time: 0.104 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.005 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '993'::text)
-Planning Time: 0.061 ms
-Execution Time: 0.023 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.007..0.007 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.006..0.006 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '994'::text)
-Planning Time: 0.066 ms
-Execution Time: 0.022 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.005 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '995'::text)
-Planning Time: 0.058 ms
-Execution Time: 0.021 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.005 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '996'::text)
-Planning Time: 0.065 ms
-Execution Time: 0.023 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.009..0.009 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.008..0.008 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '997'::text)
-Planning Time: 0.075 ms
-Execution Time: 0.032 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.006 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '998'::text)
-Planning Time: 0.072 ms
-Execution Time: 0.023 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.005 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '999'::text)
-Planning Time: 0.060 ms
-Execution Time: 0.021 ms
-Update on public.orders  (cost=0.14..8.16 rows=0 width=0) (actual time=0.006..0.006 rows=0 loops=1)
-  ->  Index Scan using orders_pkey on public.orders  (cost=0.14..8.16 rows=1 width=16) (actual time=0.005..0.005 rows=0 loops=1)
-        Output: false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, ctid
-        Index Cond: ((orders.id)::text = '1000'::text)
-Planning Time: 0.061 ms
-Execution Time: 0.024 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.041..0.041 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '981'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.031 ms
+Execution Time: 0.053 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.030..0.030 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '982'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.025 ms
+Execution Time: 0.040 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.043..0.043 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '990'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.032 ms
+Execution Time: 0.056 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.034..0.034 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '991'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.025 ms
+Execution Time: 0.045 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.040..0.040 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '992'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.029 ms
+Execution Time: 0.052 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.030..0.030 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '993'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.029 ms
+Execution Time: 0.040 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.040..0.040 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '994'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.032 ms
+Execution Time: 0.054 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.106..0.106 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.002..0.002 rows=1 loops=1)
+        Output: '995'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.037 ms
+Execution Time: 0.122 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.034..0.035 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '998'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.027 ms
+Execution Time: 0.045 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.038..0.038 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '999'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.029 ms
+Execution Time: 0.049 ms
+Insert on public.orders  (cost=0.00..0.01 rows=0 width=0) (actual time=0.045..0.045 rows=0 loops=1)
+  ->  Result  (cost=0.00..0.01 rows=1 width=1566) (actual time=0.001..0.001 rows=1 loops=1)
+        Output: '1000'::character varying(255), '1'::character varying(255), '2077-07-07 01:45:11.743128+03'::timestamp with time zone, false, '2028-08-08 12:32:19.743128+03'::timestamp with time zone, false, 'qwertyuiopasdfghjklyuasdfghjkzxcvbnm'::character varying(255)
+Planning Time: 0.031 ms
+Execution Time: 0.057 ms
 ```
 
-Median Preparation Time: 0.05 ms
-Median Execution Time: 0.02 ms
+Median Preparation Time: 0.03 ms
+Median Execution Time: 0.06 ms
 
 
 --------------------------------------------------
@@ -819,7 +805,7 @@ Execution Time: 0.046 ms
 ```
 
 Median Preparation Time: 0.07 ms
-Median Execution Time: 0.04 ms
+Median Execution Time: 0.042 ms
 
 
 ----------------------------------------------------
@@ -1015,441 +1001,470 @@ CREATE INDEX storage_until_b_tree ON orders (storage_until DESC);
 ```
 
 ```
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.264..0.344 rows=1000 loops=1)
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.334..0.416 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.263..0.293 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.333..0.364 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.006..0.142 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.008..0.206 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.038 ms
-Execution Time: 0.381 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.269..0.348 rows=1000 loops=1)
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.065 ms
+Execution Time: 0.457 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.354..0.434 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.268..0.298 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.353..0.384 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.005..0.145 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.007..0.224 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.037 ms
-Execution Time: 0.385 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.304..0.387 rows=1000 loops=1)
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.049 ms
+Execution Time: 0.471 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.336..0.416 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.303..0.334 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.335..0.365 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.009..0.163 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.008..0.206 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.041 ms
-Execution Time: 0.437 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.298..0.377 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.296..0.326 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.014..0.170 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.077 ms
-Execution Time: 0.423 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.260..0.340 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.259..0.290 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.005..0.138 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.036 ms
-Execution Time: 0.376 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.283..0.384 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.282..0.313 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.009..0.155 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.063 ms
-Execution Time: 0.426 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.378..0.458 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.376..0.407 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.016..0.221 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.095 ms
-Execution Time: 0.513 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.328..0.408 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.326..0.356 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.014..0.171 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.091 ms
-Execution Time: 0.454 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.306..0.386 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.305..0.335 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.008..0.157 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.054 ms
-Execution Time: 0.426 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.280..0.360 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.279..0.309 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.009..0.146 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.060 ms
-Execution Time: 0.397 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.307..0.387 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.306..0.336 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.009..0.164 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.058 ms
-Execution Time: 0.428 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.280..0.360 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.279..0.309 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.007..0.154 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.048 ms
-Execution Time: 0.401 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.380..0.460 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.377..0.407 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.032..0.217 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.127 ms
-Execution Time: 0.519 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.302..0.383 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.300..0.331 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.013..0.169 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.081 ms
-Execution Time: 0.431 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.278..0.358 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.277..0.307 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.009..0.153 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.058 ms
-Execution Time: 0.399 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.287..0.383 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.286..0.332 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.010..0.159 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.063 ms
-Execution Time: 0.426 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.295..0.375 rows=1000 loops=1)
-  Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.294..0.324 rows=1000 loops=1)
-        Output: id, user_id, issued, storage_until, returned
-        Sort Key: orders.storage_until DESC
-        Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.008..0.152 rows=1000 loops=1)
-              Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
 Planning Time: 0.053 ms
-Execution Time: 0.416 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.292..0.372 rows=1000 loops=1)
+Execution Time: 0.454 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.333..0.416 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.290..0.321 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.333..0.364 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.007..0.164 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.008..0.206 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.050 ms
-Execution Time: 0.412 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.294..0.375 rows=1000 loops=1)
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.045 ms
+Execution Time: 0.454 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.408..0.488 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.293..0.323 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.406..0.437 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.010..0.169 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.018..0.251 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.068 ms
-Execution Time: 0.419 ms
-Limit  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.320..0.400 rows=1000 loops=1)
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.111 ms
+Execution Time: 0.539 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.364..0.444 rows=1000 loops=1)
   Output: id, user_id, issued, storage_until, returned
-  ->  Sort  (cost=13.82..13.83 rows=1 width=1042) (actual time=0.318..0.349 rows=1000 loops=1)
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.363..0.393 rows=1000 loops=1)
         Output: id, user_id, issued, storage_until, returned
         Sort Key: orders.storage_until DESC
         Sort Method: quicksort  Memory: 103kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.81 rows=1 width=1042) (actual time=0.012..0.190 rows=1000 loops=1)
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.011..0.219 rows=1000 loops=1)
               Output: id, user_id, issued, storage_until, returned
-              Filter: ((NOT orders.issued) AND ((orders.user_id)::text = '1'::text))
-Planning Time: 0.070 ms
-Execution Time: 0.448 ms
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.066 ms
+Execution Time: 0.486 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.341..0.420 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.340..0.370 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.010..0.212 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.060 ms
+Execution Time: 0.460 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.440..0.520 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.439..0.469 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.023..0.248 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.132 ms
+Execution Time: 0.579 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.399..0.480 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.398..0.429 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.015..0.231 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.079 ms
+Execution Time: 0.525 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.370..0.452 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.369..0.400 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.013..0.226 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.074 ms
+Execution Time: 0.496 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.332..0.414 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.331..0.363 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.008..0.205 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.052 ms
+Execution Time: 0.453 ms
+Limit  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.327..0.409 rows=1000 loops=1)
+  Output: id, user_id, issued, storage_until, returned
+  ->  Sort  (cost=8.03..8.03 rows=1 width=1042) (actual time=0.326..0.357 rows=1000 loops=1)
+        Output: id, user_id, issued, storage_until, returned
+        Sort Key: orders.storage_until DESC
+        Sort Method: quicksort  Memory: 103kB
+        ->  Index Scan using user_id_hash on public.orders  (cost=0.00..8.02 rows=1 width=1042) (actual time=0.007..0.200 rows=1000 loops=1)
+              Output: id, user_id, issued, storage_until, returned
+              Index Cond: ((orders.user_id)::text = '1'::text)
+              Filter: (NOT orders.issued)
+Planning Time: 0.048 ms
+Execution Time: 0.447 ms
 ```
 
-Median Preparation Time: 0.04 ms
-Median Execution Time: 0.39 ms
+Median Preparation Time: 0.06 ms
+Median Execution Time: 0.47 ms
 
 
 -----------------------------------------------------
 ## SelectReturns
 
 ```
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.075..0.076 rows=0 loops=1)
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.672..0.757 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.075..0.075 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.670..0.703 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.072..0.072 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.010..0.158 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.041 ms
-Execution Time: 0.086 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.074..0.074 rows=0 loops=1)
+Planning Time: 0.064 ms
+Execution Time: 0.803 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.876..0.989 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.073..0.073 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.874..0.925 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.070..0.070 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.012..0.187 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.042 ms
-Execution Time: 0.086 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.070..0.070 rows=0 loops=1)
+Planning Time: 0.082 ms
+Execution Time: 1.048 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.641..0.723 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.069..0.069 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.640..0.671 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.067..0.067 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.013..0.138 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.034 ms
-Execution Time: 0.079 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.073..0.073 rows=0 loops=1)
+Planning Time: 0.113 ms
+Execution Time: 0.778 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.718..0.800 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.072..0.072 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.715..0.747 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.069..0.070 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.010..0.158 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.036 ms
-Execution Time: 0.082 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.070..0.070 rows=0 loops=1)
+Planning Time: 0.107 ms
+Execution Time: 0.850 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.851..0.966 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.070..0.070 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.848..0.899 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.068..0.068 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.012..0.193 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.034 ms
-Execution Time: 0.080 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.076..0.077 rows=0 loops=1)
+Planning Time: 0.076 ms
+Execution Time: 1.028 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.668..0.749 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.076..0.076 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.666..0.697 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.073..0.073 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.012..0.151 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.039 ms
-Execution Time: 0.087 ms
-Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.074..0.074 rows=0 loops=1)
+Planning Time: 0.076 ms
+Execution Time: 0.801 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.684..0.765 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.073..0.073 rows=0 loops=1)
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.682..0.713 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.071..0.071 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.011..0.165 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.035 ms
-Execution Time: 0.083 ms
+Planning Time: 0.072 ms
+Execution Time: 0.815 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.791..0.873 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.788..0.819 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.012..0.221 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.086 ms
+Execution Time: 0.927 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.871..0.986 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.869..0.920 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.013..0.196 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.086 ms
+Execution Time: 1.089 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.853..0.968 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.851..0.902 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.012..0.189 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.079 ms
+Execution Time: 1.027 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.842..0.956 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.840..0.891 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.011..0.183 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.070 ms
+Execution Time: 1.014 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.841..0.959 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.839..0.892 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.013..0.184 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.075 ms
+Execution Time: 1.017 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.858..0.973 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.856..0.908 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.009..0.188 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.066 ms
+Execution Time: 1.031 ms
+Limit  (cost=70.09..72.48 rows=959 width=23) (actual time=0.845..0.960 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=70.09..72.48 rows=959 width=23) (actual time=0.843..0.894 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..22.59 rows=959 width=23) (actual time=0.013..0.186 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.088 ms
+Execution Time: 1.026 ms
 ```
 
-Median Preparation Time: 0.05 ms
-Median Execution Time: 0.10 ms
+Median Preparation Time: 0.06 ms
+Median Execution Time: 0.76 ms
 
 
 ## SelectReturns with index
 
 ```
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.092..0.093 rows=0 loops=1)
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.650..0.731 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.091..0.092 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.649..0.679 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.087..0.087 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.013..0.138 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.067 ms
-Execution Time: 0.108 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.084..0.085 rows=0 loops=1)
+Planning Time: 0.080 ms
+Execution Time: 0.777 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.620..0.700 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.084..0.084 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.619..0.649 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.080..0.080 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.007..0.120 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.056 ms
-Execution Time: 0.098 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.077..0.078 rows=0 loops=1)
+Planning Time: 0.065 ms
+Execution Time: 0.738 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.653..0.734 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.077..0.077 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.652..0.682 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.074..0.074 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.008..0.159 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.048 ms
-Execution Time: 0.088 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.075..0.075 rows=0 loops=1)
+Planning Time: 0.058 ms
+Execution Time: 0.776 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.624..0.704 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.074..0.074 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.622..0.653 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.071..0.071 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.006..0.122 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.046 ms
-Execution Time: 0.085 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.076..0.076 rows=0 loops=1)
+Planning Time: 0.061 ms
+Execution Time: 0.746 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.626..0.706 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.076..0.076 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.625..0.655 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.073..0.073 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.008..0.123 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.046 ms
-Execution Time: 0.087 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.091..0.092 rows=0 loops=1)
+Planning Time: 0.063 ms
+Execution Time: 0.748 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.676..0.757 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.090..0.090 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.674..0.705 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.085..0.085 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.012..0.143 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
+Planning Time: 0.081 ms
+Execution Time: 0.803 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.613..0.696 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.612..0.644 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.006..0.118 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.047 ms
+Execution Time: 0.734 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.630..0.710 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.629..0.659 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.009..0.123 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
 Planning Time: 0.057 ms
-Execution Time: 0.105 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.098..0.099 rows=0 loops=1)
+Execution Time: 0.750 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.612..0.692 rows=1000 loops=1)
   Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.097..0.097 rows=0 loops=1)
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.611..0.641 rows=1000 loops=1)
         Output: id, user_id, storage_until, issued, issued_at, returned
         Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.091..0.091 rows=0 loops=1)
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.004..0.113 rows=1000 loops=1)
               Output: id, user_id, storage_until, issued, issued_at, returned
               Filter: orders.returned
-              Rows Removed by Filter: 1000
+Planning Time: 0.039 ms
+Execution Time: 0.729 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.668..0.748 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.667..0.697 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.006..0.121 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.056 ms
+Execution Time: 0.788 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.612..0.691 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.611..0.641 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.005..0.115 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.039 ms
+Execution Time: 0.727 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.638..0.727 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.637..0.673 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.005..0.115 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
+Planning Time: 0.039 ms
+Execution Time: 0.774 ms
+Limit  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.643..0.723 rows=1000 loops=1)
+  Output: id, user_id, storage_until, issued, issued_at, returned
+  ->  Sort  (cost=14.45..14.53 rows=32 width=1050) (actual time=0.641..0.672 rows=1000 loops=1)
+        Output: id, user_id, storage_until, issued, issued_at, returned
+        Sort Key: orders.id
+        Sort Method: quicksort  Memory: 103kB
+        ->  Seq Scan on public.orders  (cost=0.00..13.65 rows=32 width=1050) (actual time=0.010..0.132 rows=1000 loops=1)
+              Output: id, user_id, storage_until, issued, issued_at, returned
+              Filter: orders.returned
 Planning Time: 0.071 ms
-Execution Time: 0.115 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.095..0.096 rows=0 loops=1)
-  Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.095..0.095 rows=0 loops=1)
-        Output: id, user_id, storage_until, issued, issued_at, returned
-        Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.091..0.091 rows=0 loops=1)
-              Output: id, user_id, storage_until, issued, issued_at, returned
-              Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.053 ms
-Execution Time: 0.110 ms
-Limit  (cost=23.01..23.02 rows=1 width=23) (actual time=0.080..0.080 rows=0 loops=1)
-  Output: id, user_id, storage_until, issued, issued_at, returned
-  ->  Sort  (cost=23.01..23.02 rows=1 width=23) (actual time=0.079..0.079 rows=0 loops=1)
-        Output: id, user_id, storage_until, issued, issued_at, returned
-        Sort Key: orders.id
-        Sort Method: quicksort  Memory: 25kB
-        ->  Seq Scan on public.orders  (cost=0.00..23.00 rows=1 width=23) (actual time=0.075..0.075 rows=0 loops=1)
-              Output: id, user_id, storage_until, issued, issued_at, returned
-              Filter: orders.returned
-              Rows Removed by Filter: 1000
-Planning Time: 0.055 ms
-Execution Time: 0.094 ms
+Execution Time: 0.765 ms
 ```
 
-Median Preparation Time: 0.05 ms
-Median Execution Time: 0.10 ms
+Median Preparation Time: 0.06 ms
+Median Execution Time: 0.77 ms
 
 -----------------------------------------------------
 ## Insert, Update, Select exists:
@@ -1488,11 +1503,11 @@ Median Execution Time: 0.10 ms
 
 ### Select exists with index vs Select exists
 #### Preparation Time
-(0.07 - 0.04) / 0.04 * 100 = +75% (increase)
+(0.06 - 0.04) / 0.04 * 100 = +50% (increase)
 #### Execution Time
-(0.04 - 0.02) / 0.02 * 100 = +100% (increase)
+(0.03 - 0.02) / 0.02 * 100 = +50% (increase)
 
-Время подготовки и выполнения удваивается при использовании индекса с запросом  
+Время подготовки и выполнения увеличивается на 50% при использовании индекса с запросом  
 SELECT EXISTS. Это говорит о том, что индекс неэффективен.
 
 Для запросов с LIMIT недопустимо использовать INDEX.
@@ -1501,45 +1516,34 @@ SELECT EXISTS. Это говорит о том, что индекс неэффе
 
 ### Select orders vs Select orders with index
 #### Preparation Time
-(0.04 - 0.05) / 0.05 * 100 = -20% (decrease)
+(0.06 - 0.05) / 0.05 * 100 = +20% (increase)
 #### Execution Time
-(0.39 - 0.41) / 0.41 * 100 = -4.88% (decrease)
+(0.47 - 0.41) / 0.41 * 100 = +14.63% (increase)
 
-Сокращение времени подготовки на 20% указывает на то, что первоначальные затраты  
-на использование индекса меньше, чем ожидалось.
-
-Сокращение времени выполнения на 4,88% указывает на то, что индекс обеспечивает  
-незначительное преимущество. Последовательное сканирование в данном случае  
-достаточно эффективно.
+Использование индекса не обеспечивает повышения производительности  
+и фактически влечет за собой дополнительные расходы.
 
 
-### Select returned vs Select returned with index
+### Select returns vs Select returns with index
 #### Preparation Time
-(0.05 - 0.05) / 0.05 * 100 = 0% (no change)
+(0.06 - 0.06) / 0.06 * 100 = +0%
 #### Execution Time
-(0.10 - 0.10) / 0.10 * 100 = 0% (no change)
+(0.76 - 0.77) / 0.77 * 100 = -1% (decrease)
 
 There is no change
-
+Использование индекса не обеспечивает повышения производительности.
 
 ## Вывод
-*Total Preparation Time:*
-- Without Index = 0.23  
-- With Index = 0.28  
 
-*Total Execution Time:*  
-- Without Index = 0.63  
-- With Index = 0.62  
+Summary
+Total Change in Preparation Time = +153.34%
 
-*Comparison of Total Times*
-- Preparation Time Increase = 21.74%  
-- Execution Time Decrease = −1.59%
+Total Change in Execution Time = +30.3%
 
-При использовании индексов общее *Preparation time увеличивается* на 21,74%.  
+При использовании индексов общее *Preparation time увеличивается* на +153.34%.  
 В первую очередь это связано с большими затратами на поддержание индексов,
 особенно при вставках и обновлениях, когда индексы необходимо обновлять
 вместе с данными таблицы.
 
-При использовании индексов общее *Execution time* сокращается на 1,59%.  
-Это небольшое *сокращение* указывает на то, что для некоторых запросов индексы обеспечивают
-повышение производительности при *извлечении данных*, но в целом влияние *минимально*.
+При использовании индексов общее *Execution time увеличивается* на +30.3%.
+Вывод: Следует отказаться от использования индексов на этой стадии проекта.
