@@ -8,16 +8,18 @@ import (
 	"homework-1/internal/util"
 	"homework-1/pkg/hash"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type OrderService interface {
-	Accept(id, userId, dateStr string) error
+	Accept(id, userId, dateStr, orderPrice, weight, packageType string) error
 	ReturnToCourier(id string) error
 	Issue(ids []string) error
 	Return(id, userId string) error
 	ListReturns(page, size string) ([]models.Order, error)
 	ListOrders(userId, limit string) ([]models.Order, error)
+	PrintList(orders []models.Order)
 }
 
 type orderService struct {
@@ -30,15 +32,7 @@ func NewOrderService(repository storage.Storage) OrderService {
 	}
 }
 
-func (os *orderService) Accept(id, userId, dateStr string) error {
-	storageUntil, err := time.Parse(time.DateOnly, dateStr)
-	if err != nil {
-		return errors.New("error parsing date")
-	}
-	if storageUntil.Before(time.Now()) {
-		return util.ErrInvalidDate
-	}
-
+func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageType string) error {
 	if len(id) == 0 {
 		return util.ErrOrderIdNotProvided
 	}
@@ -47,13 +41,36 @@ func (os *orderService) Accept(id, userId, dateStr string) error {
 		return util.ErrUserIdNotProvided
 	}
 
+	storageUntil, err := time.Parse(time.DateOnly, dateStr)
+	if err != nil {
+		return errors.New("error parsing date")
+	}
+	if storageUntil.Before(time.Now()) {
+		return util.ErrDateInvalid
+	}
+
 	emptyOrder := models.Order{}
 	order := os.repository.Get(id)
 	if order != emptyOrder {
 		return util.ErrOrderExists
 	}
 
-	newOrder := Create(id, userId, storageUntil)
+	orderPriceFloat, err := strconv.ParseFloat(orderPrice, 64)
+	if err != nil {
+		return util.ErrOrderPriceInvalid
+	}
+
+	weightFloat, err := strconv.ParseFloat(weight, 64)
+	if err != nil {
+		return util.ErrWeightInvalid
+	}
+
+	pkg, err := ApplyPackaging(weightFloat, packageType)
+	if err != nil {
+		return err
+	}
+
+	newOrder := Create(id, userId, storageUntil, orderPriceFloat, weightFloat, pkg)
 	return os.repository.Insert(newOrder)
 }
 
@@ -174,13 +191,52 @@ func (os *orderService) ListOrders(userId, limit string) ([]models.Order, error)
 	return os.repository.GetOrders(userId, limitInt)
 }
 
-func Create(id, userId string, storageUntil time.Time) models.Order {
+func (os *orderService) PrintList(orders []models.Order) {
+	if len(orders) == 0 {
+		defer fmt.Printf("\n\n")
+	}
+	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
+	fmt.Println(strings.Repeat("-", 100))
+	for _, order := range orders {
+		fmt.Printf("%-20s %-20s %-20s %-10v %-20s %-10v\n",
+			order.ID,
+			order.UserID,
+			order.StorageUntil.Format("2006-01-02 15:04:05"),
+			order.Issued,
+			order.IssuedAt.Format("2006-01-02 15:04:05"),
+			order.Returned)
+	}
+}
+
+func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
+	var pkg Package
+	switch PackageType(packageType) {
+	case filmType:
+		pkg = NewFilm()
+	case packetType:
+		pkg = NewPacket()
+	case boxType:
+		pkg = NewBox()
+	default:
+		return nil, util.ErrPackageTypeInvalid
+	}
+	if err := pkg.Validate(weightFloat); err != nil {
+		return nil, err
+	}
+
+	return pkg, nil
+}
+
+func Create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
 	order := models.Order{
 		ID:           id,
 		UserID:       userId,
+		StorageUntil: storageUntil,
 		Issued:       false,
 		Returned:     false,
-		StorageUntil: storageUntil,
+		OrderPrice:   orderPrice + GetPackagePrice(pkg),
+		Weight:       weight,
+		PackageType:  GetPackageType(pkg),
 	}
 
 	fmt.Print("Calculating hash.")

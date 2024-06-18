@@ -50,10 +50,10 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 }
 
 func (r *repository) Insert(order models.Order) error {
-	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, hash) 
-	          VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.Hash)
+	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.OrderPrice, order.Weight, order.PackageType, order.Hash)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

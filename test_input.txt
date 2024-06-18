@@ -1,34 +1,23 @@
-goroutines change test
-----------------------
-accept -id=1 -u_id=1 -date=2077-07-07
-accept -id=2 -u_id=1 -date=2077-07-07
-accept -id=3 -u_id=1 -date=2077-07-07
-accept -id=4 -u_id=1 -date=2077-07-07
-set_mg -n=1
-accept -id=5 -u_id=1 -date=2077-07-07
-accept -id=6 -u_id=1 -date=2077-07-07
-accept -id=7 -u_id=1 -date=2077-07-07
-set_mg -n=12
-accept -id=8 -u_id=1 -date=2077-07-07
-accept -id=9 -u_id=1 -date=2077-07-07
-accept -id=10 -u_id=1 -date=2077-07-07
-accept -id=11 -u_id=1 -date=2077-07-07
-accept -id=12 -u_id=1 -date=2077-07-07
-exit
+TESTING
+-----------------------
+ERRORS
+accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=0 -p=film
+accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10.0 -p=packet
+accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=30.0 -p=box
 
------------------------
-all functions test
------------------------
-accept -id=1 -u_id=1 -date=2077-07-07
-accept -id=2 -u_id=1 -date=2077-07-07
-accept -id=3 -u_id=1 -date=2077-07-07
-accept -id=4 -u_id=1 -date=2077-07-07
+NO ERRORS
+accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=29.9 -p=box
 
 return_courier -id=1
+
+list_orders -u_id=1 -limit=3
+
 issue -ids=2,3
 
 accept_return -id=2 -u_id=1
 
-list_orders -u_id=1 -limit=3
 list_returns -limit=1 -offset=0
+
 exit

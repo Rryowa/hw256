@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"homework-1/internal/models"
 	"homework-1/internal/service"
 	"log"
 	"os"
@@ -220,17 +219,20 @@ func (c *CLI) processCommand(input string) {
 }
 
 func (c *CLI) acceptOrder(args []string) error {
-	var idStr, userId, dateStr string
+	var idStr, userId, dateStr, packageType, weight, orderPrice string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
-	fs.StringVar(&idStr, "id", "0", "use -id=12345")
-	fs.StringVar(&userId, "u_id", "0", "use -u_id=54321")
-	fs.StringVar(&dateStr, "date", "0", "use -date=2024-06-06")
+	fs.StringVar(&idStr, "id", "", "use -id=12345")
+	fs.StringVar(&userId, "u_id", "", "use -u_id=54321")
+	fs.StringVar(&dateStr, "date", "", "use -date=2024-06-06")
+	fs.StringVar(&orderPrice, "price", "", "use -price=999.99")
+	fs.StringVar(&weight, "w", "", "use -w=10.0")
+	fs.StringVar(&packageType, "p", "", "use -p=box")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	return c.orderService.Accept(idStr, userId, dateStr)
+	return c.orderService.Accept(idStr, userId, dateStr, orderPrice, weight, packageType)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -283,7 +285,7 @@ func (c *CLI) listReturns(args []string) error {
 	if err != nil {
 		return err
 	}
-	printList(orderIDs)
+	c.orderService.PrintList(orderIDs)
 	return nil
 }
 
@@ -301,25 +303,8 @@ func (c *CLI) listOrders(args []string) error {
 	if err != nil {
 		return err
 	}
-	printList(orderIDs)
+	c.orderService.PrintList(orderIDs)
 	return nil
-}
-
-func printList(Orders []models.Order) {
-	if len(Orders) == 0 {
-		defer fmt.Printf("\n\n")
-	}
-	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
-	fmt.Println(strings.Repeat("-", 100))
-	for _, order := range Orders {
-		fmt.Printf("%-20s %-20s %-20s %-10v %-20s %-10v\n",
-			order.ID,
-			order.UserID,
-			order.StorageUntil.Format("2006-01-02 15:04:05"),
-			order.Issued,
-			order.IssuedAt.Format("2006-01-02 15:04:05"),
-			order.Returned)
-	}
 }
 
 func (c *CLI) help() {

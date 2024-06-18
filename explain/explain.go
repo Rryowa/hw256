@@ -17,7 +17,6 @@ const (
 	hash         = "qwertyuiopasdfghjklyuasdfghjkzxcvbnm"
 )
 
-// TODO: test again with proper index drop!
 func main() {
 	ctx := context.Background()
 	connString := "postgres://avrigne:8679@localhost/explain?sslmode=disable"
