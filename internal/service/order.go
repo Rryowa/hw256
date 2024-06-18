@@ -7,6 +7,7 @@ import (
 	"homework-1/internal/storage"
 	"homework-1/internal/util"
 	"homework-1/pkg/hash"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -36,9 +37,14 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 	if len(id) == 0 {
 		return util.ErrOrderIdNotProvided
 	}
-
 	if len(userId) == 0 {
 		return util.ErrUserIdNotProvided
+	}
+	if len(orderPrice) == 0 {
+		return util.ErrPriceNotProvided
+	}
+	if len(weight) == 0 {
+		return util.ErrWeightNotProvided
 	}
 
 	storageUntil, err := time.Parse(time.DateOnly, dateStr)
@@ -49,20 +55,19 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 		return util.ErrDateInvalid
 	}
 
+	orderPriceFloat, err := strconv.ParseFloat(orderPrice, 64)
+	if err != nil || orderPriceFloat <= 0 {
+		return util.ErrOrderPriceInvalid
+	}
+	weightFloat, err := strconv.ParseFloat(weight, 64)
+	if err != nil || weightFloat <= 0 {
+		return util.ErrWeightInvalid
+	}
+
 	emptyOrder := models.Order{}
 	order := os.repository.Get(id)
 	if order != emptyOrder {
 		return util.ErrOrderExists
-	}
-
-	orderPriceFloat, err := strconv.ParseFloat(orderPrice, 64)
-	if err != nil {
-		return util.ErrOrderPriceInvalid
-	}
-
-	weightFloat, err := strconv.ParseFloat(weight, 64)
-	if err != nil {
-		return util.ErrWeightInvalid
 	}
 
 	pkg, err := ApplyPackaging(weightFloat, packageType)
@@ -71,6 +76,7 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 	}
 
 	newOrder := Create(id, userId, storageUntil, orderPriceFloat, weightFloat, pkg)
+
 	return os.repository.Insert(newOrder)
 }
 
@@ -110,6 +116,7 @@ func (os *orderService) Issue(ids []string) error {
 	}
 
 	modifiedOrders := IssueOrders(orders)
+
 	return os.repository.IssueUpdate(modifiedOrders)
 }
 
@@ -139,6 +146,7 @@ func (os *orderService) Return(id, userId string) error {
 	}
 
 	order.Returned = true
+
 	return os.repository.Update(order)
 }
 
@@ -217,6 +225,9 @@ func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
 		pkg = NewPacket()
 	case boxType:
 		pkg = NewBox()
+	case "":
+		pkg = choosePackage(weightFloat)
+		log.Println("Based on weight, package type is:", GetPackageType(pkg))
 	default:
 		return nil, util.ErrPackageTypeInvalid
 	}
@@ -225,6 +236,16 @@ func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
 	}
 
 	return pkg, nil
+}
+
+func choosePackage(weightFloat float64) Package {
+	if weightFloat >= 30 {
+		return NewFilm()
+	} else if weightFloat >= 10 {
+		return NewBox()
+	} else {
+		return NewPacket()
+	}
 }
 
 func Create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {

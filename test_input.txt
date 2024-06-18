@@ -5,19 +5,25 @@ accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=0 -p=film
 accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10.0 -p=packet
 accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=30.0 -p=box
 
+AUTO CALCULATION OF PACKAGE TYPE
+accept -id=1 -u_id=1 -date=2062-07-07 -price=399.99 -w=1
+accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10
+accept -id=3 -u_id=1 -date=2062-07-07 -price=399.99 -w=30
+
 NO ERRORS
-accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=29.9 -p=box
+accept -id=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=5 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
 
 return_courier -id=1
 
 list_orders -u_id=1 -limit=3
 
-issue -ids=2,3
+issue -ids=2,3,4,5,6
 
 accept_return -id=2 -u_id=1
 
-list_returns -limit=1 -offset=0
+list_returns -limit=3 -offset=0
+list_returns -limit=3 -offset=3
 
 exit
