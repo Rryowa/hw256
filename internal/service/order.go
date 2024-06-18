@@ -1,37 +1,181 @@
 package service
 
 import (
+	"errors"
 	"fmt"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"homework-1/internal/storage"
+	"homework-1/internal/util"
 	"homework-1/pkg/hash"
-	"log"
-	"sort"
+	"strconv"
 	"time"
 )
 
 type OrderService interface {
-	AcceptOrder(id, userId, dateStr string) map[string]entities.Order
-	ReturnOrderToCourier(orderID string) map[string]entities.Order
-	IssueOrders(OrderIDs []string) map[string]entities.Order
-	Return(order entities.Order) map[string]entities.Order
-	ListReturns(page, pageSize int) []entities.Order
-	ListOrders(userId string, limit int) []entities.Order
+	Accept(id, userId, dateStr string) error
+	ReturnToCourier(id string) error
+	Issue(ids []string) error
+	Return(id, userId string) error
+	ListReturns(page, size string) ([]models.Order, error)
+	ListOrders(userId, limit string) ([]models.Order, error)
 }
 
 type orderService struct {
-	storage *storage.OrderStorage
+	repository storage.Storage
 }
 
-func NewOrderService(storage *storage.OrderStorage) OrderService {
+func NewOrderService(repository storage.Storage) OrderService {
 	return &orderService{
-		storage: storage,
+		repository: repository,
 	}
 }
 
-func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entities.Order {
-	storageUntil, _ := time.Parse(time.DateOnly, dateStr)
-	order := entities.Order{
+func (os *orderService) Accept(id, userId, dateStr string) error {
+	storageUntil, err := time.Parse(time.DateOnly, dateStr)
+	if err != nil {
+		return errors.New("error parsing date")
+	}
+	if storageUntil.Before(time.Now()) {
+		return util.ErrInvalidDate
+	}
+
+	if len(id) == 0 {
+		return util.ErrOrderIdNotProvided
+	}
+
+	if len(userId) == 0 {
+		return util.ErrUserIdNotProvided
+	}
+
+	emptyOrder := models.Order{}
+	order := os.repository.Get(id)
+	if order != emptyOrder {
+		return util.ErrOrderExists
+	}
+
+	newOrder := Create(id, userId, storageUntil)
+	return os.repository.Insert(newOrder)
+}
+
+func (os *orderService) Issue(ids []string) error {
+	if len(ids) == 0 {
+		return util.ErrUserIdNotProvided
+	}
+
+	var orders []models.Order
+	var recipientID string
+	for i, id := range ids {
+		emptyOrder := models.Order{}
+		order := os.repository.Get(id)
+		if order == emptyOrder {
+			return util.ErrOrderNotFound
+		}
+
+		if time.Now().After(order.StorageUntil) {
+			return util.ErrOrderExpired
+		}
+		if order.Issued {
+			return util.ErrOrderIssued
+		}
+		if order.Returned {
+			return util.ErrOrderReturned
+		}
+
+		//Check if users are equal
+		if i == 0 {
+			recipientID = order.UserID
+		} else {
+			if order.UserID != recipientID {
+				return util.ErrOrdersUserDiffers
+			}
+		}
+		orders = append(orders, order)
+	}
+
+	modifiedOrders := IssueOrders(orders)
+	return os.repository.IssueUpdate(modifiedOrders)
+}
+
+func (os *orderService) Return(id, userId string) error {
+	if len(id) == 0 {
+		return util.ErrOrderIdNotProvided
+	}
+
+	if len(userId) == 0 {
+		return util.ErrUserIdNotProvided
+	}
+
+	emptyOrder := models.Order{}
+	order := os.repository.Get(id)
+	if order == emptyOrder {
+		return util.ErrOrderNotFound
+	}
+
+	if order.UserID != userId {
+		return util.ErrOrderDoesNotBelong
+	}
+	if !order.Issued {
+		return util.ErrOrderNotIssued
+	}
+	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
+		return util.ErrReturnPeriodExpired
+	}
+
+	order.Returned = true
+	return os.repository.Update(order)
+}
+
+func (os *orderService) ReturnToCourier(id string) error {
+	if len(id) == 0 {
+		return util.ErrOrderIdNotProvided
+	}
+
+	if _, err := strconv.Atoi(id); err != nil {
+		return util.ErrOrderIdInvalid
+	}
+
+	emptyOrder := models.Order{}
+	order := os.repository.Get(id)
+	if order == emptyOrder {
+		return util.ErrOrderNotFound
+	}
+
+	if order.Issued {
+		return util.ErrOrderIssued
+	}
+
+	//skip checking for a period, to ensure that its working
+	//if time.Now().Before(order.StorageUntil) {
+	//	return util.ErrOrderNotExpired
+	//}
+
+	return os.repository.Delete(id)
+}
+
+func (os *orderService) ListReturns(limit, offset string) ([]models.Order, error) {
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		return nil, err
+	}
+	offsetInt, err := strconv.Atoi(offset)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.repository.GetReturns(limitInt, offsetInt)
+}
+
+func (os *orderService) ListOrders(userId, limit string) ([]models.Order, error) {
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.repository.GetOrders(userId, limitInt)
+}
+
+func Create(id, userId string, storageUntil time.Time) models.Order {
+	order := models.Order{
 		ID:           id,
 		UserID:       userId,
 		Issued:       false,
@@ -54,7 +198,7 @@ func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entit
 		}
 	}()
 
-	go func(order *entities.Order, ticker *time.Ticker, done chan struct{}) {
+	go func(order *models.Order, ticker *time.Ticker, done chan struct{}) {
 		order.Hash = hash.GenerateHash()
 		ticker.Stop()
 		done <- struct{}{}
@@ -62,92 +206,16 @@ func (os *orderService) AcceptOrder(id, userId, dateStr string) map[string]entit
 
 	<-done
 
-	//To prettify Ticker
-	//time.Sleep(50 * time.Millisecond)
-	fmt.Println("\nOrder accepted!")
-
-	os.storage.Add(order)
-	return os.storage.GetOrders()
+	return order
 }
 
-func (os *orderService) ReturnOrderToCourier(orderID string) map[string]entities.Order {
-	log.Println("Order returned.")
-	return os.storage.DeleteAll(orderID)
-}
-
-func (os *orderService) IssueOrders(OrderIDs []string) map[string]entities.Order {
-	for _, id := range OrderIDs {
-		order := os.storage.Get(id)
+func IssueOrders(orders []models.Order) []models.Order {
+	modifiedOrders := make([]models.Order, 0)
+	for _, order := range orders {
 		order.Issued = true
 		order.IssuedAt = time.Now()
-
-		os.storage.Update(order)
-
-		log.Println("Order issued.")
-	}
-	return os.storage.GetOrders()
-}
-
-func (os *orderService) Return(order entities.Order) map[string]entities.Order {
-	order.Returned = true
-	os.storage.Update(order)
-
-	log.Println("Return accepted.")
-	return os.storage.GetOrders()
-}
-
-func (os *orderService) ListReturns(page, pageSize int) []entities.Order {
-	orderIds := os.storage.GetOrderIds()
-	ln := len(orderIds)
-	start := (page - 1) * pageSize
-	if start >= ln {
-		return nil
+		modifiedOrders = append(modifiedOrders, order)
 	}
 
-	end := start + pageSize
-	if end > ln {
-		end = ln
-	}
-
-	var returns []entities.Order
-	for _, id := range orderIds[start:end] {
-		order := os.storage.Get(id)
-		if order.Returned {
-			returns = append(returns, order)
-		}
-	}
-
-	// Calculate the start and end indices for slicing
-	returnsStart := 0
-	if start < len(returns) {
-		returnsStart = start
-	}
-	returnsEnd := end - start
-	if returnsEnd > len(returns) {
-		returnsEnd = len(returns)
-	}
-
-	return returns[returnsStart:returnsEnd]
-}
-
-func (os *orderService) ListOrders(userId string, limit int) []entities.Order {
-	var userOrders []entities.Order
-	orderIds := os.storage.GetOrderIds()
-
-	for _, id := range orderIds {
-		order := os.storage.Get(id)
-		if order.UserID == userId && !order.Issued {
-			userOrders = append(userOrders, order)
-			if len(userOrders) == limit {
-				break
-			}
-		}
-	}
-
-	// Sort Orders by StorageUntil date in descending order
-	sort.Slice(userOrders, func(i, j int) bool {
-		return userOrders[i].StorageUntil.Before(userOrders[j].StorageUntil)
-	})
-
-	return userOrders
+	return modifiedOrders
 }
