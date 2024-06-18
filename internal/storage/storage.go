@@ -1,8 +1,8 @@
 package storage
 
-import "homework-1/internal/models"
+import "homework/internal/models"
 
-// Storage To easily replace postgres with any other db
+//go:generate mockery --name Storage
 type Storage interface {
 	Insert(order models.Order) error
 	Update(order models.Order) error

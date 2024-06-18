@@ -5,18 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/georgysavva/scany/v2/pgxscan"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"homework-1/internal/models"
-	"homework-1/internal/storage"
-	"homework-1/internal/util"
+	"homework/internal/models"
+	"homework/internal/storage"
+	"homework/internal/util"
 	"log"
 )
 
-// repository field pool - concurrency-safe connection pool for pgx
-type repository struct {
+type Repository struct {
 	pool *pgxpool.Pool
 	ctx  context.Context
 }
@@ -43,13 +41,13 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 	}
 	log.Println("Connected to db")
 
-	return &repository{
+	return &Repository{
 		pool: pool,
 		ctx:  ctx,
 	}
 }
 
-func (r *repository) Insert(order models.Order) error {
+func (r *Repository) Insert(order models.Order) error {
 	query := `
 		INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash) 
 	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -66,7 +64,7 @@ func (r *repository) Insert(order models.Order) error {
 	return nil
 }
 
-func (r *repository) Update(order models.Order) error {
+func (r *Repository) Update(order models.Order) error {
 	query := `
 		UPDATE orders SET issued=$1, issued_at=$2, returned=$3
         WHERE id=$4
@@ -83,7 +81,7 @@ func (r *repository) Update(order models.Order) error {
 	return nil
 }
 
-func (r *repository) IssueUpdate(orders []models.Order) error {
+func (r *Repository) IssueUpdate(orders []models.Order) error {
 	tx, err := r.pool.BeginTx(r.ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadWrite,
@@ -116,7 +114,7 @@ func (r *repository) IssueUpdate(orders []models.Order) error {
 	return tx.Commit(r.ctx)
 }
 
-func (r *repository) Delete(id string) error {
+func (r *Repository) Delete(id string) error {
 	query := `
 		DELETE FROM orders WHERE id=$1
 		`
@@ -133,7 +131,7 @@ func (r *repository) Delete(id string) error {
 	return nil
 }
 
-func (r *repository) Get(id string) models.Order {
+func (r *Repository) Get(id string) models.Order {
 	var order models.Order
 	query := `
 		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash FROM orders
@@ -145,7 +143,7 @@ func (r *repository) Get(id string) models.Order {
 	return order
 }
 
-func (r *repository) GetReturns(offset, limit int) ([]models.Order, error) {
+func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
 	query := `
         SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash
         FROM orders
@@ -173,7 +171,7 @@ func (r *repository) GetReturns(offset, limit int) ([]models.Order, error) {
 	return returns, nil
 }
 
-func (r *repository) GetOrders(userId string, offset, limit int) ([]models.Order, error) {
+func (r *Repository) GetOrders(userId string, offset, limit int) ([]models.Order, error) {
 	query := `
 			SELECT id, user_id, issued, storage_until, returned, order_price, weight, package_type, hash
 			FROM orders

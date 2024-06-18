@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"homework-1/internal/service"
-	"homework-1/internal/storage/db"
-	"homework-1/internal/util"
-	"homework-1/internal/view"
+	"homework/internal/service"
+	"homework/internal/storage/db"
+	"homework/internal/util"
+	"homework/internal/view"
 	"log"
 )
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"homework-1/internal/service"
+	"homework/internal/service"
 	"log"
 	"os"
 	"os/signal"

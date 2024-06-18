@@ -1,7 +1,7 @@
 package service
 
 import (
-	"homework-1/internal/util"
+	"homework/internal/util"
 )
 
 type PackageType string
