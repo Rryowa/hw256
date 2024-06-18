@@ -9,6 +9,6 @@ type Storage interface {
 	IssueUpdate(orders []models.Order) error
 	Delete(id string) error
 	Get(id string) models.Order
-	GetReturns(limit, offset int) ([]models.Order, error)
-	GetOrders(userId string, limit int) ([]models.Order, error)
+	GetReturns(offset, limit int) ([]models.Order, error)
+	GetOrders(userId string, offset, limit int) ([]models.Order, error)
 }

@@ -51,11 +51,11 @@ func NewCLI(os service.OrderService) *CLI {
 			},
 			{
 				name:        listReturns,
-				description: "Список возвратов: list_returns -limit=1 -offset=0",
+				description: "Список возвратов: list_returns -lmt=10 -ofs=0",
 			},
 			{
 				name:        listOrders,
-				description: "Список заказов: list_orders -u_id=1 -limit=3",
+				description: "Список заказов: list_orders -u_id=1 -lmt=10 -ofs=0",
 			},
 			{
 				name:        setMaxGoroutines,
@@ -272,16 +272,16 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 }
 
 func (c *CLI) listReturns(args []string) error {
-	var limit, offset string
+	var offset, limit string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&limit, "limit", "0", "use -limit=1")
-	fs.StringVar(&offset, "offset", "0", "use -offset=0")
+	fs.StringVar(&offset, "ofs", "0", "use -ofs=0")
+	fs.StringVar(&limit, "lmt", "0", "use -lmt=10")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListReturns(limit, offset)
+	orderIDs, err := c.orderService.ListReturns(offset, limit)
 	if err != nil {
 		return err
 	}
@@ -290,16 +290,17 @@ func (c *CLI) listReturns(args []string) error {
 }
 
 func (c *CLI) listOrders(args []string) error {
-	var userId, limit string
+	var userId, offset, limit string
 	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
 	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
-	fs.StringVar(&limit, "limit", "0", "use -limit=3")
+	fs.StringVar(&offset, "ofs", "0", "use -ofs=0")
+	fs.StringVar(&limit, "lmt", "0", "use -lmt=10")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListOrders(userId, limit)
+	orderIDs, err := c.orderService.ListOrders(userId, offset, limit)
 	if err != nil {
 		return err
 	}

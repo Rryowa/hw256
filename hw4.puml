@@ -1,0 +1,196 @@
+@startuml
+legend
+<u><b>Legend</b></u>
+Render Aggregations: true
+Render Fields: true
+Render Methods: true
+Private Aggregations: true
+end legend
+namespace db {
+    class repository << (S,Aquamarine) >> {
+        - pool *pgxpool.Pool
+        - ctx context.Context
+
+        + Insert(order models.Order) error
+        + Update(order models.Order) error
+        + IssueUpdate(orders []models.Order) error
+        + Delete(id string) error
+        + Get(id string) models.Order
+        + GetReturns(offset int, limit int) ([]models.Order, error)
+        + GetOrders(userId string, offset int, limit int) ([]models.Order, error)
+
+    }
+}
+
+"storage.Storage" <|-- "implements""db.repository"
+
+"db.repository""uses" o-- "context.Context"
+"db.repository""uses" o-- "pgxpool.Pool"
+
+namespace main {
+    class repository << (S,Aquamarine) >> {
+        - pool *pgxpool.Pool
+        - ctx context.Context
+
+        + AnalyzeQueryPlan(query string, args ...<font color=blue>interface</font>{}) (float64, float64, error)
+        + InsertExplain() 
+        + UpdateExplain() 
+        + SelectExistsExplain() 
+        + SelectOrdersExplain() 
+        + SelectReturnsExplain() 
+
+    }
+}
+
+
+"main.repository""uses" o-- "context.Context"
+"main.repository""uses" o-- "pgxpool.Pool"
+
+namespace models {
+    class Config << (S,Aquamarine) >> {
+        + User string
+        + Password string
+        + Host string
+        + Port string
+        + DBName string
+        + Attempts int
+        + Timeout time.Duration
+
+    }
+    class Order << (S,Aquamarine) >> {
+        + ID string
+        + UserID string
+        + StorageUntil time.Time
+        + Issued bool
+        + IssuedAt time.Time
+        + Returned bool
+        + OrderPrice float64
+        + Weight float64
+        + PackageType string
+        + Hash string
+
+    }
+}
+
+
+"models.Config""uses" o-- "time.Duration"
+"models.Order""uses" o-- "time.Time"
+
+namespace service {
+    class Box << (S,Aquamarine) >> {
+        - packageType PackageType
+        - packagePrice PackagePrice
+
+        + Validate(weight float64) error
+
+    }
+    class Film << (S,Aquamarine) >> {
+        - packageType PackageType
+        - packagePrice PackagePrice
+
+        + Validate(weight float64) error
+
+    }
+    interface OrderService  {
+        + Accept(id string, userId string, dateStr string, orderPrice string, weight string, packageType string) error
+        + ReturnToCourier(id string) error
+        + Issue(ids []string) error
+        + Return(id string, userId string) error
+        + ListReturns(offset string, limit string) ([]models.Order, error)
+        + ListOrders(userId string, offset string, limit string) ([]models.Order, error)
+        + PrintList(orders []models.Order) 
+
+    }
+    interface Package  {
+        + Validate(weight float64) error
+
+    }
+    class Packet << (S,Aquamarine) >> {
+        - packageType PackageType
+        - packagePrice PackagePrice
+
+        + Validate(weight float64) error
+
+    }
+    class orderService << (S,Aquamarine) >> {
+        - repository storage.Storage
+
+        + Accept(id string, userId string, dateStr string, orderPrice string, weight string, packageType string) error
+        + Issue(ids []string) error
+        + Return(id string, userId string) error
+        + ReturnToCourier(id string) error
+        + ListReturns(offset string, limit string) ([]models.Order, error)
+        + ListOrders(userId string, offset string, limit string) ([]models.Order, error)
+        + PrintList(orders []models.Order) 
+
+    }
+    class service.PackagePrice << (T, #FF7700) >>  {
+    }
+    class service.PackageType << (T, #FF7700) >>  {
+    }
+}
+
+"service.Package" <|-- "implements""service.Box"
+"service.Package" <|-- "implements""service.Film"
+"service.Package" <|-- "implements""service.Packet"
+"service.OrderService" <|-- "implements""service.orderService"
+
+"service.Box""uses" o-- "service.PackagePrice"
+"service.Box""uses" o-- "service.PackageType"
+"service.Film""uses" o-- "service.PackagePrice"
+"service.Film""uses" o-- "service.PackageType"
+"service.Packet""uses" o-- "service.PackagePrice"
+"service.Packet""uses" o-- "service.PackageType"
+"service.orderService""uses" o-- "storage.Storage"
+
+namespace storage {
+    interface Storage  {
+        + Insert(order models.Order) error
+        + Update(order models.Order) error
+        + IssueUpdate(orders []models.Order) error
+        + Delete(id string) error
+        + Get(id string) models.Order
+        + GetReturns(offset int, limit int) ([]models.Order, error)
+        + GetOrders(userId string, offset int, limit int) ([]models.Order, error)
+
+    }
+}
+
+
+
+namespace view {
+    class CLI << (S,Aquamarine) >> {
+        - orderService service.OrderService
+        - commandList []command
+        - maxGoroutines uint64
+        - activeGoroutines uint64
+
+        - commandHandler(commandChannel <font color=blue>chan</font> string, semaphore <font color=blue>chan</font> <font color=blue>struct</font>{}, done <font color=blue>chan</font> <font color=blue>struct</font>{}, wg *sync.WaitGroup) 
+        - worker(cmd string, id uint64, semaphore <font color=blue>chan</font> <font color=blue>struct</font>{}, wg *sync.WaitGroup) 
+        - setMaxGoroutines(input string, semaphore *<font color=blue>chan</font> <font color=blue>struct</font>{}) error
+        - processCommand(input string) 
+        - acceptOrder(args []string) error
+        - issueOrders(args []string) error
+        - acceptReturn(args []string) error
+        - returnOrderToCourier(args []string) error
+        - listReturns(args []string) error
+        - listOrders(args []string) error
+        - help() 
+
+        + Run() error
+
+    }
+    class command << (S,Aquamarine) >> {
+        - name string
+        - description string
+
+    }
+}
+
+
+"view.CLI""uses" o-- "service.OrderService"
+"view.CLI""uses" o-- "view.command"
+
+"__builtin__.float64" #.. "alias of""service.PackagePrice"
+"__builtin__.string" #.. "alias of""service.PackageType"
+@enduml

@@ -18,8 +18,8 @@ type OrderService interface {
 	ReturnToCourier(id string) error
 	Issue(ids []string) error
 	Return(id, userId string) error
-	ListReturns(page, size string) ([]models.Order, error)
-	ListOrders(userId, limit string) ([]models.Order, error)
+	ListReturns(offset, limit string) ([]models.Order, error)
+	ListOrders(userId, offset, limit string) ([]models.Order, error)
 	PrintList(orders []models.Order)
 }
 
@@ -177,43 +177,51 @@ func (os *orderService) ReturnToCourier(id string) error {
 	return os.repository.Delete(id)
 }
 
-func (os *orderService) ListReturns(limit, offset string) ([]models.Order, error) {
-	limitInt, err := strconv.Atoi(limit)
-	if err != nil {
-		return nil, err
-	}
+func (os *orderService) ListReturns(offset, limit string) ([]models.Order, error) {
 	offsetInt, err := strconv.Atoi(offset)
 	if err != nil {
 		return nil, err
 	}
-
-	return os.repository.GetReturns(limitInt, offsetInt)
-}
-
-func (os *orderService) ListOrders(userId, limit string) ([]models.Order, error) {
 	limitInt, err := strconv.Atoi(limit)
 	if err != nil {
 		return nil, err
 	}
 
-	return os.repository.GetOrders(userId, limitInt)
+	return os.repository.GetReturns(offsetInt, limitInt)
+}
+
+func (os *orderService) ListOrders(userId, offset, limit string) ([]models.Order, error) {
+	offsetInt, err := strconv.Atoi(offset)
+	if err != nil {
+		return nil, err
+	}
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.repository.GetOrders(userId, offsetInt, limitInt)
 }
 
 func (os *orderService) PrintList(orders []models.Order) {
 	if len(orders) == 0 {
 		defer fmt.Printf("\n\n")
 	}
-	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
+	fmt.Printf("%-5s%-10s%-15s%-8v%-13s%-10v%-13v%-10v%-13s\n", "id", "user_id", "storage_until", "issued", "issued_at", "returned", "order_price", "weight", "package_type")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range orders {
-		fmt.Printf("%-20s %-20s %-20s %-10v %-20s %-10v\n",
+		fmt.Printf("%-5s%-10s%-15s%-8v%-13s%-10v%-13v%-10v%-13s\n",
 			order.ID,
 			order.UserID,
-			order.StorageUntil.Format("2006-01-02 15:04:05"),
+			order.StorageUntil.Format("2006-01-02"),
 			order.Issued,
-			order.IssuedAt.Format("2006-01-02 15:04:05"),
-			order.Returned)
+			order.IssuedAt.Format("2006-01-02"),
+			order.Returned,
+			order.OrderPrice,
+			order.Weight,
+			order.PackageType)
 	}
+	fmt.Printf("\n")
 }
 
 func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
