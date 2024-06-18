@@ -1,26 +1,23 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"homework-1/internal/cli"
 	"homework-1/internal/service"
-	"homework-1/internal/storage"
+	"homework-1/internal/storage/db"
+	"homework-1/internal/util"
 	"log"
 )
 
-const (
-	fileName = "orders.json"
-)
-
 func main() {
-	fileService := service.NewFileService(fileName)
-	orderStorage := storage.NewOrderStorage()
-	orderService := service.NewOrderService(orderStorage)
-	validationService := service.NewOrderValidator(orderStorage, orderService, fileService)
+	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
+	orderService := service.NewOrderService(repository)
 
-	commands := cli.NewCLI(validationService)
+	commands := cli.NewCLI(orderService)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}
+
 	fmt.Println("Bye!")
 }

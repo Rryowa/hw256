@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"homework-1/internal/entities"
+	"homework-1/internal/models"
 	"homework-1/internal/service"
 	"log"
 	"os"
@@ -16,20 +16,19 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 )
 
 type CLI struct {
-	validationService service.ValidationService
-	commandList       []command
+	orderService service.OrderService
+	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(v service.ValidationService) *CLI {
+func NewCLI(os service.OrderService) *CLI {
 	return &CLI{
-		validationService: v,
+		orderService: os,
 		commandList: []command{
 			{
 				name:        help,
@@ -53,7 +52,7 @@ func NewCLI(v service.ValidationService) *CLI {
 			},
 			{
 				name:        listReturns,
-				description: "Список возвратов: list_returns -page=1 -size=10",
+				description: "Список возвратов: list_returns -limit=1 -offset=0",
 			},
 			{
 				name:        listOrders,
@@ -183,15 +182,11 @@ func (c *CLI) processCommand(input string) {
 	commandName := args[0]
 
 	switch commandName {
-	case help:
-		c.help()
 	case acceptOrder:
 		if err := c.acceptOrder(args[1:]); err != nil {
 			log.Println(err)
-		}
-	case returnOrderToCourier:
-		if err := c.returnOrderToCourier(args[1:]); err != nil {
-			log.Println(err)
+		} else {
+			log.Println("Order accepted.")
 		}
 	case issueOrders:
 		if err := c.issueOrders(args[1:]); err != nil {
@@ -200,6 +195,14 @@ func (c *CLI) processCommand(input string) {
 	case acceptReturn:
 		if err := c.acceptReturn(args[1:]); err != nil {
 			log.Println(err)
+		} else {
+			log.Println("Return accepted.")
+		}
+	case returnOrderToCourier:
+		if err := c.returnOrderToCourier(args[1:]); err != nil {
+			log.Println(err)
+		} else {
+			log.Println("Order returned.")
 		}
 	case listReturns:
 		if err := c.listReturns(args[1:]); err != nil {
@@ -209,6 +212,8 @@ func (c *CLI) processCommand(input string) {
 		if err := c.listOrders(args[1:]); err != nil {
 			log.Println(err)
 		}
+	case help:
+		c.help()
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
 	}
@@ -225,19 +230,7 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	return c.validationService.AcceptValidation(idStr, userId, dateStr)
-}
-
-func (c *CLI) returnOrderToCourier(args []string) error {
-	var id string
-	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
-	fs.StringVar(&id, "id", "0", "use -id=12345")
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	return c.validationService.ReturnToCourierValidation(id)
+	return c.orderService.Accept(idStr, userId, dateStr)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -249,7 +242,7 @@ func (c *CLI) issueOrders(args []string) error {
 	}
 	ids := strings.Split(idString, ",")
 
-	return c.validationService.IssueValidation(ids)
+	return c.orderService.Issue(ids)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -261,20 +254,32 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	return c.validationService.ReturnValidation(id, userId)
+	return c.orderService.Return(id, userId)
 }
 
-func (c *CLI) listReturns(args []string) error {
-	var page, size string
-	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&page, "page", "0", "use -page=1")
-	fs.StringVar(&size, "size", "0", "use -size=10")
+func (c *CLI) returnOrderToCourier(args []string) error {
+	var id string
+	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
+	fs.StringVar(&id, "id", "0", "use -id=12345")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	orderIDs, err := c.validationService.ListReturnsValidation(page, size)
+	return c.orderService.ReturnToCourier(id)
+}
+
+func (c *CLI) listReturns(args []string) error {
+	var limit, offset string
+	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
+	fs.StringVar(&limit, "limit", "0", "use -limit=1")
+	fs.StringVar(&offset, "offset", "0", "use -offset=0")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	orderIDs, err := c.orderService.ListReturns(limit, offset)
 	if err != nil {
 		return err
 	}
@@ -292,7 +297,7 @@ func (c *CLI) listOrders(args []string) error {
 		return err
 	}
 
-	orderIDs, err := c.validationService.ListOrdersValidation(userId, limit)
+	orderIDs, err := c.orderService.ListOrders(userId, limit)
 	if err != nil {
 		return err
 	}
@@ -300,13 +305,10 @@ func (c *CLI) listOrders(args []string) error {
 	return nil
 }
 
-func printList(Orders []entities.Order) {
+func printList(Orders []models.Order) {
 	if len(Orders) == 0 {
-		fmt.Println("There are no Orders or they all issued!")
-		return
+		defer fmt.Printf("\n\n")
 	}
-	//To prettify output
-	time.Sleep(250 * time.Millisecond)
 	fmt.Printf("%-20s %-20s %-20s %-10s %-20s %-10s\n", "ID", "userId", "StorageUntil", "Issued", "IssuedAt", "Returned")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range Orders {
@@ -322,7 +324,7 @@ func printList(Orders []entities.Order) {
 
 func (c *CLI) help() {
 	fmt.Println("Command list:")
-	fmt.Printf("%-15s | %-25s | %s\n", "Command", "Description", "Example")
+	fmt.Printf("%-15s | %-30s | %s\n", "Command", "Description", "Example")
 	fmt.Println("---------------------------------------------------------------------------------------------------")
 	for _, cmd := range c.commandList {
 		parts := strings.SplitN(cmd.description, ":", 2)
@@ -334,6 +336,6 @@ func (c *CLI) help() {
 		if len(parts) > 1 {
 			example = strings.TrimSpace(parts[1])
 		}
-		fmt.Printf("%-15s | %-25s | %s\n", cmd.name, description, example)
+		fmt.Printf("%-15s | %-30s | %s\n", cmd.name, description, example)
 	}
 }

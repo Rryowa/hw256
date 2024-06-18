@@ -2,8 +2,7 @@
 BINARY_NAME=cli
 BIN_DIR=bin
 CMD_DIR=cmd
-
-all: build
+EXPLAIN_DIR=explain
 
 build:
 	@echo "Building the CLI application..."
@@ -16,4 +15,4 @@ run: build
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
-.PHONY: all build run
+.PHONY: build run
