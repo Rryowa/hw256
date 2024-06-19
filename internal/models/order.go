@@ -2,7 +2,6 @@ package models
 
 import "time"
 
-// Order Escape circular dependencies in file.go and storage.go
 type Order struct {
 	ID           string    `db:"id"`
 	UserID       string    `db:"user_id"`
