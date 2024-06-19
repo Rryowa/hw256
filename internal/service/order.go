@@ -63,18 +63,17 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 		return util.ErrWeightInvalid
 	}
 
-	emptyOrder := models.Order{}
-	order := os.repository.Get(id)
-	if order != emptyOrder {
+	_, err = os.repository.Get(id)
+	if err == nil {
 		return util.ErrOrderExists
 	}
 
-	pkg, err := ApplyPackaging(weightFloat, packageType)
+	pkg, err := packaging(weightFloat, packageType)
 	if err != nil {
 		return err
 	}
 
-	newOrder := Create(id, userId, storageUntil, orderPriceFloat, weightFloat, pkg)
+	newOrder := create(id, userId, storageUntil, orderPriceFloat, weightFloat, pkg)
 
 	return os.repository.Insert(newOrder)
 }
@@ -87,9 +86,8 @@ func (os *orderService) Issue(ids []string) error {
 	var orders []models.Order
 	var recipientID string
 	for i, id := range ids {
-		emptyOrder := models.Order{}
-		order := os.repository.Get(id)
-		if order == emptyOrder {
+		order, err := os.repository.Get(id)
+		if err != nil {
 			return util.ErrOrderNotFound
 		}
 
@@ -114,7 +112,7 @@ func (os *orderService) Issue(ids []string) error {
 		orders = append(orders, order)
 	}
 
-	modifiedOrders := IssueOrders(orders)
+	modifiedOrders := issueOrders(orders)
 
 	return os.repository.IssueUpdate(modifiedOrders)
 }
@@ -128,9 +126,8 @@ func (os *orderService) Return(id, userId string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	emptyOrder := models.Order{}
-	order := os.repository.Get(id)
-	if order == emptyOrder {
+	order, err := os.repository.Get(id)
+	if err != nil {
 		return util.ErrOrderNotFound
 	}
 
@@ -158,9 +155,8 @@ func (os *orderService) ReturnToCourier(id string) error {
 		return util.ErrOrderIdInvalid
 	}
 
-	emptyOrder := models.Order{}
-	order := os.repository.Get(id)
-	if order == emptyOrder {
+	order, err := os.repository.Get(id)
+	if err != nil {
 		return util.ErrOrderNotFound
 	}
 
@@ -223,7 +219,7 @@ func (os *orderService) PrintList(orders []models.Order) {
 	fmt.Printf("\n")
 }
 
-func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
+func packaging(weightFloat float64, packageType string) (Package, error) {
 	pkg, err := NewPackage(packageType, weightFloat)
 	if err != nil {
 		return nil, err
@@ -235,7 +231,7 @@ func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
 	return pkg, nil
 }
 
-func Create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
+func create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
 	order := models.Order{
 		ID:           id,
 		UserID:       userId,
@@ -273,7 +269,7 @@ func Create(id, userId string, storageUntil time.Time, orderPrice, weight float6
 	return order
 }
 
-func IssueOrders(orders []models.Order) []models.Order {
+func issueOrders(orders []models.Order) []models.Order {
 	modifiedOrders := make([]models.Order, 0)
 	for _, order := range orders {
 		order.Issued = true
