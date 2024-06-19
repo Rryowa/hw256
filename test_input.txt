@@ -4,6 +4,7 @@ ERRORS
 accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=0 -p=film
 accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10.0 -p=packet
 accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=30.0 -p=box
+accept -id=5 -u_id=1 -date=2064-07-07 -price=999.99 -w=10.0 -p=LOL
 
 AUTO CALCULATION OF PACKAGE TYPE
 accept -id=1 -u_id=1 -date=2062-07-07 -price=399.99 -w=1
@@ -22,8 +23,9 @@ list_orders -u_id=1 -ofs=0 -lmt=10
 issue -ids=2,3,4,5,6
 
 accept_return -id=2 -u_id=1
+accept_return -id=3 -u_id=1
 
 list_returns -ofs=0 -lmt=10
-list_returns -ofs=0 -lmt=10
+list_returns -ofs=1 -lmt=10
 
 exit

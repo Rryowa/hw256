@@ -223,26 +223,17 @@ func (os *orderService) PrintList(orders []models.Order) {
 	fmt.Printf("\n")
 }
 
-//TODO: Test auto calculation
-//TODO: Test err if package type is wrong
 func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
-	pkg, _ := NewPackage(packageType, weightFloat)
+	pkg, err := NewPackage(packageType, weightFloat)
+	if err != nil {
+		return nil, err
+	}
 	if err := pkg.Validate(weightFloat); err != nil {
 		return nil, err
 	}
 
 	return pkg, nil
 }
-
-//func choosePackage(weightFloat float64) Package {
-//	if weightFloat >= 30 {
-//		return NewFilm()
-//	} else if weightFloat >= 10 {
-//		return NewBox()
-//	} else {
-//		return NewPacket()
-//	}
-//}
 
 func Create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
 	order := models.Order{
@@ -251,9 +242,9 @@ func Create(id, userId string, storageUntil time.Time, orderPrice, weight float6
 		StorageUntil: storageUntil,
 		Issued:       false,
 		Returned:     false,
-		OrderPrice:   orderPrice + GetPackagePrice(pkg),
+		OrderPrice:   orderPrice + pkg.GetPrice(),
 		Weight:       weight,
-		PackageType:  GetPackageType(pkg),
+		PackageType:  pkg.GetType(),
 	}
 
 	fmt.Print("Calculating hash.")

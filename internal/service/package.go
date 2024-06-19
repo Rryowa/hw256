@@ -33,16 +33,64 @@ func NewPackage(packageType string, weightFloat float64) (Package, error) {
 	}
 }
 
+type Package interface {
+	Validate(weight float64) error
+	GetPrice() float64
+	GetType() string
+}
+
+func newFilm() *film {
+	return &film{packageType: filmType, packagePrice: filmPrice}
+}
+func (pkg *film) Validate(weight float64) error {
+	if weight > 0 {
+		return nil
+	}
+	return util.ErrWeightExceeds
+}
+func (pkg *film) GetPrice() float64 {
+	return float64(pkg.packagePrice)
+}
+func (pkg *film) GetType() string {
+	return string(pkg.packageType)
+}
+
+func newPacket() *packet {
+	return &packet{packageType: packetType, packagePrice: packetPrice}
+}
+func (pkg *packet) Validate(weight float64) error {
+	if weight < 10 {
+		return nil
+	}
+	return util.ErrWeightExceeds
+}
+func (pkg *packet) GetPrice() float64 {
+	return float64(pkg.packagePrice)
+}
+func (pkg *packet) GetType() string {
+	return string(pkg.packageType)
+}
+
+func newBox() *box {
+	return &box{packageType: boxType, packagePrice: boxPrice}
+}
+func (pkg *box) GetPrice() float64 {
+	return float64(pkg.packagePrice)
+}
+func (pkg *box) GetType() string {
+	return string(pkg.packageType)
+}
+func (pkg *box) Validate(weight float64) error {
+	if weight < 30 {
+		return nil
+	}
+	return util.ErrWeightExceeds
+}
+
 func choosePackage(weightFloat float64) Package {
 	var packageType string
-	defer func() {
-		log.Println("1! Based on weight, package type is:", packageType)
-	}()
-	defer func(packageType string) {
-		log.Println("2! Based on weight, package type is:", packageType)
-	}(packageType)
 	defer func(packageType *string) {
-		log.Println("3! Based on weight, package type is:", *packageType)
+		log.Println("Based on weight, package type is:", *packageType)
 	}(&packageType)
 
 	if weightFloat >= 30 {
@@ -55,10 +103,6 @@ func choosePackage(weightFloat float64) Package {
 		packageType = string(packetType)
 		return newPacket()
 	}
-}
-
-type Package interface {
-	Validate(weight float64) error
 }
 
 type film struct {
@@ -74,63 +118,4 @@ type packet struct {
 type box struct {
 	packageType  PackageType
 	packagePrice PackagePrice
-}
-
-func newFilm() *film {
-	return &film{packageType: filmType, packagePrice: filmPrice}
-}
-
-func newPacket() *packet {
-	return &packet{packageType: packetType, packagePrice: packetPrice}
-}
-
-func newBox() *box {
-	return &box{packageType: boxType, packagePrice: boxPrice}
-}
-
-func GetPackageType(p Package) string {
-	switch p.(type) {
-	case *film:
-		return string(filmType)
-	case *packet:
-		return string(packetType)
-	case *box:
-		return string(boxType)
-	default:
-		return ""
-	}
-}
-
-func GetPackagePrice(p Package) float64 {
-	switch p.(type) {
-	case *film:
-		return float64(filmPrice)
-	case *packet:
-		return float64(packetPrice)
-	case *box:
-		return float64(boxPrice)
-	default:
-		return 0
-	}
-}
-
-func (p *film) Validate(weight float64) error {
-	if weight > 0 {
-		return nil
-	}
-	return util.ErrWeightExceeds
-}
-
-func (p *packet) Validate(weight float64) error {
-	if weight < 10 {
-		return nil
-	}
-	return util.ErrWeightExceeds
-}
-
-func (p *box) Validate(weight float64) error {
-	if weight < 30 {
-		return nil
-	}
-	return util.ErrWeightExceeds
 }
