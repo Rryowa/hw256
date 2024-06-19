@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"homework-1/internal/cli"
-	"homework-1/internal/service"
-	"homework-1/internal/storage/db"
-	"homework-1/internal/util"
+	"homework/internal/service"
+	"homework/internal/storage/db"
+	"homework/internal/util"
+	"homework/internal/view"
 	"log"
 )
 
@@ -14,7 +14,7 @@ func main() {
 	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
 	orderService := service.NewOrderService(repository)
 
-	commands := cli.NewCLI(orderService)
+	commands := view.NewCLI(orderService)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}

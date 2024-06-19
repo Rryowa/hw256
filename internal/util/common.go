@@ -2,7 +2,7 @@ package util
 
 import (
 	"github.com/joho/godotenv"
-	"homework-1/internal/models"
+	"homework/internal/models"
 	"log"
 	"os"
 	"strconv"

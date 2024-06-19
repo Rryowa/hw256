@@ -17,7 +17,6 @@ const (
 	hash         = "qwertyuiopasdfghjklyuasdfghjkzxcvbnm"
 )
 
-// TODO: test again with proper index drop!
 func main() {
 	ctx := context.Background()
 	connString := "postgres://avrigne:8679@localhost/explain?sslmode=disable"
@@ -35,7 +34,7 @@ func main() {
 	repo := NewRepository(pool, ctx)
 
 	//Run one by one, using comment to exclude
-	//repo.InsertExplain()
+	repo.InsertExplain()
 	//repo.SelectExistsExplain()
 	//repo.SelectOrdersExplain()
 	//repo.UpdateExplain()
