@@ -131,16 +131,16 @@ func (r *Repository) Delete(id string) error {
 	return nil
 }
 
-func (r *Repository) Get(id string) models.Order {
+func (r *Repository) Get(id string) (models.Order, error) {
 	var order models.Order
 	query := `
 		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash FROM orders
 		WHERE id=$1
 		`
 	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
-		return models.Order{}
+		return models.Order{}, err
 	}
-	return order
+	return order, nil
 }
 
 func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
