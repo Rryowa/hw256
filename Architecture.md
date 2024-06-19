@@ -1,6 +1,49 @@
+### Polymorphism
+```go
+// /service/order.go
+func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
+	pkg, err := NewPackage(packageType, weightFloat)
+	if err != nil {
+		return nil, err
+	}
+	if err := pkg.Validate(weightFloat); err != nil {
+		return nil, err
+	}
+
+	return pkg, nil
+}
+```
+
+### Factory creational pattern https://github.com/AlexanderGrom/go-patterns/blob/master/Creational/FactoryMethod
+```go
+// /service/package.go
+type Package interface {
+	Validate(weight float64) error
+	GetPrice() float64
+	GetType() string
+}
+
+func newFilm() *film {
+	return &film{packageType: filmType, packagePrice: filmPrice}
+}
+func (pkg *film) Validate(weight float64) error {
+	if weight > 0 {
+		return nil
+	}
+	return util.ErrWeightExceeds
+}
+func (pkg *film) GetPrice() float64 {
+	return float64(pkg.packagePrice)
+}
+func (pkg *film) GetType() string {
+	return string(pkg.packageType)
+}
+```
+
 ## Используемые стандарты описания архитектуры
 Для описания архитектуры я использовал *диаграмму классов* и  
 *диаграмму последовательности* стандарта UML,
+
 ### Почему UML
 UML я выбрал, потому что C4 Model непригодна для настолько маленького проекта,  
 2 и 3 слои выглядят идентично из-за отсутствия внешнего сервиса.
