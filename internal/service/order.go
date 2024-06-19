@@ -7,7 +7,6 @@ import (
 	"homework/internal/storage"
 	"homework/internal/util"
 	"homework/pkg/hash"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -224,21 +223,10 @@ func (os *orderService) PrintList(orders []models.Order) {
 	fmt.Printf("\n")
 }
 
+//TODO: Test auto calculation
+//TODO: Test err if package type is wrong
 func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
-	var pkg Package
-	switch PackageType(packageType) {
-	case filmType:
-		pkg = NewFilm()
-	case packetType:
-		pkg = NewPacket()
-	case boxType:
-		pkg = NewBox()
-	case "":
-		pkg = choosePackage(weightFloat)
-		log.Println("Based on weight, package type is:", GetPackageType(pkg))
-	default:
-		return nil, util.ErrPackageTypeInvalid
-	}
+	pkg, _ := NewPackage(packageType, weightFloat)
 	if err := pkg.Validate(weightFloat); err != nil {
 		return nil, err
 	}
@@ -246,15 +234,15 @@ func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
 	return pkg, nil
 }
 
-func choosePackage(weightFloat float64) Package {
-	if weightFloat >= 30 {
-		return NewFilm()
-	} else if weightFloat >= 10 {
-		return NewBox()
-	} else {
-		return NewPacket()
-	}
-}
+//func choosePackage(weightFloat float64) Package {
+//	if weightFloat >= 30 {
+//		return NewFilm()
+//	} else if weightFloat >= 10 {
+//		return NewBox()
+//	} else {
+//		return NewPacket()
+//	}
+//}
 
 func Create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
 	order := models.Order{

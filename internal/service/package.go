@@ -1,12 +1,11 @@
 package service
 
 import (
-	"errors"
 	"homework/internal/util"
+	"log"
 )
 
 type PackageType string
-
 type PackagePrice float64
 
 const (
@@ -19,16 +18,42 @@ const (
 	boxPrice    PackagePrice = 20
 )
 
-func NewPackage(packageType string) (Package, error) {
+func NewPackage(packageType string, weightFloat float64) (Package, error) {
 	switch PackageType(packageType) {
 	case filmType:
-		return &film{packageType: filmType, packagePrice: filmPrice}, nil
+		return newFilm(), nil
 	case packetType:
-		return &packet{packageType: packetType, packagePrice: packetPrice}, nil
+		return newPacket(), nil
 	case boxType:
-		return &box{packageType: boxType, packagePrice: boxPrice}, nil
+		return newBox(), nil
+	case "":
+		return choosePackage(weightFloat), nil
 	default:
-		return nil, errors.New("invalid package type")
+		return nil, util.ErrPackageTypeInvalid
+	}
+}
+
+func choosePackage(weightFloat float64) Package {
+	var packageType string
+	defer func() {
+		log.Println("1! Based on weight, package type is:", packageType)
+	}()
+	defer func(packageType string) {
+		log.Println("2! Based on weight, package type is:", packageType)
+	}(packageType)
+	defer func(packageType *string) {
+		log.Println("3! Based on weight, package type is:", *packageType)
+	}(&packageType)
+
+	if weightFloat >= 30 {
+		packageType = string(filmType)
+		return newFilm()
+	} else if weightFloat >= 10 {
+		packageType = string(boxType)
+		return newBox()
+	} else {
+		packageType = string(packetType)
+		return newPacket()
 	}
 }
 
@@ -51,41 +76,43 @@ type box struct {
 	packagePrice PackagePrice
 }
 
-//func NewFilm() *Film {
-//	return &Film{packageType: filmType, packagePrice: filmPrice}
-//}
-//
-//func NewPacket() *Packet {
-//	return &Packet{packageType: packetType, packagePrice: packetPrice}
-//}
-//
-//func NewBox() *Box {
-//	return &Box{packageType: boxType, packagePrice: boxPrice}
-//}
-//
-//func GetPackageType(p Package) string {
-//	switch p.(type) {
-//	case *Film:
-//		return string(filmType)
-//	case *Packet:
-//		return string(packetType)
-//	case *Box:
-//		return string(boxType)
-//	}
-//	return ""
-//}
-//
-//func GetPackagePrice(p Package) float64 {
-//	switch p.(type) {
-//	case *Film:
-//		return float64(filmPrice)
-//	case *Packet:
-//		return float64(packetPrice)
-//	case *Box:
-//		return float64(boxPrice)
-//	}
-//	return 0
-//}
+func newFilm() *film {
+	return &film{packageType: filmType, packagePrice: filmPrice}
+}
+
+func newPacket() *packet {
+	return &packet{packageType: packetType, packagePrice: packetPrice}
+}
+
+func newBox() *box {
+	return &box{packageType: boxType, packagePrice: boxPrice}
+}
+
+func GetPackageType(p Package) string {
+	switch p.(type) {
+	case *film:
+		return string(filmType)
+	case *packet:
+		return string(packetType)
+	case *box:
+		return string(boxType)
+	default:
+		return ""
+	}
+}
+
+func GetPackagePrice(p Package) float64 {
+	switch p.(type) {
+	case *film:
+		return float64(filmPrice)
+	case *packet:
+		return float64(packetPrice)
+	case *box:
+		return float64(boxPrice)
+	default:
+		return 0
+	}
+}
 
 func (p *film) Validate(weight float64) error {
 	if weight > 0 {
