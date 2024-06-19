@@ -34,7 +34,7 @@ func main() {
 	repo := NewRepository(pool, ctx)
 
 	//Run one by one, using comment to exclude
-	//repo.InsertExplain()
+	repo.InsertExplain()
 	//repo.SelectExistsExplain()
 	//repo.SelectOrdersExplain()
 	//repo.UpdateExplain()
