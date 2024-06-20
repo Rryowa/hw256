@@ -1,28 +1,3 @@
-accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=3 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=4 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=5 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=6 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=7 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=8 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=9 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=10 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=11 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=12 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=13 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=14 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=15 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=16 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=17 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=18 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=19 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=20 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=21 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-accept -id=22 -u_id=1 -date=2061-07-07 -price=199.99 -w=1.9 -p=film
-accept -id=23 -u_id=1 -date=2062-07-07 -price=399.99 -w=9.9 -p=packet
-accept -id=24 -u_id=1 -date=2063-07-07 -price=399.99 -w=29.9 -p=box
-
 TESTING
 -----------------------
 ERRORS
