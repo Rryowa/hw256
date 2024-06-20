@@ -49,11 +49,11 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 
 func (r *Repository) Insert(order models.Order) error {
 	query := `
-		INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash) 
-	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash) 
+	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	    `
 
-	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.OrderPrice, order.Weight, order.PackageType, order.Hash)
+	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice, order.Hash)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -92,12 +92,12 @@ func (r *Repository) IssueUpdate(orders []models.Order) error {
 	defer tx.Rollback(r.ctx)
 
 	query := `
-		UPDATE orders SET issued=$1, issued_at=$2, returned=$3
-        WHERE id=$4
+		UPDATE orders SET issued=$1, issued_at=$2
+        WHERE id=$3
         `
 	batch := &pgx.Batch{}
 	for _, order := range orders {
-		batch.Queue(query, order.Issued, order.IssuedAt, order.Returned, order.ID)
+		batch.Queue(query, order.Issued, order.IssuedAt, order.ID)
 		log.Printf("Order with id:%s issued\n", order.ID)
 	}
 
@@ -134,7 +134,7 @@ func (r *Repository) Delete(id string) error {
 func (r *Repository) Get(id string) (models.Order, error) {
 	var order models.Order
 	query := `
-		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash FROM orders
+		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
 		WHERE id=$1
 		`
 	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
@@ -145,7 +145,7 @@ func (r *Repository) Get(id string) (models.Order, error) {
 
 func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
 	query := `
-        SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, hash
+        SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
         FROM orders
         WHERE returned = TRUE
         ORDER BY id

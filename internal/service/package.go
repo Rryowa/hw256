@@ -18,7 +18,7 @@ const (
 	boxPrice    PackagePrice = 20
 )
 
-func NewPackage(packageType string, weightFloat float64) (Package, error) {
+func NewPackage(weight float64, packageType string) (Package, error) {
 	switch PackageType(packageType) {
 	case filmType:
 		return newFilm(), nil
@@ -27,7 +27,7 @@ func NewPackage(packageType string, weightFloat float64) (Package, error) {
 	case boxType:
 		return newBox(), nil
 	case "":
-		return choosePackage(weightFloat), nil
+		return choosePackage(weight), nil
 	default:
 		return nil, util.ErrPackageTypeInvalid
 	}
@@ -87,20 +87,20 @@ func (pkg *box) Validate(weight float64) error {
 	return util.ErrWeightExceeds
 }
 
-func choosePackage(weightFloat float64) Package {
-	var packageType string
-	defer func(packageType *string) {
-		log.Println("Based on weight, package type is:", *packageType)
-	}(&packageType)
+func choosePackage(weight float64) Package {
+	var pkg string
+	defer func(pkg *string) {
+		log.Println("Based on weight, package type is:", *pkg)
+	}(&pkg)
 
-	if weightFloat >= 30 {
-		packageType = string(filmType)
+	if weight >= 30 {
+		pkg = string(filmType)
 		return newFilm()
-	} else if weightFloat >= 10 {
-		packageType = string(boxType)
+	} else if weight >= 10 {
+		pkg = string(boxType)
 		return newBox()
 	} else {
-		packageType = string(packetType)
+		pkg = string(packetType)
 		return newPacket()
 	}
 }

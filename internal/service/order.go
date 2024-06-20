@@ -83,36 +83,40 @@ func (os *orderService) Issue(ids []string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	var orders []models.Order
-	var recipientID string
-	for i, id := range ids {
-		order, err := os.repository.Get(id)
-		if err != nil {
-			return util.ErrOrderNotFound
-		}
+	var ordersToIssue []models.Order
 
-		if time.Now().After(order.StorageUntil) {
-			return util.ErrOrderExpired
-		}
+	order, err := os.repository.Get(ids[0])
+	if err != nil {
+		return util.ErrOrderNotFound
+	}
+	recipientID := order.UserID
+
+	for _, id := range ids {
 		if order.Issued {
 			return util.ErrOrderIssued
 		}
 		if order.Returned {
 			return util.ErrOrderReturned
 		}
+		if time.Now().After(order.StorageUntil) {
+			return util.ErrOrderExpired
+		}
 
 		//Check if users are equal
-		if i == 0 {
-			recipientID = order.UserID
-		} else {
-			if order.UserID != recipientID {
-				return util.ErrOrdersUserDiffers
-			}
+		if order.UserID != recipientID {
+			return util.ErrOrdersUserDiffers
 		}
-		orders = append(orders, order)
+
+		ordersToIssue = append(ordersToIssue, order)
+
+		//Check next order
+		order, err = os.repository.Get(id)
+		if err != nil {
+			return util.ErrOrderNotFound
+		}
 	}
 
-	modifiedOrders := issueOrders(orders)
+	modifiedOrders := issueOrders(ordersToIssue)
 
 	return os.repository.IssueUpdate(modifiedOrders)
 }
@@ -219,12 +223,12 @@ func (os *orderService) PrintList(orders []models.Order) {
 	fmt.Printf("\n")
 }
 
-func packaging(weightFloat float64, packageType string) (Package, error) {
-	pkg, err := NewPackage(packageType, weightFloat)
+func packaging(weight float64, packageType string) (Package, error) {
+	pkg, err := NewPackage(weight, packageType)
 	if err != nil {
 		return nil, err
 	}
-	if err := pkg.Validate(weightFloat); err != nil {
+	if err := pkg.Validate(weight); err != nil {
 		return nil, err
 	}
 
@@ -238,9 +242,10 @@ func create(id, userId string, storageUntil time.Time, orderPrice, weight float6
 		StorageUntil: storageUntil,
 		Issued:       false,
 		Returned:     false,
-		OrderPrice:   orderPrice + pkg.GetPrice(),
+		OrderPrice:   orderPrice,
 		Weight:       weight,
 		PackageType:  pkg.GetType(),
+		PackagePrice: pkg.GetPrice(),
 	}
 
 	fmt.Print("Calculating hash.")
