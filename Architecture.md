@@ -7,33 +7,33 @@
 
 ```go
 func applyPackaging(order *models.Order, packageType string) error {
-	var pkg PackageInterface
+var pkg PackageInterface
 
-	switch PackageType(packageType) {
-	case FilmType:
-		pkg = NewFilmPackage()
-	case PacketType:
-		pkg = NewPacketPackage()
-	case BoxType:
-		pkg = NewBoxPackage()
-	case "":
-		pkg = ChoosePackage(order.Weight)
-	default:
-		return util.ErrPackageTypeInvalid
-	}
+switch PackageType(packageType) {
+case FilmType:
+pkg = NewFilmPackage()
+case PacketType:
+pkg = NewPacketPackage()
+case BoxType:
+pkg = NewBoxPackage()
+case "":
+pkg = ChoosePackage(order.Weight)
+default:
+return util.ErrPackageTypeInvalid
+}
 
-	p := NewPackage(pkg)
+p := NewPackage(pkg)
 
-	if err := p.Validate(order.Weight); err != nil {
-		return err
-	}
+if err := p.Validate(order.Weight); err != nil {
+return err
+}
 
-	//Apply packaging and calculate order price
-	order.PackageType = p.GetType()
-	order.PackagePrice = p.GetPrice()
-	order.OrderPrice += p.GetPrice()
+//Apply packaging and calculate order price
+order.PackageType = p.GetType()
+order.PackagePrice = p.GetPrice()
+order.OrderPrice += p.GetPrice()
 
-	return nil
+return nil
 }
 ```
 
@@ -42,24 +42,24 @@ https://github.com/AlexanderGrom/go-patterns/blob/master/Behavioral/TemplateMeth
 ```go
 // PackageInterface provides an interface to validate different packages
 type PackageInterface interface {
-	ValidatePackage(weight float64) error
-	GetType() string
-	GetPrice() float64
+ValidatePackage(weight float64) error
+GetType() string
+GetPrice() float64
 }
 
 // Package implements a Template method
 type Package struct {
-	PackageInterface
+PackageInterface
 }
 
 // Validate is the Template Method.
 func (p *Package) Validate(weight float64) error {
-	return p.ValidatePackage(weight)
+return p.ValidatePackage(weight)
 }
 
 // NewPackage is the Package constructor.
 func NewPackage(p PackageInterface) *Package {
-	return &Package{p}
+return &Package{p}
 }
 ```
 ```go
