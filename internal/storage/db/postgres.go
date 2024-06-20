@@ -66,11 +66,11 @@ func (r *Repository) Insert(order models.Order) error {
 
 func (r *Repository) Update(order models.Order) error {
 	query := `
-		UPDATE orders SET issued=$1, issued_at=$2, returned=$3
-        WHERE id=$4
+		UPDATE orders SET returned=$1
+        WHERE id=$2
         `
 
-	_, err := r.pool.Exec(r.ctx, query, order.Issued, order.IssuedAt, order.Returned, order.ID)
+	_, err := r.pool.Exec(r.ctx, query, order.Returned, order.ID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -173,13 +173,13 @@ func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
 
 func (r *Repository) GetOrders(userId string, offset, limit int) ([]models.Order, error) {
 	query := `
-			SELECT id, user_id, issued, storage_until, returned, order_price, weight, package_type, hash
-			FROM orders
-			WHERE user_id = $1 AND issued = FALSE
-			ORDER BY storage_until
-			OFFSET $2
-			FETCH NEXT $3 ROWS ONLY
-		`
+		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
+		FROM orders
+		WHERE user_id = $1 AND issued = FALSE
+		ORDER BY storage_until
+		OFFSET $2
+		FETCH NEXT $3 ROWS ONLY
+	`
 
 	rows, err := r.pool.Query(r.ctx, query, userId, offset, limit)
 	if err != nil {
