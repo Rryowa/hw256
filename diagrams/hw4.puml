@@ -1,4 +1,5 @@
 @startuml
+skinparam linetype ortho
 class main {
     - orderService service.OrderService
     - repository storage.db.Repository
@@ -43,7 +44,6 @@ namespace service {
         + PrintList(orders []models.Order)
 
     }
-
     class orderService << (S,Aquamarine) >> {
         - repository storage.Storage
 
@@ -54,42 +54,29 @@ namespace service {
         + ListReturns(offset string, limit string) ([]models.Order, error)
         + ListOrders(userId string, offset string, limit string) ([]models.Order, error)
         + PrintList(orders []models.Order)
-
     }
-
-    interface Package  {
+    class Package << (S,Aquamarine) >> {
         + Validate(weight float64) error
-        + GetPrice() float64
-        + GetType() string
-
     }
-    class box << (S,Aquamarine) >> {
-        - PackageType
-        - PackagePrice
-
-        + GetPrice() float64
+    interface PackageInterface  {
+        + ValidatePackage(weight float64) error
         + GetType() string
-        + Validate(weight float64) error
-
+        + GetPrice() float64
     }
-    class film << (S,Aquamarine) >> {
-        - PackageType
-        - PackagePrice
-
-        + Validate(weight float64) error
-        + GetPrice() float64
+    class FilmPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
         + GetType() string
-
+        + GetPrice() float64
     }
-
-    class packet << (S,Aquamarine) >> {
-        - PackageType
-        - PackagePrice
-
-        + Validate(weight float64) error
-        + GetPrice() float64
+    class PacketPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
         + GetType() string
-
+        + GetPrice() float64
+    }
+    class BoxPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
+        + GetType() string
+        + GetPrice() float64
     }
 }
 
@@ -131,8 +118,8 @@ namespace models {
         + OrderPrice float64
         + Weight float64
         + PackageType string
+        + PackagePrice float64
         + Hash string
-
     }
     class Config << (S,Aquamarine) >> {
             + User string
@@ -157,15 +144,13 @@ namespace schema {
         order_price___ FLOAT
         weight_______ FLOAT
         package_type_  VARCHAR
+        package_price_FLOAT
         hash________   VARCHAR
     }
 }
 
 
 main "has a" --* view.CLI
-'main::orderService "has a" --* service.orderService
-'main::repository "has a" --* storage.db.Repository
-
 view.CLI -->service.OrderService: uses
 view.CLI --* command: has a
 
@@ -174,11 +159,13 @@ orderService --> storage.Storage: uses
 orderService --> Package: uses
 orderService *-- models.Order: has a
 
-service.Package <|-- service.box: implements
-service.Package <|-- service.film: implements
-service.Package <|-- service.packet: implements
+service.Package --* service.PackageInterface: extends
 
-storage.Storage <|-- "implements" storage.db.Repository
+service.BoxPackage --|> service.PackageInterface: implements
+service.FilmPackage --|> service.PackageInterface: implements
+service.PacketPackage --|> service.PackageInterface: implements
+
+storage.Storage <|-- storage.db.Repository: implements
 storage.db.Repository *-- models.Config: has a
 models.Order <-[dashed]- schema.Orders: realises
 
