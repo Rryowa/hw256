@@ -4,71 +4,84 @@
 • Контроллер(Сервис) интерпретирует действия пользователя, оповещая модель о необходимости изменений.
 
 ### Polymorphism
+
 ```go
-// /service/order.go
-func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
-	pkg, err := NewPackage(packageType, weightFloat)
-	if err != nil {
-		return nil, err
-	}
-	if err := pkg.Validate(weightFloat); err != nil {
-		return nil, err
+func applyPackaging(order *models.Order, packageType string) error {
+	var pkg PackageInterface
+
+	switch PackageType(packageType) {
+	case FilmType:
+		pkg = NewFilmPackage()
+	case PacketType:
+		pkg = NewPacketPackage()
+	case BoxType:
+		pkg = NewBoxPackage()
+	case "":
+		pkg = ChoosePackage(order.Weight)
+	default:
+		return util.ErrPackageTypeInvalid
 	}
 
-	return pkg, nil
+	p := NewPackage(pkg)
+
+	if err := p.Validate(order.Weight); err != nil {
+		return err
+	}
+
+	//Apply packaging and calculate order price
+	order.PackageType = p.GetType()
+	order.PackagePrice = p.GetPrice()
+	order.OrderPrice += p.GetPrice()
+
+	return nil
 }
 ```
 
 ### Template behavioral pattern
 https://github.com/AlexanderGrom/go-patterns/blob/master/Behavioral/TemplateMethod/
 ```go
-//package.go
+// PackageInterface provides an interface to validate different packages
 type PackageInterface interface {
-ValidatePackage(weight float64) error
-GetType() string
-GetPrice() float64
+	ValidatePackage(weight float64) error
+	GetType() string
+	GetPrice() float64
 }
 
 // Package implements a Template method
 type Package struct {
-PackageInterface
+	PackageInterface
 }
 
 // Validate is the Template Method.
 func (p *Package) Validate(weight float64) error {
-return p.ValidatePackage(weight)
+	return p.ValidatePackage(weight)
 }
 
 // NewPackage is the Package constructor.
 func NewPackage(p PackageInterface) *Package {
-return &Package{p}
+	return &Package{p}
 }
-
-//film_package.go
-const (
-FilmType  PackageType  = "film"
-FilmPrice PackagePrice = 1
-)
-
+```
+```go
+package service
 // FilmPackage implements ValidatePackage
 type FilmPackage struct {
 }
 
 func NewFilmPackage() *FilmPackage {
-return &FilmPackage{}
+	return &FilmPackage{}
 }
 
 // ValidatePackage provides validation
 func (p *FilmPackage) ValidatePackage(weight float64) error {
-return nil
+	return nil
 }
 func (p *FilmPackage) GetType() string {
-return string(FilmType)
+	return string(FilmType)
 }
 func (p *FilmPackage) GetPrice() float64 {
-return float64(FilmPrice)
+	return float64(FilmPrice)
 }
-
 ```
 
 ## Используемые стандарты описания архитектуры
