@@ -19,30 +19,56 @@ func ApplyPackaging(weightFloat float64, packageType string) (Package, error) {
 }
 ```
 
-### Factory creational pattern https://github.com/AlexanderGrom/go-patterns/blob/master/Creational/FactoryMethod
+### Template behavioral pattern
+https://github.com/AlexanderGrom/go-patterns/blob/master/Behavioral/TemplateMethod/
 ```go
-// /service/package.go
-type Package interface {
-	Validate(weight float64) error
-	GetPrice() float64
-	GetType() string
+//package.go
+type PackageInterface interface {
+ValidatePackage(weight float64) error
+GetType() string
+GetPrice() float64
 }
 
-func newFilm() *film {
-	return &film{packageType: filmType, packagePrice: filmPrice}
+// Package implements a Template method
+type Package struct {
+PackageInterface
 }
-func (pkg *film) Validate(weight float64) error {
-	if weight > 0 {
-		return nil
-	}
-	return util.ErrWeightExceeds
+
+// Validate is the Template Method.
+func (p *Package) Validate(weight float64) error {
+return p.ValidatePackage(weight)
 }
-func (pkg *film) GetPrice() float64 {
-	return float64(pkg.packagePrice)
+
+// NewPackage is the Package constructor.
+func NewPackage(p PackageInterface) *Package {
+return &Package{p}
 }
-func (pkg *film) GetType() string {
-	return string(pkg.packageType)
+
+//film_package.go
+const (
+FilmType  PackageType  = "film"
+FilmPrice PackagePrice = 1
+)
+
+// FilmPackage implements ValidatePackage
+type FilmPackage struct {
 }
+
+func NewFilmPackage() *FilmPackage {
+return &FilmPackage{}
+}
+
+// ValidatePackage provides validation
+func (p *FilmPackage) ValidatePackage(weight float64) error {
+return nil
+}
+func (p *FilmPackage) GetType() string {
+return string(FilmType)
+}
+func (p *FilmPackage) GetPrice() float64 {
+return float64(FilmPrice)
+}
+
 ```
 
 ## Используемые стандарты описания архитектуры

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_price FLOAT NOT NULL,
     weight FLOAT NOT NULL,
     package_type VARCHAR(255) NOT NULL,
+    package_price FLOAT NOT NULL,
     hash VARCHAR(255) NOT NULL
 );
 

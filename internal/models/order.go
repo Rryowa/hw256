@@ -12,5 +12,6 @@ type Order struct {
 	OrderPrice   float64   `db:"order_price"`
 	Weight       float64   `db:"weight"`
 	PackageType  string    `db:"package_type"`
+	PackagePrice float64   `db:"package_price"`
 	Hash         string    `db:"hash"`
 }

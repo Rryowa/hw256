@@ -39,11 +39,11 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 	if len(userId) == 0 {
 		return util.ErrUserIdNotProvided
 	}
-	if len(orderPrice) == 0 {
-		return util.ErrPriceNotProvided
-	}
 	if len(weight) == 0 {
 		return util.ErrWeightNotProvided
+	}
+	if len(orderPrice) == 0 {
+		return util.ErrPriceNotProvided
 	}
 
 	storageUntil, err := time.Parse(time.DateOnly, dateStr)
@@ -63,19 +63,21 @@ func (os *orderService) Accept(id, userId, dateStr, orderPrice, weight, packageT
 		return util.ErrWeightInvalid
 	}
 
+	//Check for existence
 	_, err = os.repository.Get(id)
 	if err == nil {
 		return util.ErrOrderExists
 	}
 
-	pkg, err := packaging(weightFloat, packageType)
-	if err != nil {
+	order := createOrder(id, userId, storageUntil, orderPriceFloat, weightFloat)
+
+	if err := applyPackaging(&order, packageType); err != nil {
 		return err
 	}
 
-	newOrder := create(id, userId, storageUntil, orderPriceFloat, weightFloat, pkg)
+	calculateHash(&order)
 
-	return os.repository.Insert(newOrder)
+	return os.repository.Insert(order)
 }
 
 func (os *orderService) Issue(ids []string) error {
@@ -83,36 +85,39 @@ func (os *orderService) Issue(ids []string) error {
 		return util.ErrUserIdNotProvided
 	}
 
-	var orders []models.Order
-	var recipientID string
-	for i, id := range ids {
-		order, err := os.repository.Get(id)
+	var ordersToIssue []models.Order
+
+	order, err := os.repository.Get(ids[0])
+	if err != nil {
+		return util.ErrOrderNotFound
+	}
+	recipientID := order.UserID
+
+	for _, id := range ids {
+		order, err = os.repository.Get(id)
 		if err != nil {
 			return util.ErrOrderNotFound
 		}
 
-		if time.Now().After(order.StorageUntil) {
-			return util.ErrOrderExpired
-		}
 		if order.Issued {
 			return util.ErrOrderIssued
 		}
 		if order.Returned {
 			return util.ErrOrderReturned
 		}
+		if time.Now().After(order.StorageUntil) {
+			return util.ErrOrderExpired
+		}
 
 		//Check if users are equal
-		if i == 0 {
-			recipientID = order.UserID
-		} else {
-			if order.UserID != recipientID {
-				return util.ErrOrdersUserDiffers
-			}
+		if order.UserID != recipientID {
+			return util.ErrOrdersUserDiffers
 		}
-		orders = append(orders, order)
+
+		ordersToIssue = append(ordersToIssue, order)
 	}
 
-	modifiedOrders := issueOrders(orders)
+	modifiedOrders := issueOrders(ordersToIssue)
 
 	return os.repository.IssueUpdate(modifiedOrders)
 }
@@ -202,47 +207,68 @@ func (os *orderService) PrintList(orders []models.Order) {
 	if len(orders) == 0 {
 		defer fmt.Printf("\n\n")
 	}
-	fmt.Printf("%-5s%-10s%-15s%-8v%-13s%-10v%-13v%-10v%-13s\n", "id", "user_id", "storage_until", "issued", "issued_at", "returned", "order_price", "weight", "package_type")
+	fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n", "id", "user_id", "storage_until", "issued_at", "returned", "order_price", "weight", "package_type", "package_price")
 	fmt.Println(strings.Repeat("-", 100))
 	for _, order := range orders {
-		fmt.Printf("%-5s%-10s%-15s%-8v%-13s%-10v%-13v%-10v%-13s\n",
+		fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n",
 			order.ID,
 			order.UserID,
 			order.StorageUntil.Format("2006-01-02"),
-			order.Issued,
 			order.IssuedAt.Format("2006-01-02"),
 			order.Returned,
 			order.OrderPrice,
 			order.Weight,
-			order.PackageType)
+			order.PackageType,
+			order.PackagePrice)
 	}
 	fmt.Printf("\n")
 }
 
-func packaging(weightFloat float64, packageType string) (Package, error) {
-	pkg, err := NewPackage(packageType, weightFloat)
-	if err != nil {
-		return nil, err
-	}
-	if err := pkg.Validate(weightFloat); err != nil {
-		return nil, err
-	}
-
-	return pkg, nil
-}
-
-func create(id, userId string, storageUntil time.Time, orderPrice, weight float64, pkg Package) models.Order {
+func createOrder(id, userId string, storageUntil time.Time, orderPrice, weight float64) models.Order {
 	order := models.Order{
 		ID:           id,
 		UserID:       userId,
 		StorageUntil: storageUntil,
 		Issued:       false,
 		Returned:     false,
-		OrderPrice:   orderPrice + pkg.GetPrice(),
+		OrderPrice:   orderPrice,
 		Weight:       weight,
-		PackageType:  pkg.GetType(),
 	}
 
+	return order
+}
+
+func applyPackaging(order *models.Order, packageType string) error {
+	var pkg PackageInterface
+
+	switch PackageType(packageType) {
+	case FilmType:
+		pkg = NewFilmPackage()
+	case PacketType:
+		pkg = NewPacketPackage()
+	case BoxType:
+		pkg = NewBoxPackage()
+	case "":
+		pkg = ChoosePackage(order.Weight)
+	default:
+		return util.ErrPackageTypeInvalid
+	}
+
+	p := NewPackage(pkg)
+
+	if err := p.Validate(order.Weight); err != nil {
+		return err
+	}
+
+	//Apply packaging and calculate order price
+	order.PackageType = p.GetType()
+	order.PackagePrice = p.GetPrice()
+	order.OrderPrice += p.GetPrice()
+
+	return nil
+}
+
+func calculateHash(order *models.Order) {
 	fmt.Print("Calculating hash.")
 
 	ticker := time.NewTicker(time.Second)
@@ -262,11 +288,9 @@ func create(id, userId string, storageUntil time.Time, orderPrice, weight float6
 		order.Hash = hash.GenerateHash()
 		ticker.Stop()
 		done <- struct{}{}
-	}(&order, ticker, done)
+	}(order, ticker, done)
 
 	<-done
-
-	return order
 }
 
 func issueOrders(orders []models.Order) []models.Order {
