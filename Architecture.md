@@ -7,7 +7,6 @@
 
 ```go
 func applyPackaging(order *models.Order, packageType string) error {
-<<<<<<< Architecture.md
     var pkg PackageInterface
     
     switch PackageType(packageType) {
@@ -35,7 +34,7 @@ func applyPackaging(order *models.Order, packageType string) error {
     order.OrderPrice += p.GetPrice()
     
     return nil
-=======
+	
 	var pkg PackageInterface
 
 	switch PackageType(packageType) {
@@ -63,7 +62,6 @@ func applyPackaging(order *models.Order, packageType string) error {
 	order.OrderPrice += p.GetPrice()
 
 	return nil
->>>>>>> Architecture.md
 }
 ```
 
@@ -72,42 +70,30 @@ https://github.com/AlexanderGrom/go-patterns/blob/master/Behavioral/TemplateMeth
 ```go
 // PackageInterface provides an interface to validate different packages
 type PackageInterface interface {
-<<<<<<< Architecture.md
     ValidatePackage(weight float64) error
     GetType() string
     GetPrice() float64
-=======
 	ValidatePackage(weight float64) error
 	GetType() string
 	GetPrice() float64
->>>>>>> Architecture.md
 }
 
 // Package implements a Template method
 type Package struct {
-<<<<<<< Architecture.md
     PackageInterface
-=======
 	PackageInterface
->>>>>>> Architecture.md
 }
 
 // Validate is the Template Method.
 func (p *Package) Validate(weight float64) error {
-<<<<<<< Architecture.md
     return p.ValidatePackage(weight)
-=======
 	return p.ValidatePackage(weight)
->>>>>>> Architecture.md
 }
 
 // NewPackage is the Package constructor.
 func NewPackage(p PackageInterface) *Package {
-<<<<<<< Architecture.md
     return &Package{p}
-=======
 	return &Package{p}
->>>>>>> Architecture.md
 }
 ```
 ```go
