@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"homework/internal/service"
+	pkg "homework/internal/service/package"
 	"homework/internal/storage/db"
 	"homework/internal/util"
 	"homework/internal/view"
@@ -12,9 +13,12 @@ import (
 
 func main() {
 	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
-	orderService := service.NewOrderService(repository)
 
-	commands := view.NewCLI(orderService)
+	packageService := pkg.NewPackageService()
+	orderService := service.NewOrderService(repository, packageService)
+	validationService := service.NewValidationService(repository, packageService)
+
+	commands := view.NewCLI(orderService, validationService)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}

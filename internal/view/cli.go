@@ -18,16 +18,18 @@ import (
 )
 
 type CLI struct {
-	orderService service.OrderService
-	commandList  []command
+	validationService service.ValidationService
+	orderService      service.OrderService
+	commandList       []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService) *CLI {
+func NewCLI(os service.OrderService, vs service.ValidationService) *CLI {
 	return &CLI{
-		orderService: os,
+		orderService:      os,
+		validationService: vs,
 		commandList: []command{
 			{
 				name:        help,
@@ -219,20 +221,25 @@ func (c *CLI) processCommand(input string) {
 }
 
 func (c *CLI) acceptOrder(args []string) error {
-	var idStr, userId, dateStr, packageType, weight, orderPrice string
+	var idStr, userId, dateStr, pkgTypeStr, weightStr, orderPriceStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
 	fs.StringVar(&idStr, "id", "", "use -id=12345")
 	fs.StringVar(&userId, "u_id", "", "use -u_id=54321")
 	fs.StringVar(&dateStr, "date", "", "use -date=2024-06-06")
-	fs.StringVar(&orderPrice, "price", "", "use -price=999.99")
-	fs.StringVar(&weight, "w", "", "use -w=10.0")
-	fs.StringVar(&packageType, "p", "", "use -p=box")
+	fs.StringVar(&orderPriceStr, "price", "", "use -price=999.99")
+	fs.StringVar(&weightStr, "w", "", "use -w=10.0")
+	fs.StringVar(&pkgTypeStr, "p", "", "use -p=box")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	return c.orderService.Accept(idStr, userId, dateStr, orderPrice, weight, packageType)
+	order, err := c.validationService.ValidateAccept(idStr, userId, dateStr, orderPriceStr, weightStr, pkgTypeStr)
+	if err != nil {
+		return err
+	}
+
+	return c.orderService.Accept(order, pkgTypeStr)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -244,7 +251,11 @@ func (c *CLI) issueOrders(args []string) error {
 	}
 	ids := strings.Split(idString, ",")
 
-	return c.orderService.Issue(ids)
+	ordersToIssue, err := c.validationService.ValidateIssue(ids)
+	if err != nil {
+		return err
+	}
+	return c.orderService.Issue(ordersToIssue)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -256,7 +267,11 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	return c.orderService.Return(id, userId)
+	orderToReturn, err := c.validationService.ValidateAcceptReturn(id, userId)
+	if err != nil {
+		return err
+	}
+	return c.orderService.Return(orderToReturn)
 }
 
 func (c *CLI) returnOrderToCourier(args []string) error {
@@ -268,16 +283,25 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 		return err
 	}
 
+	if err := c.validationService.ValidateReturnToCourier(id); err != nil {
+		return err
+	}
+
 	return c.orderService.ReturnToCourier(id)
 }
 
 func (c *CLI) listReturns(args []string) error {
-	var offset, limit string
+	var offsetStr, limitStr string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
-	fs.StringVar(&offset, "ofs", "0", "use -ofs=0")
-	fs.StringVar(&limit, "lmt", "0", "use -lmt=10")
+	fs.StringVar(&offsetStr, "ofs", "0", "use -ofs=0")
+	fs.StringVar(&limitStr, "lmt", "0", "use -lmt=10")
 
 	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
+	if err != nil {
 		return err
 	}
 
@@ -285,26 +309,35 @@ func (c *CLI) listReturns(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	c.orderService.PrintList(orderIDs)
+
 	return nil
 }
 
 func (c *CLI) listOrders(args []string) error {
-	var userId, offset, limit string
+	var userId, offsetStr, limitStr string
 	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
 	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
-	fs.StringVar(&offset, "ofs", "0", "use -ofs=0")
-	fs.StringVar(&limit, "lmt", "0", "use -lmt=10")
+	fs.StringVar(&offsetStr, "ofs", "0", "use -ofs=0")
+	fs.StringVar(&limitStr, "lmt", "0", "use -lmt=10")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListOrders(userId, offset, limit)
+	offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
 	if err != nil {
 		return err
 	}
-	c.orderService.PrintList(orderIDs)
+
+	orders, err := c.orderService.ListOrders(userId, offset, limit)
+	if err != nil {
+		return err
+	}
+
+	c.orderService.PrintList(orders)
+
 	return nil
 }
 
