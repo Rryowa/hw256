@@ -8,8 +8,6 @@ accept -id=5 -u_id=1 -date=2064-07-07 -price=999.99 -w=10.0 -p=LOL
 
 AUTO CALCULATION OF PACKAGE TYPE
 accept -id=1 -u_id=1 -date=2062-07-07 -price=399.99 -w=1
-accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10
-accept -id=3 -u_id=1 -date=2062-07-07 -price=399.99 -w=30
 
 NO ERRORS
 accept -id=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film

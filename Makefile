@@ -3,6 +3,14 @@ BINARY_NAME=cli
 BIN_DIR=bin
 CMD_DIR=cmd
 EXPLAIN_DIR=explain
+DB_STRING="postgres://avrigne:8679@localhost/cli?sslmode=disable"
+MIGRATIONS_DIR="./migrations"
+
+up:
+	@goose -dir $(MIGRATIONS_DIR) postgres $(DB_STRING) up
+
+down:
+	@goose -dir $(MIGRATIONS_DIR) postgres $(DB_STRING) down
 
 build:
 	@echo "Building the CLI application..."
@@ -15,4 +23,4 @@ run: build
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
-.PHONY: build run
+.PHONY: up down build run
