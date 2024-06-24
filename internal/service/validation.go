@@ -11,9 +11,9 @@ import (
 )
 
 type ValidationService interface {
-	ValidateAccept(id, userId, dateStr, orderPriceStr, weightStr, pkgTypeStr string) (*models.Order, error)
-	ValidateIssue(ids []string) (*[]models.Order, error)
-	ValidateAcceptReturn(id, userId string) (*models.Order, error)
+	ValidateAccept(dto models.Dto) (models.Order, error)
+	ValidateIssue(ids []string) ([]models.Order, error)
+	ValidateAcceptReturn(id, userId string) (models.Order, error)
 	ValidateReturnToCourier(id string) error
 	ValidateList(offset, limit string) (int, int, error)
 }
@@ -30,126 +30,136 @@ func NewValidationService(repository storage.Storage, packageService pkg.Package
 	}
 }
 
-func (v *validationService) ValidateAccept(id, userId, dateStr, orderPriceStr, weightStr, pkgTypeStr string) (*models.Order, error) {
-	if len(id) == 0 {
-		return &models.Order{}, util.ErrOrderIdNotProvided
+func (v *validationService) ValidateAccept(dto models.Dto) (models.Order, error) {
+	if len(dto.ID) == 0 {
+		return models.Order{}, util.ErrOrderIdNotProvided
 	}
-	if len(userId) == 0 {
-		return &models.Order{}, util.ErrUserIdNotProvided
+	if len(dto.UserID) == 0 {
+		return models.Order{}, util.ErrUserIdNotProvided
 	}
-	if len(weightStr) == 0 {
-		return &models.Order{}, util.ErrWeightNotProvided
+	if len(dto.Weight) == 0 {
+		return models.Order{}, util.ErrWeightNotProvided
 	}
-	if len(orderPriceStr) == 0 {
-		return &models.Order{}, util.ErrPriceNotProvided
+	if len(dto.OrderPrice) == 0 {
+		return models.Order{}, util.ErrPriceNotProvided
 	}
 
-	storageUntil, err := time.Parse(time.DateOnly, dateStr)
+	storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)
 	if err != nil {
-		return &models.Order{}, errors.New("error parsing date")
+		return models.Order{}, errors.New("error parsing date")
 	} else if storageUntil.Before(time.Now()) {
-		return &models.Order{}, util.ErrDateInvalid
+		return models.Order{}, util.ErrDateInvalid
 	}
 
-	orderPriceFloat, err := strconv.ParseFloat(orderPriceStr, 64)
+	orderPriceFloat, err := strconv.ParseFloat(dto.OrderPrice, 64)
 	if err != nil || orderPriceFloat <= 0 {
-		return &models.Order{}, util.ErrOrderPriceInvalid
+		return models.Order{}, util.ErrOrderPriceInvalid
 	}
 
-	weightFloat, err := strconv.ParseFloat(weightStr, 64)
+	weightFloat, err := strconv.ParseFloat(dto.Weight, 64)
 	if err != nil || weightFloat <= 0 {
-		return &models.Order{}, util.ErrWeightInvalid
+		return models.Order{}, util.ErrWeightInvalid
 	}
 
-	//Check for existence
-	_, err = v.repository.Get(id)
-	if err == nil {
-		return &models.Order{}, util.ErrOrderExists
+	if v.repository.Exists(dto.ID) {
+		return models.Order{}, util.ErrOrderExists
 	}
 
 	orderPrice := models.Price(orderPriceFloat)
 	weight := models.Weight(weightFloat)
-	packageType := models.PackageType(pkgTypeStr)
+	packageType := models.PackageType(dto.PackageType)
 
 	if err = v.packageService.ValidatePackage(weight, packageType); err != nil {
-		return &models.Order{}, err
+		return models.Order{}, err
 	}
 
 	order := models.Order{
-		ID:           id,
-		UserID:       userId,
+		ID:           dto.ID,
+		UserID:       dto.UserID,
 		StorageUntil: storageUntil,
 		OrderPrice:   orderPrice,
 		Weight:       weight,
 	}
 
-	return &order, nil
+	return order, nil
 }
 
-func (v *validationService) ValidateIssue(ids []string) (*[]models.Order, error) {
+func (v *validationService) ValidateIssue(ids []string) ([]models.Order, error) {
+	var emptyOrders []models.Order
 	var ordersToIssue []models.Order
 
 	if len(ids) == 0 {
-		return &ordersToIssue, util.ErrUserIdNotProvided
+		return emptyOrders, util.ErrUserIdNotProvided
 	}
 
+	if !v.repository.Exists(ids[0]) {
+		return emptyOrders, util.ErrOrderNotFound
+	}
 	order, err := v.repository.Get(ids[0])
 	if err != nil {
-		return &ordersToIssue, util.ErrOrderNotFound
+		return emptyOrders, err
 	}
+
 	recipientID := order.UserID
 
 	for _, id := range ids {
+		if !v.repository.Exists(id) {
+			return emptyOrders, util.ErrOrderNotFound
+		}
 		order, err = v.repository.Get(id)
 		if err != nil {
-			return &ordersToIssue, util.ErrOrderNotFound
+			return emptyOrders, err
 		}
 		if order.Issued {
-			return &ordersToIssue, util.ErrOrderIssued
+			return emptyOrders, util.ErrOrderIssued
 		}
 		if order.Returned {
-			return &ordersToIssue, util.ErrOrderReturned
+			return emptyOrders, util.ErrOrderReturned
 		}
 		if time.Now().After(order.StorageUntil) {
-			return &ordersToIssue, util.ErrOrderExpired
+			return emptyOrders, util.ErrOrderExpired
 		}
 
 		//Check if users are equal
 		if order.UserID != recipientID {
-			return &ordersToIssue, util.ErrOrdersUserDiffers
+			return emptyOrders, util.ErrOrdersUserDiffers
 		}
 
 		ordersToIssue = append(ordersToIssue, order)
 	}
 
-	return &ordersToIssue, nil
+	return ordersToIssue, nil
 }
 
-func (v *validationService) ValidateAcceptReturn(id, userId string) (*models.Order, error) {
+func (v *validationService) ValidateAcceptReturn(id, userId string) (models.Order, error) {
+	emptyOrder := models.Order{}
 	if len(id) == 0 {
-		return &models.Order{}, util.ErrOrderIdNotProvided
+		return emptyOrder, util.ErrOrderIdNotProvided
 	}
 
 	if len(userId) == 0 {
-		return &models.Order{}, util.ErrUserIdNotProvided
+		return emptyOrder, util.ErrUserIdNotProvided
 	}
 
+	if !v.repository.Exists(id) {
+		return emptyOrder, util.ErrOrderNotFound
+	}
 	order, err := v.repository.Get(id)
 	if err != nil {
-		return &models.Order{}, util.ErrOrderNotFound
+		return emptyOrder, err
 	}
 
 	if order.UserID != userId {
-		return &models.Order{}, util.ErrOrderDoesNotBelong
+		return emptyOrder, util.ErrOrderDoesNotBelong
 	}
 	if !order.Issued {
-		return &models.Order{}, util.ErrOrderNotIssued
+		return emptyOrder, util.ErrOrderNotIssued
 	}
 	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
-		return &models.Order{}, util.ErrReturnPeriodExpired
+		return emptyOrder, util.ErrReturnPeriodExpired
 	}
 
-	return &order, nil
+	return order, nil
 }
 
 func (v *validationService) ValidateReturnToCourier(id string) error {
@@ -161,9 +171,12 @@ func (v *validationService) ValidateReturnToCourier(id string) error {
 		return util.ErrOrderIdInvalid
 	}
 
+	if !v.repository.Exists(id) {
+		return util.ErrOrderNotFound
+	}
 	order, err := v.repository.Get(id)
 	if err != nil {
-		return util.ErrOrderNotFound
+		return err
 	}
 
 	if order.Issued {

@@ -5,7 +5,6 @@ import (
 	"homework/internal/util"
 )
 
-// TODO: add LRU cache using Strategy pattern
 type packageContext struct {
 	strategies map[models.PackageType]PackageStrategy
 }

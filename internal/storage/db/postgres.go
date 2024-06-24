@@ -131,6 +131,20 @@ func (r *Repository) Delete(id string) error {
 	return nil
 }
 
+func (r *Repository) Exists(id string) bool {
+	var order models.Order
+	query := `
+		SELECT EXISTS(
+		    SELECT 1 FROM orders
+			WHERE id = $1
+		)
+		`
+	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
+		return false
+	}
+	return true
+}
+
 func (r *Repository) Get(id string) (models.Order, error) {
 	var order models.Order
 	query := `

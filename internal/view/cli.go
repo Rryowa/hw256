@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"homework/internal/models"
 	"homework/internal/service"
 	"log"
 	"os"
@@ -221,25 +222,26 @@ func (c *CLI) processCommand(input string) {
 }
 
 func (c *CLI) acceptOrder(args []string) error {
-	var idStr, userId, dateStr, pkgTypeStr, weightStr, orderPriceStr string
+	dto := models.Dto{}
+	//var idStr, userId, dateStr, pkgTypeStr, weightStr, orderPriceStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
-	fs.StringVar(&idStr, "id", "", "use -id=12345")
-	fs.StringVar(&userId, "u_id", "", "use -u_id=54321")
-	fs.StringVar(&dateStr, "date", "", "use -date=2024-06-06")
-	fs.StringVar(&orderPriceStr, "price", "", "use -price=999.99")
-	fs.StringVar(&weightStr, "w", "", "use -w=10.0")
-	fs.StringVar(&pkgTypeStr, "p", "", "use -p=box")
+	fs.StringVar(&dto.ID, "id", "", "use -id=12345")
+	fs.StringVar(&dto.UserID, "u_id", "", "use -u_id=54321")
+	fs.StringVar(&dto.StorageUntil, "date", "", "use -date=2024-06-06")
+	fs.StringVar(&dto.OrderPrice, "price", "", "use -price=999.99")
+	fs.StringVar(&dto.Weight, "w", "", "use -w=10.0")
+	fs.StringVar(&dto.PackageType, "p", "", "use -p=box")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	order, err := c.validationService.ValidateAccept(idStr, userId, dateStr, orderPriceStr, weightStr, pkgTypeStr)
+	order, err := c.validationService.ValidateAccept(dto)
 	if err != nil {
 		return err
 	}
 
-	return c.orderService.Accept(order, pkgTypeStr)
+	return c.orderService.Accept(&order, dto.PackageType)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -255,7 +257,7 @@ func (c *CLI) issueOrders(args []string) error {
 	if err != nil {
 		return err
 	}
-	return c.orderService.Issue(ordersToIssue)
+	return c.orderService.Issue(&ordersToIssue)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -271,7 +273,7 @@ func (c *CLI) acceptReturn(args []string) error {
 	if err != nil {
 		return err
 	}
-	return c.orderService.Return(orderToReturn)
+	return c.orderService.Return(&orderToReturn)
 }
 
 func (c *CLI) returnOrderToCourier(args []string) error {
