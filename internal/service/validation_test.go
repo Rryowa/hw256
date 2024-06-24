@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"homework/internal/models"
 	"homework/internal/util"
@@ -63,6 +64,10 @@ func (uts *UnitTestSuite) Test_ValidateAccept_HappyPath() {
 	uts.NoError(err)
 }
 
+func Test_Validate_IsEmpty(t *testing.T) {
+	assert.Equal(t, true, isArgEmpty(""))
+}
+
 func (uts *UnitTestSuite) Test_ValidateAccept() {
 	tests := []struct {
 		name        string
@@ -92,11 +97,60 @@ func (uts *UnitTestSuite) Test_ValidateAccept() {
 				uts.Weight = ""
 				return uts
 			}(uts.input),
-		}, {
+		},
+		{
 			"ErrPriceNotProvided",
 			util.ErrPriceNotProvided,
 			func(uts models.Dto) models.Dto {
 				uts.OrderPrice = ""
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrParsingDate",
+			util.ErrParsingDate,
+			func(uts models.Dto) models.Dto {
+				uts.StorageUntil = "1234-56-78"
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrDateInvalid",
+			util.ErrDateInvalid,
+			func(uts models.Dto) models.Dto {
+				uts.StorageUntil = "2007-07-07"
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrOrderPriceInvalid",
+			util.ErrOrderPriceInvalid,
+			func(uts models.Dto) models.Dto {
+				uts.OrderPrice = "LOL"
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrOrderPriceInvalidNegative",
+			util.ErrOrderPriceInvalid,
+			func(uts models.Dto) models.Dto {
+				uts.OrderPrice = "-1"
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrWeightInvalid",
+			util.ErrWeightInvalid,
+			func(uts models.Dto) models.Dto {
+				uts.Weight = "LOL"
+				return uts
+			}(uts.input),
+		},
+		{
+			"ErrWeightInvalidNegative",
+			util.ErrWeightInvalid,
+			func(uts models.Dto) models.Dto {
+				uts.Weight = "-1"
 				return uts
 			}(uts.input),
 		},
@@ -109,11 +163,145 @@ func (uts *UnitTestSuite) Test_ValidateAccept() {
 	}
 }
 
-//func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrderNotFound() {
-//	ids := []string{"2"}
-//	uts.repository.On("Exists", mock.Anything).Return(false)
-//
-//	_, err := uts.validationService.ValidateIssue(ids)
-//
-//	uts.EqualError(err, util.ErrOrderNotFound.Error())
-//}
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrUserIdNotProvided() {
+	ids := []string{}
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrUserIdNotProvided.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrderNotFound() {
+	ids := []string{"1"}
+	uts.repository.EXPECT().Exists("1").Return(false)
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrOrderNotFound.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrderIssued() {
+	ids := []string{"1"}
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(models.Order{Issued: true}, nil)
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrOrderIssued.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrderReturned() {
+	ids := []string{"1"}
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(models.Order{Returned: true}, nil)
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrOrderReturned.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrderExpired() {
+	ids := []string{"1"}
+	order := uts.expectedOrder
+	order.StorageUntil = order.StorageUntil.AddDate(-1000, 0, 0)
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order, nil)
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrOrderExpired.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateIssue_ErrOrdersUserDiffers() {
+	ids := []string{"1", "2"}
+	order1 := uts.expectedOrder
+	order2 := uts.expectedOrder
+	order2.UserID = "2"
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Exists("2").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order1, nil)
+	uts.repository.EXPECT().Get("2").Return(order2, nil)
+
+	_, err := uts.validationService.ValidateIssue(ids)
+
+	uts.EqualError(err, util.ErrOrdersUserDiffers.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateAcceptReturn_ErrNotProvided() {
+	_, err := uts.validationService.ValidateAcceptReturn("", "1")
+	uts.EqualError(err, util.ErrOrderIdNotProvided.Error())
+	_, err = uts.validationService.ValidateAcceptReturn("1", "")
+	uts.EqualError(err, util.ErrUserIdNotProvided.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateAcceptReturn_ErrOrderNotFound() {
+	uts.repository.EXPECT().Exists("1").Return(false)
+
+	_, err := uts.validationService.ValidateAcceptReturn("1", "1")
+
+	uts.EqualError(err, util.ErrOrderNotFound.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateAcceptReturn_ErrOrderDoesNotBelong() {
+	order := uts.expectedOrder
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order, nil)
+
+	_, err := uts.validationService.ValidateAcceptReturn("1", "2")
+
+	uts.EqualError(err, util.ErrOrderDoesNotBelong.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateAcceptReturn_ErrOrderNotIssued() {
+	order := uts.expectedOrder
+	order.Issued = false
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order, nil)
+
+	_, err := uts.validationService.ValidateAcceptReturn("1", "1")
+
+	uts.EqualError(err, util.ErrOrderNotIssued.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateAcceptReturn_ErrReturnPeriodExpired() {
+	order := uts.expectedOrder
+	order.Issued = true
+	order.StorageUntil = order.StorageUntil.AddDate(-1000, 0, 0)
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order, nil)
+
+	_, err := uts.validationService.ValidateAcceptReturn("1", "1")
+
+	uts.EqualError(err, util.ErrReturnPeriodExpired.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateReturnToCourier_ErrOrderIdNotProvided() {
+	err := uts.validationService.ValidateReturnToCourier("")
+	uts.EqualError(err, util.ErrOrderIdNotProvided.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateReturnToCourier_ErrOrderNotFound() {
+	uts.repository.EXPECT().Exists("1").Return(false)
+
+	err := uts.validationService.ValidateReturnToCourier("1")
+
+	uts.EqualError(err, util.ErrOrderNotFound.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateReturnToCourier_ErrOrderIssued() {
+	order := uts.expectedOrder
+	order.Issued = true
+	uts.repository.EXPECT().Exists("1").Return(true)
+	uts.repository.EXPECT().Get("1").Return(order, nil)
+
+	err := uts.validationService.ValidateReturnToCourier("1")
+
+	uts.EqualError(err, util.ErrOrderIssued.Error())
+}
+
+func (uts *UnitTestSuite) Test_ValidateList_ErrNotProvided() {
+	_, _, err := uts.validationService.ValidateList("", "1")
+	uts.EqualError(err, util.ErrOffsetNotProvided.Error())
+	_, _, err = uts.validationService.ValidateList("1", "")
+	uts.EqualError(err, util.ErrLimitNotProvided.Error())
+}

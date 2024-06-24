@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"homework/internal/models"
 	pkg "homework/internal/service/package"
 	"homework/internal/storage"
@@ -31,22 +30,22 @@ func NewValidationService(repository storage.Storage, packageService pkg.Package
 }
 
 func (v *validationService) ValidateAccept(dto models.Dto) (models.Order, error) {
-	if len(dto.ID) == 0 {
+	if isArgEmpty(dto.ID) {
 		return models.Order{}, util.ErrOrderIdNotProvided
 	}
-	if len(dto.UserID) == 0 {
+	if isArgEmpty(dto.UserID) {
 		return models.Order{}, util.ErrUserIdNotProvided
 	}
-	if len(dto.Weight) == 0 {
+	if isArgEmpty(dto.Weight) {
 		return models.Order{}, util.ErrWeightNotProvided
 	}
-	if len(dto.OrderPrice) == 0 {
+	if isArgEmpty(dto.OrderPrice) {
 		return models.Order{}, util.ErrPriceNotProvided
 	}
 
 	storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)
 	if err != nil {
-		return models.Order{}, errors.New("error parsing date")
+		return models.Order{}, util.ErrParsingDate
 	} else if storageUntil.Before(time.Now()) {
 		return models.Order{}, util.ErrDateInvalid
 	}
@@ -133,11 +132,10 @@ func (v *validationService) ValidateIssue(ids []string) ([]models.Order, error) 
 
 func (v *validationService) ValidateAcceptReturn(id, userId string) (models.Order, error) {
 	emptyOrder := models.Order{}
-	if len(id) == 0 {
+	if isArgEmpty(id) {
 		return emptyOrder, util.ErrOrderIdNotProvided
 	}
-
-	if len(userId) == 0 {
+	if isArgEmpty(userId) {
 		return emptyOrder, util.ErrUserIdNotProvided
 	}
 
@@ -163,7 +161,7 @@ func (v *validationService) ValidateAcceptReturn(id, userId string) (models.Orde
 }
 
 func (v *validationService) ValidateReturnToCourier(id string) error {
-	if len(id) == 0 {
+	if isArgEmpty(id) {
 		return util.ErrOrderIdNotProvided
 	}
 
@@ -192,6 +190,12 @@ func (v *validationService) ValidateReturnToCourier(id string) error {
 }
 
 func (v *validationService) ValidateList(offset, limit string) (int, int, error) {
+	if isArgEmpty(offset) {
+		return -1, -1, util.ErrOffsetNotProvided
+	}
+	if isArgEmpty(limit) {
+		return -1, -1, util.ErrLimitNotProvided
+	}
 	offsetInt, err := strconv.Atoi(offset)
 	if err != nil {
 		return -1, -1, err
@@ -202,4 +206,11 @@ func (v *validationService) ValidateList(offset, limit string) (int, int, error)
 	}
 
 	return offsetInt, limitInt, nil
+}
+
+func isArgEmpty(id string) bool {
+	if len(id) == 0 {
+		return true
+	}
+	return false
 }
