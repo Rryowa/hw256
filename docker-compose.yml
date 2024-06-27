@@ -1,0 +1,39 @@
+services:
+#  NOTES:
+#  При первом подключении к бд вместо POSTGRES_PASSWORD: ${DB_PASSWORD}
+#  должно быть POSTGRES_PASSWORD: postgres иначе бд не подключится вообще
+#  При старте с чистого листа необходимо сначала зайти в бд докера под postgres
+#  Scripts in pgdata directory only run during the initial configuration
+#  of the database. So if the data folder we defined in the volumes section
+#  is not empty, it will not work.
+#  POSTGRES_HOST should be equal to service - "db"
+#  Чтобы сохранять состояния бд между запусками следует раскоментить pgdata
+#  Однако в таком случае следует удалять волюм при малейшем изменении,
+#  т.к это может вызвать много разных ошибок причину которых будет тяжело понять
+  app:
+    container_name: go
+    build: .
+    restart: on-failure
+    depends_on:
+      - db
+    networks:
+      - postgres
+
+  db:
+    image: postgres
+    container_name: pg
+    tty: true
+    env_file:
+      - .env
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
+#      - ./pgdata:/var/lib/postgresql/data
+    restart: on-failure
+    networks:
+      - postgres
+
+networks:
+  postgres:
+    driver: bridge

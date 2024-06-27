@@ -19,7 +19,7 @@ const (
 
 func main() {
 	ctx := context.Background()
-	connString := "postgres://avrigne:8679@localhost/_sql_index?sslmode=disable"
+	connString := "db://avrigne:8679@localhost/_sql_index?sslmode=disable"
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		log.Fatal(err)

@@ -67,52 +67,6 @@ func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string) error) *MockSto
 	return _c
 }
 
-// Exists provides a mock function with given fields: id
-func (_m *MockStorage) Exists(id string) bool {
-	ret := _m.Called(id)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Exists")
-	}
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(string) bool); ok {
-		r0 = rf(id)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}
-
-// MockStorage_Exists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Exists'
-type MockStorage_Exists_Call struct {
-	*mock.Call
-}
-
-// Exists is a helper method to define mock.On call
-//   - id string
-func (_e *MockStorage_Expecter) Exists(id interface{}) *MockStorage_Exists_Call {
-	return &MockStorage_Exists_Call{Call: _e.mock.On("Exists", id)}
-}
-
-func (_c *MockStorage_Exists_Call) Run(run func(id string)) *MockStorage_Exists_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
-	})
-	return _c
-}
-
-func (_c *MockStorage_Exists_Call) Return(_a0 bool) *MockStorage_Exists_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockStorage_Exists_Call) RunAndReturn(run func(string) bool) *MockStorage_Exists_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Get provides a mock function with given fields: id
 func (_m *MockStorage) Get(id string) (models.Order, error) {
 	ret := _m.Called(id)

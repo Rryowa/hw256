@@ -58,13 +58,14 @@ func (os *orderService) Accept(order *models.Order, pkgTypeStr string) error {
 
 	<-done
 
-	return os.repository.Insert(*order)
+	_, err := os.repository.Insert(*order)
+	return err
 }
 
 func (os *orderService) Issue(orders *[]models.Order) error {
-	for _, order := range *orders {
-		order.Issued = true
-		order.IssuedAt = time.Now()
+	for i := range *orders {
+		(*orders)[i].Issued = true
+		(*orders)[i].IssuedAt = time.Now()
 	}
 
 	return os.repository.IssueUpdate(*orders)

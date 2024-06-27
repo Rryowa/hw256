@@ -245,15 +245,13 @@ func (c *CLI) acceptOrder(args []string) error {
 }
 
 func (c *CLI) issueOrders(args []string) error {
-	var idString string
+	var idsStr string
 	fs := flag.NewFlagSet(issueOrders, flag.ContinueOnError)
-	fs.StringVar(&idString, "ids", "", "use -ids=1,2,3")
+	fs.StringVar(&idsStr, "ids", "", "use -ids=1,2,3")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	ids := strings.Split(idString, ",")
-
-	ordersToIssue, err := c.validationService.ValidateIssue(ids)
+	ordersToIssue, err := c.validationService.ValidateIssue(idsStr)
 	if err != nil {
 		return err
 	}

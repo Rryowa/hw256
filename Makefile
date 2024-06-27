@@ -23,4 +23,18 @@ run: build
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
-.PHONY: up down build run
+test: test_input.txt
+	@echo "Testing..."
+	@go test ./...
+
+compose-rs:
+	make compose-rm
+	make compose-up
+
+compose-up:
+	@docker compose up app db -d
+
+compose-rm:
+	@docker compose rm app db -fvs
+
+.PHONY: up down build run test compose-rs compose-up compose-rm

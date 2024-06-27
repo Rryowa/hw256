@@ -15,8 +15,8 @@ import (
 )
 
 type Repository struct {
-	pool *pgxpool.Pool
-	ctx  context.Context
+	Pool *pgxpool.Pool
+	Ctx  context.Context
 }
 
 func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
@@ -42,26 +42,30 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 	log.Println("Connected to db")
 
 	return &Repository{
-		pool: pool,
-		ctx:  ctx,
+		Pool: pool,
+		Ctx:  ctx,
 	}
 }
 
-func (r *Repository) Insert(order models.Order) error {
+func (r *Repository) Insert(order models.Order) (string, error) {
 	query := `
 		INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash) 
 	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	    `
+	var id string
+	err := r.Pool.QueryRow(r.Ctx, query, order.ID, order.UserID,
+		order.StorageUntil, order.Issued, order.IssuedAt, order.Returned,
+		order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice,
+		order.Hash).Scan(&id)
 
-	_, err := r.pool.Exec(r.ctx, query, order.ID, order.UserID, order.StorageUntil, order.Issued, order.IssuedAt, order.Returned, order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice, order.Hash)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
 		}
-		return err
+		return "", err
 	}
-	return nil
+	return id, nil
 }
 
 func (r *Repository) Update(order models.Order) error {
@@ -70,7 +74,7 @@ func (r *Repository) Update(order models.Order) error {
         WHERE id=$2
         `
 
-	_, err := r.pool.Exec(r.ctx, query, order.Returned, order.ID)
+	_, err := r.Pool.Exec(r.Ctx, query, order.Returned, order.ID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -82,14 +86,14 @@ func (r *Repository) Update(order models.Order) error {
 }
 
 func (r *Repository) IssueUpdate(orders []models.Order) error {
-	tx, err := r.pool.BeginTx(r.ctx, pgx.TxOptions{
+	tx, err := r.Pool.BeginTx(r.Ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(r.ctx)
+	defer tx.Rollback(r.Ctx)
 
 	query := `
 		UPDATE orders SET issued=$1, issued_at=$2
@@ -101,8 +105,8 @@ func (r *Repository) IssueUpdate(orders []models.Order) error {
 		log.Printf("Order with id:%s issued\n", order.ID)
 	}
 
-	br := tx.SendBatch(r.ctx, batch)
-	for _, i := range orders {
+	br := tx.SendBatch(r.Ctx, batch)
+	for i := range orders {
 		_, err := br.Exec()
 		if err != nil {
 			br.Close()
@@ -111,7 +115,7 @@ func (r *Repository) IssueUpdate(orders []models.Order) error {
 	}
 	err = br.Close()
 
-	return tx.Commit(r.ctx)
+	return tx.Commit(r.Ctx)
 }
 
 func (r *Repository) Delete(id string) error {
@@ -119,7 +123,7 @@ func (r *Repository) Delete(id string) error {
 		DELETE FROM orders WHERE id=$1
 		`
 
-	_, err := r.pool.Exec(r.ctx, query, id)
+	_, err := r.Pool.Exec(r.Ctx, query, id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -131,27 +135,16 @@ func (r *Repository) Delete(id string) error {
 	return nil
 }
 
-func (r *Repository) Exists(id string) bool {
-	var order models.Order
-	query := `
-		SELECT EXISTS(
-		    SELECT 1 FROM orders
-			WHERE id = $1
-		)
-		`
-	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
-		return false
-	}
-	return true
-}
-
 func (r *Repository) Get(id string) (models.Order, error) {
 	var order models.Order
 	query := `
 		SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
 		WHERE id=$1
 		`
-	if err := pgxscan.Get(r.ctx, r.pool, &order, query, id); err != nil {
+	if err := pgxscan.Get(r.Ctx, r.Pool, &order, query, id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.Order{}, util.ErrOrderNotFound
+		}
 		return models.Order{}, err
 	}
 	return order, nil
@@ -167,7 +160,7 @@ func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
  		FETCH NEXT $2 ROWS ONLY
     `
 
-	rows, err := r.pool.Query(r.ctx, query, offset, limit)
+	rows, err := r.Pool.Query(r.Ctx, query, offset, limit)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -195,7 +188,7 @@ func (r *Repository) GetOrders(userId string, offset, limit int) ([]models.Order
 		FETCH NEXT $3 ROWS ONLY
 	`
 
-	rows, err := r.pool.Query(r.ctx, query, userId, offset, limit)
+	rows, err := r.Pool.Query(r.Ctx, query, userId, offset, limit)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {

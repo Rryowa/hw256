@@ -10,7 +10,7 @@ import (
 )
 
 func NewConfig() *models.Config {
-	err := godotenv.Load("internal/util/.env")
+	err := godotenv.Load("./.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
 	}
@@ -28,8 +28,8 @@ func NewConfig() *models.Config {
 	return &models.Config{
 		User:     os.Getenv("POSTGRES_USER"),
 		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Host:     os.Getenv("DB_HOST"),
-		Port:     os.Getenv("DB_PORT"),
+		Host:     os.Getenv("POSTGRES_HOST"),
+		Port:     os.Getenv("POSTGRES_PORT"),
 		DBName:   os.Getenv("POSTGRES_DB"),
 		Attempts: attempts,
 		Timeout:  timeout,
@@ -47,4 +47,18 @@ func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error)
 		return nil
 	}
 	return
+}
+
+func NewTestConfig() *models.Config {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
+	return &models.Config{
+		User:     os.Getenv("TEST_DB_USER"),
+		Password: os.Getenv("TEST_DB_PASSWORD"),
+		Host:     os.Getenv("TEST_DB_HOST"),
+		Port:     os.Getenv("TEST_DB_PORT"),
+		DBName:   os.Getenv("TEST_DB_NAME"),
+	}
 }
