@@ -3,8 +3,8 @@ BINARY_NAME=cli
 BIN_DIR=bin
 CMD_DIR=cmd
 EXPLAIN_DIR=explain
-DB_STRING="postgres://$(POSTGRES_USER):${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}?sslmode=disable"
-TEST_STRING="postgres://$(TEST_USER):${TEST_PASSWORD}@${TEST_HOST}/${TEST_DB}?sslmode=disable"
+DB_STRING="postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable"
+TEST_STRING="postgres://$(TEST_USER):$(TEST_PASSWORD)@$(TEST_HOST):$(TEST_PORT)/$(TEST_DB)?sslmode=disable"
 MIGRATIONS_DIR="./migrations"
 
 .PHONY: build
@@ -20,19 +20,17 @@ run:
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
+.PHONY: all
+all: build up
+
 .PHONY: test
 test:
-	@echo "Testing..."
 #	Single stage build
-#	@go test ./tests -tags=integration
+	@go test ./tests -tags=integration
 
 #	Multi-stage build
-#	@./tests/repo_test wont work if testconfig asks for ../.env
-#	use cd tests && ./repo_test instead
-
-#	if testconfig will ask for ./.env
-	@./bin/repo_test
-#	will work
+#	Set testconfig path to ./.env
+#	@./bin/repo_test
 
 .PHONY: up
 up:
@@ -52,3 +50,15 @@ compose-up:
 .PHONY: compose-rm
 compose-rm:
 	@docker compose rm app db db_test -fvs
+
+.PHONY: compose-db-up
+compose-db-up:
+	@docker compose up db db_test -d
+
+.PHONY: exec-pg
+exec-pg:
+	@docker exec -it pg psql -U postgres
+
+.PHONY: compose-db-rm
+compose-db-rm:
+	@docker compose rm db db_test -fvs

@@ -10,8 +10,9 @@ services:
 #  3) Чтобы настроить постгрю на докере нужно запустить postgres IMAGE
 #  в докер десктопе и прописать env var postgres_password = postgres
 #  Подключиться через docker exec к контейнеру и создать пользователя
-#  4) Порты - порты не следует задавать вообще, у db и db_test в конфиге
+#  4) Порты - Если приложение запускается в докере, порты не следует задавать вообще, у db и db_test в конфиге
 #  порт должны быть одинаковыми - 5432, т.к хостом является контейнер db и db_test
+#  5) Порты для запуска приложения не из докера (localhost) должны быть прописаны
   app:
     container_name: go
     build: .
@@ -34,6 +35,8 @@ services:
     restart: on-failure
     networks:
       - db_postgres
+    ports:
+      - 3333:5432
 
   db_test:
     image: postgres
@@ -46,6 +49,8 @@ services:
     restart: on-failure
     networks:
       - db_test_postgres
+    ports:
+      - 4444:5432
 
 networks:
   db_postgres:
