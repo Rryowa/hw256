@@ -1,4 +1,4 @@
-//go:build intgr_test
+//go:build integration
 
 package tests
 

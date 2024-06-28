@@ -1,23 +1,28 @@
 services:
 #  NOTES:
-#  При первом подключении к бд вместо POSTGRES_PASSWORD: ${DB_PASSWORD}
-#  должно быть POSTGRES_PASSWORD: postgres иначе бд не подключится вообще
-#  При старте с чистого листа необходимо сначала зайти в бд докера под postgres
+#  1) POSTGRES_HOST should be equal to service - "db"
+#  2) Чтобы сохранять состояния бд между запусками следует раскоментить pgdata
+#  Однако в таком случае следует удалять волюм при малейшем изменении,
+#  т.к это может вызвать много разных ошибок причину которых будет тяжело понять:
 #  Scripts in pgdata directory only run during the initial configuration
 #  of the database. So if the data folder we defined in the volumes section
 #  is not empty, it will not work.
-#  POSTGRES_HOST should be equal to service - "db"
-#  Чтобы сохранять состояния бд между запусками следует раскоментить pgdata
-#  Однако в таком случае следует удалять волюм при малейшем изменении,
-#  т.к это может вызвать много разных ошибок причину которых будет тяжело понять
+#  3) Чтобы настроить постгрю на докере нужно запустить postgres IMAGE
+#  в докер десктопе и прописать env var postgres_password = postgres
+#  Подключиться через docker exec к контейнеру и создать пользователя
+#  4) Порты - порты не следует задавать вообще, у db и db_test в конфиге
+#  порт должны быть одинаковыми - 5432, т.к хостом является контейнер db и db_test
   app:
     container_name: go
     build: .
+    command: tail -F anything
     restart: on-failure
     depends_on:
       - db
+      - db_test
     networks:
-      - postgres
+      - db_postgres
+      - db_test_postgres
 
   db:
     image: postgres
@@ -25,15 +30,24 @@ services:
     tty: true
     env_file:
       - .env
-    ports:
-      - 5432:5432
-    volumes:
-      - ./db.sql:/docker-entrypoint-initdb.d/db.sql
-#      - ./pgdata:/var/lib/postgresql/data
     restart: on-failure
     networks:
-      - postgres
+      - db_postgres
+
+  db_test:
+    image: postgres
+    container_name: pg_test
+    tty: true
+    environment:
+      POSTGRES_USER: ${TEST_USER}
+      POSTGRES_PASSWORD: ${TEST_PASSWORD}
+      POSTGRES_DB: ${TEST_DB}
+    restart: on-failure
+    networks:
+      - db_test_postgres
 
 networks:
-  postgres:
+  db_postgres:
+    driver: bridge
+  db_test_postgres:
     driver: bridge

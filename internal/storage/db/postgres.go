@@ -50,7 +50,7 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 func (r *Repository) Insert(order models.Order) (string, error) {
 	query := `
 		INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash) 
-	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  RETURNING id
 	    `
 	var id string
 	err := r.Pool.QueryRow(r.Ctx, query, order.ID, order.UserID,

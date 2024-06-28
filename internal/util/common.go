@@ -50,15 +50,15 @@ func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error)
 }
 
 func NewTestConfig() *models.Config {
-	err := godotenv.Load("./.env")
+	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
 	}
 	return &models.Config{
-		User:     os.Getenv("TEST_DB_USER"),
-		Password: os.Getenv("TEST_DB_PASSWORD"),
-		Host:     os.Getenv("TEST_DB_HOST"),
-		Port:     os.Getenv("TEST_DB_PORT"),
-		DBName:   os.Getenv("TEST_DB_NAME"),
+		User:     os.Getenv("TEST_USER"),
+		Password: os.Getenv("TEST_PASSWORD"),
+		Host:     os.Getenv("TEST_HOST"),
+		Port:     os.Getenv("TEST_PORT"),
+		DBName:   os.Getenv("TEST_DB"),
 	}
 }

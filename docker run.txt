@@ -1,0 +1,5 @@
+make compose-up
+make up
+make test
+make run
+make compose-rm
