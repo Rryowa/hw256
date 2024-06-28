@@ -16,14 +16,23 @@ build:
 	@echo "Build completed. Binary is located at $(BIN_DIR)/$(BINARY_NAME)"
 
 .PHONY: run
-run: build
+run:
 	@echo "Running the CLI application..."
 	@$(BIN_DIR)/$(BINARY_NAME)
 
 .PHONY: test
 test:
 	@echo "Testing..."
-	@go test ./tests -tags=integration
+#	Single stage build
+#	@go test ./tests -tags=integration
+
+#	Multi-stage build
+#	@./tests/repo_test wont work if testconfig asks for ../.env
+#	use cd tests && ./repo_test instead
+
+#	if testconfig will ask for ./.env
+	@./bin/repo_test
+#	will work
 
 .PHONY: up
 up:
@@ -35,14 +44,6 @@ down:
 	@goose -dir $(MIGRATIONS_DIR) postgres $(DB_STRING) down
 	@goose -dir $(MIGRATIONS_DIR) postgres $(TEST_STRING) down
 
-#.PHONY: test-up
-#test-up:
-#	@goose -dir $(MIGRATIONS_DIR) postgres $(TEST_STRING) up
-
-#.PHONY: test-down
-#test-down:
-#	@goose -dir $(MIGRATIONS_DIR) postgres $(TEST_STRING) down
-
 .PHONY: compose-up
 compose-up:
 	@docker compose up app db db_test -d
@@ -51,12 +52,3 @@ compose-up:
 .PHONY: compose-rm
 compose-rm:
 	@docker compose rm app db db_test -fvs
-
-#.PHONY: compose-test-up
-#compose-test-up:
-#	@docker compose up app db_test -d
-#	@docker exec -it go bash
-#
-#.PHONY: compose-test-down
-#compose-test-down:
-#	@docker compose rm app db_test -fvs

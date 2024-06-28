@@ -50,7 +50,9 @@ func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error)
 }
 
 func NewTestConfig() *models.Config {
-	err := godotenv.Load("../.env")
+	//for single stage build using @go test ./tests -tags=integration
+	//err := godotenv.Load("../.env")
+	err := godotenv.Load("./.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
 	}

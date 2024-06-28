@@ -15,7 +15,8 @@ services:
   app:
     container_name: go
     build: .
-    command: tail -F anything
+#    command: tail -F anything takes 5s to remove container
+#    use ENTRYPOINT ["./bin/cli"] instead
     restart: on-failure
     depends_on:
       - db
