@@ -57,7 +57,7 @@
 				
 				<option value="file0">homework/cmd/main.go (0.0%)</option>
 				
-				<option value="file1">homework/internal/service/order.go (0.0%)</option>
+				<option value="file1">homework/internal/service/order.go (10.3%)</option>
 				
 				<option value="file2">homework/internal/service/package/box.go (42.9%)</option>
 				
@@ -81,7 +81,7 @@
 				
 				<option value="file12">homework/mocks/mock_PackageService.go (16.1%)</option>
 				
-				<option value="file13">homework/mocks/mock_Storage.go (0.0%)</option>
+				<option value="file13">homework/mocks/mock_Storage.go (12.2%)</option>
 				
 				<option value="file14">homework/mocks/mock_ValidationService.go (0.0%)</option>
 				
@@ -163,7 +163,7 @@ type orderService struct {
         packageService pkg.PackageService
 }
 
-func NewOrderService(schemaName string, repository storage.Storage, packageService pkg.PackageService) OrderService <span class="cov0" title="0">{
+func NewOrderService(schemaName string, repository storage.Storage, packageService pkg.PackageService) OrderService <span class="cov8" title="1">{
         return &amp;orderService{
                 schemaName:     schemaName,
                 repository:     repository,
@@ -230,12 +230,12 @@ func (os *orderService) ListOrders(userId string, offset, limit int) ([]models.O
         return os.repository.GetOrders(userId, offset, limit, os.schemaName)
 }</span>
 
-func (os *orderService) Exists(userId string) (models.Order, bool) <span class="cov0" title="0">{
+func (os *orderService) Exists(userId string) (models.Order, bool) <span class="cov8" title="1">{
         order, err := os.repository.Get(userId, os.schemaName)
         if err != nil </span><span class="cov0" title="0">{
                 return models.Order{}, false
         }</span>
-        <span class="cov0" title="0">return order, true</span>
+        <span class="cov8" title="1">return order, true</span>
 }
 
 func (os *orderService) PrintList(orders []models.Order) <span class="cov0" title="0">{
@@ -1846,7 +1846,7 @@ type MockStorage_Expecter struct {
         mock *mock.Mock
 }
 
-func (_m *MockStorage) EXPECT() *MockStorage_Expecter <span class="cov0" title="0">{
+func (_m *MockStorage) EXPECT() *MockStorage_Expecter <span class="cov8" title="1">{
         return &amp;MockStorage_Expecter{mock: &amp;_m.Mock}
 }</span>
 
@@ -1908,31 +1908,31 @@ func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string, string) (string
 }</span>
 
 // Get provides a mock function with given fields: id, schemaName
-func (_m *MockStorage) Get(id string, schemaName string) (models.Order, error) <span class="cov0" title="0">{
+func (_m *MockStorage) Get(id string, schemaName string) (models.Order, error) <span class="cov8" title="1">{
         ret := _m.Called(id, schemaName)
 
         if len(ret) == 0 </span><span class="cov0" title="0">{
                 panic("no return value specified for Get")</span>
         }
 
-        <span class="cov0" title="0">var r0 models.Order
+        <span class="cov8" title="1">var r0 models.Order
         var r1 error
         if rf, ok := ret.Get(0).(func(string, string) (models.Order, error)); ok </span><span class="cov0" title="0">{
                 return rf(id, schemaName)
         }</span>
-        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, string) models.Order); ok </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if rf, ok := ret.Get(0).(func(string, string) models.Order); ok </span><span class="cov0" title="0">{
                 r0 = rf(id, schemaName)
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov8" title="1"> {
                 r0 = ret.Get(0).(models.Order)
         }</span>
 
-        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, string) error); ok </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if rf, ok := ret.Get(1).(func(string, string) error); ok </span><span class="cov0" title="0">{
                 r1 = rf(id, schemaName)
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov8" title="1"> {
                 r1 = ret.Error(1)
         }</span>
 
-        <span class="cov0" title="0">return r0, r1</span>
+        <span class="cov8" title="1">return r0, r1</span>
 }
 
 // MockStorage_Get_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Get'
@@ -1943,7 +1943,7 @@ type MockStorage_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - id string
 //   - schemaName string
-func (_e *MockStorage_Expecter) Get(id interface{}, schemaName interface{}) *MockStorage_Get_Call <span class="cov0" title="0">{
+func (_e *MockStorage_Expecter) Get(id interface{}, schemaName interface{}) *MockStorage_Get_Call <span class="cov8" title="1">{
         return &amp;MockStorage_Get_Call{Call: _e.mock.On("Get", id, schemaName)}
 }</span>
 
@@ -1954,7 +1954,7 @@ func (_c *MockStorage_Get_Call) Run(run func(id string, schemaName string)) *Moc
         <span class="cov0" title="0">return _c</span>
 }
 
-func (_c *MockStorage_Get_Call) Return(_a0 models.Order, _a1 error) *MockStorage_Get_Call <span class="cov0" title="0">{
+func (_c *MockStorage_Get_Call) Return(_a0 models.Order, _a1 error) *MockStorage_Get_Call <span class="cov8" title="1">{
         _c.Call.Return(_a0, _a1)
         return _c
 }</span>
@@ -2251,13 +2251,13 @@ func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order, string) (
 func NewMockStorage(t interface {
         mock.TestingT
         Cleanup(func())
-}) *MockStorage <span class="cov0" title="0">{
+}) *MockStorage <span class="cov8" title="1">{
         mock := &amp;MockStorage{}
         mock.Mock.Test(t)
 
-        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+        t.Cleanup(func() </span><span class="cov8" title="1">{ mock.AssertExpectations(t) }</span>)
 
-        <span class="cov0" title="0">return mock</span>
+        <span class="cov8" title="1">return mock</span>
 }
 </pre>
 		
