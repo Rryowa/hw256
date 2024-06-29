@@ -2,14 +2,16 @@
 ```sh
 #Up db containers
 make compose-db-up
-#Up migration
-make up
+#Up migration & build
+make all
 #Recreate mocks (optional)
 mockery
 #Run integration test
 make test
 #Run program
 make run
+#Down migrations
+make down
 #Remove container
 make compose-db-rm
 #cd to test file dir
