@@ -22,21 +22,31 @@ func (_m *MockStorage) EXPECT() *MockStorage_Expecter {
 }
 
 // Delete provides a mock function with given fields: id
-func (_m *MockStorage) Delete(id string) error {
+func (_m *MockStorage) Delete(id string) (string, error) {
 	ret := _m.Called(id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Delete")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(string) string); ok {
 		r0 = rf(id)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(string)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockStorage_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
@@ -57,12 +67,12 @@ func (_c *MockStorage_Delete_Call) Run(run func(id string)) *MockStorage_Delete_
 	return _c
 }
 
-func (_c *MockStorage_Delete_Call) Return(_a0 error) *MockStorage_Delete_Call {
-	_c.Call.Return(_a0)
+func (_c *MockStorage_Delete_Call) Return(_a0 string, _a1 error) *MockStorage_Delete_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string) error) *MockStorage_Delete_Call {
+func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string) (string, error)) *MockStorage_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -243,21 +253,31 @@ func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(int, int) ([]models
 }
 
 // Insert provides a mock function with given fields: order
-func (_m *MockStorage) Insert(order models.Order) error {
+func (_m *MockStorage) Insert(order models.Order) (string, error) {
 	ret := _m.Called(order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Insert")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(models.Order) error); ok {
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(models.Order) (string, error)); ok {
+		return rf(order)
+	}
+	if rf, ok := ret.Get(0).(func(models.Order) string); ok {
 		r0 = rf(order)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(string)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
+		r1 = rf(order)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockStorage_Insert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Insert'
@@ -278,12 +298,12 @@ func (_c *MockStorage_Insert_Call) Run(run func(order models.Order)) *MockStorag
 	return _c
 }
 
-func (_c *MockStorage_Insert_Call) Return(_a0 error) *MockStorage_Insert_Call {
-	_c.Call.Return(_a0)
+func (_c *MockStorage_Insert_Call) Return(_a0 string, _a1 error) *MockStorage_Insert_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order) error) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order) (string, error)) *MockStorage_Insert_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -334,22 +354,91 @@ func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func([]models.Order) er
 	return _c
 }
 
+// Truncate provides a mock function with given fields: table
+func (_m *MockStorage) Truncate(table ...string) error {
+	_va := make([]interface{}, len(table))
+	for _i := range table {
+		_va[_i] = table[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Truncate")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(...string) error); ok {
+		r0 = rf(table...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStorage_Truncate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Truncate'
+type MockStorage_Truncate_Call struct {
+	*mock.Call
+}
+
+// Truncate is a helper method to define mock.On call
+//   - table ...string
+func (_e *MockStorage_Expecter) Truncate(table ...interface{}) *MockStorage_Truncate_Call {
+	return &MockStorage_Truncate_Call{Call: _e.mock.On("Truncate",
+		append([]interface{}{}, table...)...)}
+}
+
+func (_c *MockStorage_Truncate_Call) Run(run func(table ...string)) *MockStorage_Truncate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]string, len(args)-0)
+		for i, a := range args[0:] {
+			if a != nil {
+				variadicArgs[i] = a.(string)
+			}
+		}
+		run(variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *MockStorage_Truncate_Call) Return(_a0 error) *MockStorage_Truncate_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStorage_Truncate_Call) RunAndReturn(run func(...string) error) *MockStorage_Truncate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function with given fields: order
-func (_m *MockStorage) Update(order models.Order) error {
+func (_m *MockStorage) Update(order models.Order) (bool, error) {
 	ret := _m.Called(order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(models.Order) error); ok {
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(models.Order) (bool, error)); ok {
+		return rf(order)
+	}
+	if rf, ok := ret.Get(0).(func(models.Order) bool); ok {
 		r0 = rf(order)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(bool)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
+		r1 = rf(order)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockStorage_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
@@ -370,12 +459,12 @@ func (_c *MockStorage_Update_Call) Run(run func(order models.Order)) *MockStorag
 	return _c
 }
 
-func (_c *MockStorage_Update_Call) Return(_a0 error) *MockStorage_Update_Call {
-	_c.Call.Return(_a0)
+func (_c *MockStorage_Update_Call) Return(_a0 bool, _a1 error) *MockStorage_Update_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order) error) *MockStorage_Update_Call {
+func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order) (bool, error)) *MockStorage_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

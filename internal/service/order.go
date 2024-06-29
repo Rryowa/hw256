@@ -74,11 +74,13 @@ func (os *orderService) Issue(orders *[]models.Order) error {
 func (os *orderService) Return(order *models.Order) error {
 	order.Returned = true
 
-	return os.repository.Update(*order)
+	_, err := os.repository.Update(*order)
+	return err
 }
 
 func (os *orderService) ReturnToCourier(id string) error {
-	return os.repository.Delete(id)
+	_, err := os.repository.Delete(id)
+	return err
 }
 
 func (os *orderService) ListReturns(offset, limit int) ([]models.Order, error) {

@@ -12,9 +12,8 @@ type UnitTestSuite struct {
 	suite.Suite
 	packageService PackageService
 
-	weight        models.Weight
-	pkgType       models.PackageType
-	expectedOrder models.Order
+	weight  models.Weight
+	pkgType models.PackageType
 }
 
 func TestUnitTestSuite(t *testing.T) {
