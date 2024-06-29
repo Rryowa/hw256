@@ -69,10 +69,6 @@ func (s *IntTestSuite) SetupSuite() {
 	CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);`
 }
 
-func (s *IntTestSuite) SetupTest() {
-	s.T().Parallel()
-}
-
 func (s *IntTestSuite) createSchemaAndRepo(ctx context.Context) (db.TestRepository, string) {
 	name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 	schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
@@ -96,6 +92,7 @@ func (s *IntTestSuite) dropSchema(ctx context.Context, tr db.TestRepository, sch
 
 func (s *IntTestSuite) TestInsertOrder() {
 	s.T().Run("TestInsertOrder", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
@@ -109,6 +106,7 @@ func (s *IntTestSuite) TestInsertOrder() {
 
 func (s *IntTestSuite) TestUpdateOrder() {
 	s.T().Run("TestUpd", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
@@ -126,6 +124,7 @@ func (s *IntTestSuite) TestUpdateOrder() {
 
 func (s *IntTestSuite) TestDelete() {
 	s.T().Run("TestDelete", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
@@ -142,6 +141,7 @@ func (s *IntTestSuite) TestDelete() {
 
 func (s *IntTestSuite) TestGet() {
 	s.T().Run("TestGet", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
@@ -158,6 +158,7 @@ func (s *IntTestSuite) TestGet() {
 
 func (s *IntTestSuite) TestGetReturns() {
 	s.T().Run("TestGetReturns", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
@@ -175,6 +176,7 @@ func (s *IntTestSuite) TestGetReturns() {
 
 func (s *IntTestSuite) TestGetOrders() {
 	s.T().Run("TestGetOrders", func(t *testing.T) {
+		t.Parallel()
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
