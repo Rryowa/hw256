@@ -13,9 +13,10 @@ import (
 
 type UnitTestSuite struct {
 	suite.Suite
-	repository        *mocks.MockStorage
+	orderService      *mocks.MockOrderService
 	packageService    *mocks.MockPackageService
 	validationService ValidationService
+	schemaName        string
 
 	inputDto      models.Dto
 	expectedOrder models.Order
@@ -26,10 +27,10 @@ func TestUnitTestSuite(t *testing.T) {
 }
 
 func (uts *UnitTestSuite) SetupTest() {
-	uts.repository = mocks.NewMockStorage(uts.T())
+	uts.orderService = mocks.NewMockOrderService(uts.T())
 	uts.packageService = mocks.NewMockPackageService(uts.T())
-	uts.validationService = NewValidationService(uts.repository, uts.packageService)
-
+	uts.validationService = NewValidationService(uts.orderService, uts.packageService)
+	uts.schemaName = "public"
 	dto := models.Dto{
 		ID:           "1",
 		UserID:       "1",
@@ -154,67 +155,63 @@ func (uts *UnitTestSuite) Test_ValidateAccept() {
 	}
 }
 
-type expectMockStorage func(s *mocks.MockStorage)
+type expectMockOrderService func(s *mocks.MockOrderService)
 
 func (uts *UnitTestSuite) Test_ValidateIssue() {
 	tests := []struct {
-		name              string
-		expectedErr       error
-		input             string
-		expectMockStorage expectMockStorage
+		name                   string
+		expectedErr            error
+		input                  string
+		expectMockOrderService expectMockOrderService
 	}{
 		{
 			"ErrUserIdNotProvided",
 			util.ErrUserIdNotProvided,
 			"",
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 			},
 		},
 		{
 			"ErrOrderNotFound",
 			util.ErrOrderNotFound,
 			"1",
-			func(s *mocks.MockStorage) {
-				s.EXPECT().Get("1").Return(models.Order{}, util.ErrOrderNotFound)
+			func(s *mocks.MockOrderService) {
+				s.EXPECT().Exists("1").Return(models.Order{}, false)
 			},
 		},
 		{
 			"ErrOrderIssued",
 			util.ErrOrderIssued,
 			"1",
-			func(s *mocks.MockStorage) {
-				s.EXPECT().Get("1").Return(models.Order{Issued: true}, nil)
+			func(s *mocks.MockOrderService) {
+				s.EXPECT().Exists("1").Return(models.Order{Issued: true}, true)
 			},
 		},
 		{
 			"ErrOrderReturned",
 			util.ErrOrderReturned,
 			"1",
-			func(s *mocks.MockStorage) {
-				s.EXPECT().Get("1").Return(models.Order{Returned: true}, nil)
+			func(s *mocks.MockOrderService) {
+				s.EXPECT().Exists("1").Return(models.Order{Returned: true}, true)
 			},
 		},
 		{
 			"ErrOrderExpired",
 			util.ErrOrderExpired,
 			"1",
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 				order := models.Order{StorageUntil: time.Now()}
 				order.StorageUntil = order.StorageUntil.AddDate(-1000, 0, 0)
-				s.EXPECT().Get("1").Return(order, nil)
+				s.EXPECT().Exists("1").Return(order, true)
 			},
 		},
 	}
 	for _, tt := range tests {
 		uts.T().Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			/*Cant use uts.repository because it is a pointer
-			inside subtests will be conflict between each EXPECT()
-			repository will be overwritten by other subtests
-			uts.SetupTest() wont help(in parallel run)*/
-			repository := mocks.NewMockStorage(t)
-			tt.expectMockStorage(repository)
-			validation := NewValidationService(repository, mocks.NewMockPackageService(t))
+			orderSrvc := mocks.NewMockOrderService(t)
+			tt.expectMockOrderService(orderSrvc)
+			validation := NewValidationService(orderSrvc, mocks.NewMockPackageService(t))
 
 			_, err := validation.ValidateIssue(tt.input)
 
@@ -225,74 +222,70 @@ func (uts *UnitTestSuite) Test_ValidateIssue() {
 
 func (uts *UnitTestSuite) Test_ValidateAcceptReturn() {
 	tests := []struct {
-		name              string
-		expectedErr       error
-		input             []string
-		expectMockStorage expectMockStorage
+		name                   string
+		expectedErr            error
+		input                  []string
+		expectMockOrderService expectMockOrderService
 	}{
 		{
 			"ErrOrderIdNotProvided",
 			util.ErrOrderIdNotProvided,
 			[]string{"", "1"},
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 			},
 		},
 		{
 			"ErrUserIdNotProvided",
 			util.ErrUserIdNotProvided,
 			[]string{"1", ""},
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 			},
 		},
 		{
 			"ErrOrderNotFound",
 			util.ErrOrderNotFound,
 			[]string{"1", "1"},
-			func(s *mocks.MockStorage) {
-				s.EXPECT().Get("1").Return(models.Order{}, util.ErrOrderNotFound)
+			func(s *mocks.MockOrderService) {
+				s.EXPECT().Exists("1").Return(models.Order{}, false)
 			},
 		},
 		{
 			"ErrOrderDoesNotBelong",
 			util.ErrOrderDoesNotBelong,
 			[]string{"1", "2"},
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 				order := uts.expectedOrder
-				s.EXPECT().Get("1").Return(order, nil)
+				s.EXPECT().Exists("1").Return(order, true)
 			},
 		},
 		{
 			"ErrOrderNotIssued",
 			util.ErrOrderNotIssued,
 			[]string{"1", "1"},
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 				order := uts.expectedOrder
 				order.Issued = false
-				s.EXPECT().Get("1").Return(order, nil)
+				s.EXPECT().Exists("1").Return(order, true)
 			},
 		},
 		{
 			"ErrReturnPeriodExpired",
 			util.ErrReturnPeriodExpired,
 			[]string{"1", "1"},
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 				order := uts.expectedOrder
 				order.Issued = true
 				order.StorageUntil = order.StorageUntil.AddDate(-1000, 0, 0)
-				s.EXPECT().Get("1").Return(order, nil)
+				s.EXPECT().Exists("1").Return(order, true)
 			},
 		},
 	}
 	for _, tt := range tests {
 		uts.T().Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			/*Cant use uts.repository because it is a pointer
-			inside subtests will be conflict between each EXPECT()
-			repository will be overwritten by other subtests
-			uts.SetupTest() wont help(in parallel run)*/
-			repository := mocks.NewMockStorage(t)
-			tt.expectMockStorage(repository)
-			validation := NewValidationService(repository, mocks.NewMockPackageService(t))
+			orderSrvc := mocks.NewMockOrderService(t)
+			tt.expectMockOrderService(orderSrvc)
+			validation := NewValidationService(orderSrvc, mocks.NewMockPackageService(t))
 
 			_, err := validation.ValidateAcceptReturn(tt.input[0], tt.input[1])
 
@@ -303,47 +296,43 @@ func (uts *UnitTestSuite) Test_ValidateAcceptReturn() {
 
 func (uts *UnitTestSuite) Test_ValidateReturnToCourier() {
 	tests := []struct {
-		name              string
-		expectedErr       error
-		input             string
-		expectMockStorage expectMockStorage
+		name                   string
+		expectedErr            error
+		input                  string
+		expectMockOrderService expectMockOrderService
 	}{
 		{
 			"ErrOrderIdNotProvided",
 			util.ErrOrderIdNotProvided,
 			"",
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 			},
 		},
 		{
 			"ErrOrderNotFound",
 			util.ErrOrderNotFound,
 			"1",
-			func(s *mocks.MockStorage) {
-				s.EXPECT().Get("1").Return(models.Order{}, util.ErrOrderNotFound)
+			func(s *mocks.MockOrderService) {
+				s.EXPECT().Exists("1").Return(models.Order{}, false)
 			},
 		},
 		{
 			"ErrOrderIssued",
 			util.ErrOrderIssued,
 			"1",
-			func(s *mocks.MockStorage) {
+			func(s *mocks.MockOrderService) {
 				order := uts.expectedOrder
 				order.Issued = true
-				s.EXPECT().Get("1").Return(order, nil)
+				s.EXPECT().Exists("1").Return(order, true)
 			},
 		},
 	}
 	for _, tt := range tests {
 		uts.T().Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			/*Cant use uts.repository because it is a pointer
-			inside subtests will be conflict between each EXPECT()
-			repository will be overwritten by other subtests
-			uts.SetupTest() wont help(in parallel run)*/
-			repository := mocks.NewMockStorage(t)
-			tt.expectMockStorage(repository)
-			validation := NewValidationService(repository, mocks.NewMockPackageService(t))
+			orderSrvc := mocks.NewMockOrderService(t)
+			tt.expectMockOrderService(orderSrvc)
+			validation := NewValidationService(orderSrvc, mocks.NewMockPackageService(t))
 
 			err := validation.ValidateReturnToCourier(tt.input)
 

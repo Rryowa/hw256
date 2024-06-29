@@ -18,15 +18,18 @@ type OrderService interface {
 	ListReturns(offset, limit int) ([]models.Order, error)
 	ListOrders(userId string, offset, limit int) ([]models.Order, error)
 	PrintList(orders []models.Order)
+	Exists(userId string) (models.Order, bool)
 }
 
 type orderService struct {
+	schemaName     string
 	repository     storage.Storage
 	packageService pkg.PackageService
 }
 
-func NewOrderService(repository storage.Storage, packageService pkg.PackageService) OrderService {
+func NewOrderService(schemaName string, repository storage.Storage, packageService pkg.PackageService) OrderService {
 	return &orderService{
+		schemaName:     schemaName,
 		repository:     repository,
 		packageService: packageService,
 	}
@@ -58,7 +61,7 @@ func (os *orderService) Accept(order *models.Order, pkgTypeStr string) error {
 
 	<-done
 
-	_, err := os.repository.Insert(*order)
+	_, err := os.repository.Insert(*order, os.schemaName)
 	return err
 }
 
@@ -68,27 +71,35 @@ func (os *orderService) Issue(orders *[]models.Order) error {
 		(*orders)[i].IssuedAt = time.Now()
 	}
 
-	return os.repository.IssueUpdate(*orders)
+	return os.repository.IssueUpdate(*orders, os.schemaName)
 }
 
 func (os *orderService) Return(order *models.Order) error {
 	order.Returned = true
 
-	_, err := os.repository.Update(*order)
+	_, err := os.repository.Update(*order, os.schemaName)
 	return err
 }
 
 func (os *orderService) ReturnToCourier(id string) error {
-	_, err := os.repository.Delete(id)
+	_, err := os.repository.Delete(id, os.schemaName)
 	return err
 }
 
 func (os *orderService) ListReturns(offset, limit int) ([]models.Order, error) {
-	return os.repository.GetReturns(offset, limit)
+	return os.repository.GetReturns(offset, limit, os.schemaName)
 }
 
 func (os *orderService) ListOrders(userId string, offset, limit int) ([]models.Order, error) {
-	return os.repository.GetOrders(userId, offset, limit)
+	return os.repository.GetOrders(userId, offset, limit, os.schemaName)
+}
+
+func (os *orderService) Exists(userId string) (models.Order, bool) {
+	order, err := os.repository.Get(userId, os.schemaName)
+	if err != nil {
+		return models.Order{}, false
+	}
+	return order, true
 }
 
 func (os *orderService) PrintList(orders []models.Order) {

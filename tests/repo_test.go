@@ -17,13 +17,10 @@ import (
 	"time"
 )
 
-// TODO: Instead of creating a New database per test create a database at the start of
-// the tests and then create a schema per test and set the search_ path to only be of
-// that scehema When connecting to the database it's possible to add a connection string
-// parameter `?search_path=example` to execute all queries by default in that schema.
-// To apply changes make down and make run
+// IntTestSuite Parallel integration tests using postgres schemas
 type IntTestSuite struct {
 	suite.Suite
+
 	createQuery   string
 	expectedOrder models.Order
 	cfg           *models.Config
@@ -79,7 +76,9 @@ func (s *IntTestSuite) SetupTest() {
 func (s *IntTestSuite) createSchemaAndRepo(ctx context.Context) (db.TestRepository, string) {
 	name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 	schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
+
 	tr := db.NewTestRepository(ctx, s.cfg, schemaName)
+
 	_, err := tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
 	require.NoError(s.T(), err)
 
@@ -113,13 +112,13 @@ func (s *IntTestSuite) TestUpdateOrder() {
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
-
 		order := s.expectedOrder
 		order.Returned = true
 		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		returned, err := tr.Repo.Update(order, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, order.Returned, returned)
 	})
@@ -130,12 +129,12 @@ func (s *IntTestSuite) TestDelete() {
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
-
 		order := s.expectedOrder
 		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		id, err := tr.Repo.Delete(order.ID, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, order.ID, id)
 	})
@@ -146,12 +145,12 @@ func (s *IntTestSuite) TestGet() {
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
-
 		order := s.expectedOrder
 		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		order, err = tr.Repo.Get(order.ID, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, order.ID)
 	})
@@ -162,13 +161,13 @@ func (s *IntTestSuite) TestGetReturns() {
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
-
 		order := s.expectedOrder
 		order.Returned = true
 		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		orders, err := tr.Repo.GetReturns(0, 10, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
 	})
@@ -179,12 +178,12 @@ func (s *IntTestSuite) TestGetOrders() {
 		ctx := context.Background()
 		tr, schemaName := s.createSchemaAndRepo(ctx)
 		defer s.dropSchema(ctx, tr, schemaName)
-
 		order := s.expectedOrder
 		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		orders, err := tr.Repo.GetOrders(order.ID, 0, 10, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
 	})

@@ -1,10 +1,10 @@
 ## Docker commands
 ```sh
-#Up containers
+#Up db containers
 make compose-db-up
 #Up migration
 make up
-#Recreate mocks
+#Recreate mocks (optional)
 mockery
 #Run integration test
 make test

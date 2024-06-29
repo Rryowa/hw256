@@ -140,9 +140,7 @@ func (r *Repository) Get(id string, schemaName string) (models.Order, error) {
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
 		WHERE id=$1
 		`
-	log.Println(query)
 	query = AddSchemaPrefix(schemaName, query)
-	log.Println(query)
 	if err := pgxscan.Get(r.Ctx, r.Pool, &order, query, id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.Order{}, util.ErrOrderNotFound
@@ -160,9 +158,7 @@ func (r *Repository) GetReturns(offset, limit int, schemaName string) ([]models.
         OFFSET $1
  		FETCH NEXT $2 ROWS ONLY
     `
-	log.Println(query)
 	query = AddSchemaPrefix(schemaName, query)
-	log.Println(query)
 	rows, err := r.Pool.Query(r.Ctx, query, offset, limit)
 	if err != nil {
 		var pgErr *pgconn.PgError

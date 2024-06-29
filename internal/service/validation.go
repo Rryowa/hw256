@@ -3,7 +3,6 @@ package service
 import (
 	"homework/internal/models"
 	pkg "homework/internal/service/package"
-	"homework/internal/storage"
 	"homework/internal/util"
 	"strconv"
 	"strings"
@@ -19,13 +18,13 @@ type ValidationService interface {
 }
 
 type validationService struct {
-	repository     storage.Storage
+	orderService   OrderService
 	packageService pkg.PackageService
 }
 
-func NewValidationService(repository storage.Storage, packageService pkg.PackageService) ValidationService {
+func NewValidationService(orderService OrderService, packageService pkg.PackageService) ValidationService {
 	return &validationService{
-		repository:     repository,
+		orderService:   orderService,
 		packageService: packageService,
 	}
 }
@@ -61,7 +60,8 @@ func (v *validationService) ValidateAccept(dto models.Dto) (models.Order, error)
 		return models.Order{}, util.ErrWeightInvalid
 	}
 
-	if _, err := v.repository.Get(dto.ID); err == nil {
+	_, exists := v.orderService.Exists(dto.ID)
+	if exists {
 		return models.Order{}, util.ErrOrderExists
 	}
 
@@ -93,18 +93,17 @@ func (v *validationService) ValidateIssue(idsStr string) ([]models.Order, error)
 
 	ids := strings.Split(idsStr, ",")
 
-	order, err := v.repository.Get(ids[0])
-	if err != nil {
-		return emptyOrders, err
+	order, exists := v.orderService.Exists(ids[0])
+	if !exists {
+		return emptyOrders, util.ErrOrderNotFound
 	}
 
 	recipientID := order.UserID
 
 	for _, id := range ids {
-		order, err = v.repository.Get(id)
-
-		if err != nil {
-			return emptyOrders, err
+		order, exists := v.orderService.Exists(id)
+		if !exists {
+			return emptyOrders, util.ErrOrderNotFound
 		}
 		if order.Issued {
 			return emptyOrders, util.ErrOrderIssued
@@ -136,9 +135,9 @@ func (v *validationService) ValidateAcceptReturn(id, userId string) (models.Orde
 		return emptyOrder, util.ErrUserIdNotProvided
 	}
 
-	order, err := v.repository.Get(id)
-	if err != nil {
-		return emptyOrder, err
+	order, exists := v.orderService.Exists(id)
+	if !exists {
+		return emptyOrder, util.ErrOrderNotFound
 	}
 
 	if order.UserID != userId {
@@ -163,9 +162,9 @@ func (v *validationService) ValidateReturnToCourier(id string) error {
 		return util.ErrOrderIdInvalid
 	}
 
-	order, err := v.repository.Get(id)
-	if err != nil {
-		return err
+	order, exists := v.orderService.Exists(id)
+	if !exists {
+		return util.ErrOrderNotFound
 	}
 
 	if order.Issued {

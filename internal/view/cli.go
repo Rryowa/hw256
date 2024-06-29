@@ -223,7 +223,6 @@ func (c *CLI) processCommand(input string) {
 
 func (c *CLI) acceptOrder(args []string) error {
 	dto := models.Dto{}
-	//var idStr, userId, dateStr, pkgTypeStr, weightStr, orderPriceStr string
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
 	fs.StringVar(&dto.ID, "id", "", "use -id=12345")
 	fs.StringVar(&dto.UserID, "u_id", "", "use -u_id=54321")

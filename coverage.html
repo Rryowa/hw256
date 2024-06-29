@@ -1,0 +1,2686 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">homework/cmd/main.go (0.0%)</option>
+				
+				<option value="file1">homework/internal/service/order.go (0.0%)</option>
+				
+				<option value="file2">homework/internal/service/package/box.go (42.9%)</option>
+				
+				<option value="file3">homework/internal/service/package/film.go (20.0%)</option>
+				
+				<option value="file4">homework/internal/service/package/package.go (50.0%)</option>
+				
+				<option value="file5">homework/internal/service/package/packet.go (42.9%)</option>
+				
+				<option value="file6">homework/internal/service/validation.go (72.8%)</option>
+				
+				<option value="file7">homework/internal/storage/db/postgres.go (0.0%)</option>
+				
+				<option value="file8">homework/internal/storage/db/schema.go (0.0%)</option>
+				
+				<option value="file9">homework/internal/util/common.go (0.0%)</option>
+				
+				<option value="file10">homework/internal/view/cli.go (0.0%)</option>
+				
+				<option value="file11">homework/mocks/mock_OrderService.go (12.9%)</option>
+				
+				<option value="file12">homework/mocks/mock_PackageService.go (16.1%)</option>
+				
+				<option value="file13">homework/mocks/mock_Storage.go (0.0%)</option>
+				
+				<option value="file14">homework/mocks/mock_ValidationService.go (0.0%)</option>
+				
+				<option value="file15">homework/pkg/hash/hash.go (0.0%)</option>
+				
+				<option value="file16">homework/tests/db/postgres.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "fmt"
+        "homework/internal/service"
+        pkg "homework/internal/service/package"
+        "homework/internal/storage/db"
+        "homework/internal/util"
+        "homework/internal/view"
+        "log"
+)
+
+const (
+        schemaName = "public"
+)
+
+func main() <span class="cov0" title="0">{
+        repository := db.NewSQLRepository(context.Background(), util.NewConfig())
+
+        packageService := pkg.NewPackageService()
+        orderService := service.NewOrderService(schemaName, repository, packageService)
+        validationService := service.NewValidationService(orderService, packageService)
+
+        commands := view.NewCLI(orderService, validationService)
+        if err := commands.Run(); err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err)
+        }</span>
+
+        <span class="cov0" title="0">fmt.Println("Bye!")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package service
+
+import (
+        "fmt"
+        "homework/internal/models"
+        pkg "homework/internal/service/package"
+        "homework/internal/storage"
+        "homework/pkg/hash"
+        "strings"
+        "time"
+)
+
+type OrderService interface {
+        Accept(order *models.Order, pkgTypeStr string) error
+        Issue(ordersToIssue *[]models.Order) error
+        Return(orders *models.Order) error
+        ReturnToCourier(id string) error
+        ListReturns(offset, limit int) ([]models.Order, error)
+        ListOrders(userId string, offset, limit int) ([]models.Order, error)
+        PrintList(orders []models.Order)
+        Exists(userId string) (models.Order, bool)
+}
+
+type orderService struct {
+        schemaName     string
+        repository     storage.Storage
+        packageService pkg.PackageService
+}
+
+func NewOrderService(schemaName string, repository storage.Storage, packageService pkg.PackageService) OrderService <span class="cov0" title="0">{
+        return &amp;orderService{
+                schemaName:     schemaName,
+                repository:     repository,
+                packageService: packageService,
+        }
+}</span>
+
+func (os *orderService) Accept(order *models.Order, pkgTypeStr string) error <span class="cov0" title="0">{
+        os.packageService.ApplyPackage(order, models.PackageType(pkgTypeStr))
+
+        fmt.Print("Calculating hash.")
+
+        ticker := time.NewTicker(time.Second)
+        done := make(chan struct{})
+        go func() </span><span class="cov0" title="0">{
+                for </span><span class="cov0" title="0">{
+                        select </span>{
+                        case &lt;-done:<span class="cov0" title="0">
+                                return</span>
+                        case &lt;-ticker.C:<span class="cov0" title="0">
+                                fmt.Print(" .")</span>
+                        }
+                }
+        }()
+
+        <span class="cov0" title="0">go func(order *models.Order, ticker *time.Ticker, done chan struct{}) </span><span class="cov0" title="0">{
+                order.Hash = hash.GenerateHash()
+                ticker.Stop()
+                done &lt;- struct{}{}
+        }</span>(order, ticker, done)
+
+        <span class="cov0" title="0">&lt;-done
+
+        _, err := os.repository.Insert(*order, os.schemaName)
+        return err</span>
+}
+
+func (os *orderService) Issue(orders *[]models.Order) error <span class="cov0" title="0">{
+        for i := range *orders </span><span class="cov0" title="0">{
+                (*orders)[i].Issued = true
+                (*orders)[i].IssuedAt = time.Now()
+        }</span>
+
+        <span class="cov0" title="0">return os.repository.IssueUpdate(*orders, os.schemaName)</span>
+}
+
+func (os *orderService) Return(order *models.Order) error <span class="cov0" title="0">{
+        order.Returned = true
+
+        _, err := os.repository.Update(*order, os.schemaName)
+        return err
+}</span>
+
+func (os *orderService) ReturnToCourier(id string) error <span class="cov0" title="0">{
+        _, err := os.repository.Delete(id, os.schemaName)
+        return err
+}</span>
+
+func (os *orderService) ListReturns(offset, limit int) ([]models.Order, error) <span class="cov0" title="0">{
+        return os.repository.GetReturns(offset, limit, os.schemaName)
+}</span>
+
+func (os *orderService) ListOrders(userId string, offset, limit int) ([]models.Order, error) <span class="cov0" title="0">{
+        return os.repository.GetOrders(userId, offset, limit, os.schemaName)
+}</span>
+
+func (os *orderService) Exists(userId string) (models.Order, bool) <span class="cov0" title="0">{
+        order, err := os.repository.Get(userId, os.schemaName)
+        if err != nil </span><span class="cov0" title="0">{
+                return models.Order{}, false
+        }</span>
+        <span class="cov0" title="0">return order, true</span>
+}
+
+func (os *orderService) PrintList(orders []models.Order) <span class="cov0" title="0">{
+        if len(orders) == 0 </span><span class="cov0" title="0">{
+                defer fmt.Printf("\n\n")
+        }</span>
+        <span class="cov0" title="0">fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n", "id", "user_id", "storage_until", "issued_at", "returned", "order_price", "weight", "package_type", "package_price")
+        fmt.Println(strings.Repeat("-", 100))
+        for _, order := range orders </span><span class="cov0" title="0">{
+                fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n",
+                        order.ID,
+                        order.UserID,
+                        order.StorageUntil.Format("2006-01-02"),
+                        order.IssuedAt.Format("2006-01-02"),
+                        order.Returned,
+                        order.OrderPrice,
+                        order.Weight,
+                        order.PackageType,
+                        order.PackagePrice)
+        }</span>
+        <span class="cov0" title="0">fmt.Printf("\n")</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package _package
+
+import (
+        "homework/internal/models"
+        "homework/internal/util"
+)
+
+const (
+        BoxPrice     models.Price       = 20
+        MaxBoxWeight models.Weight      = 30
+        BoxType      models.PackageType = "box"
+)
+
+type BoxPackage struct {
+}
+
+func NewBoxPackage() *BoxPackage <span class="cov8" title="1">{
+        return &amp;BoxPackage{}
+}</span>
+
+func (p *BoxPackage) Validate(weight models.Weight) error <span class="cov8" title="1">{
+        if weight &lt; MaxBoxWeight </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov8" title="1">return util.ErrWeightExceeds</span>
+}
+
+func (c *BoxPackage) Apply(order *models.Order) <span class="cov0" title="0">{
+        order.PackageType = BoxType
+        order.PackagePrice = BoxPrice
+        order.OrderPrice += BoxPrice
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package _package
+
+import (
+        "homework/internal/models"
+)
+
+const (
+        FilmPrice models.Price       = 1
+        FilmType  models.PackageType = "film"
+)
+
+// FilmPackage implements ValidatePackage
+type FilmPackage struct {
+}
+
+func NewFilmPackage() *FilmPackage <span class="cov8" title="1">{
+        return &amp;FilmPackage{}
+}</span>
+
+// ValidatePackage provides validation
+func (p *FilmPackage) Validate(weight models.Weight) error <span class="cov0" title="0">{
+        return nil
+}</span>
+
+func (c *FilmPackage) Apply(order *models.Order) <span class="cov0" title="0">{
+        order.PackageType = FilmType
+        order.PackagePrice = FilmPrice
+        order.OrderPrice += FilmPrice
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package _package
+
+import (
+        "homework/internal/models"
+        "homework/internal/util"
+)
+
+type packageContext struct {
+        strategies map[models.PackageType]PackageStrategy
+}
+
+type PackageService interface {
+        ValidatePackage(weight models.Weight, packageType models.PackageType) error
+        ApplyPackage(order *models.Order, packageType models.PackageType)
+}
+
+type PackageStrategy interface {
+        Validate(weight models.Weight) error
+        Apply(order *models.Order)
+}
+
+func NewPackageService() PackageService <span class="cov8" title="1">{
+        return &amp;packageContext{
+                strategies: map[models.PackageType]PackageStrategy{
+                        FilmType:   NewFilmPackage(),
+                        PacketType: NewPacketPackage(),
+                        BoxType:    NewBoxPackage(),
+                },
+        }
+}</span>
+
+func (pc *packageContext) ValidatePackage(weight models.Weight, packageType models.PackageType) error <span class="cov8" title="1">{
+        if strategy, ok := pc.strategies[packageType]; ok </span><span class="cov8" title="1">{
+                return strategy.Validate(weight)
+        }</span>
+        <span class="cov8" title="1">return util.ErrPackageTypeInvalid</span>
+}
+
+func (pc *packageContext) ApplyPackage(order *models.Order, packageType models.PackageType) <span class="cov0" title="0">{
+        if strategy, ok := pc.strategies[packageType]; ok </span><span class="cov0" title="0">{
+                strategy.Apply(order)
+                return
+        }</span>
+        //Assume that film has no weight limit
+        <span class="cov0" title="0">pc.strategies[FilmType].Apply(order)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package _package
+
+import (
+        "homework/internal/models"
+        "homework/internal/util"
+)
+
+const (
+        PacketPrice     models.Price       = 5
+        MaxPacketWeight models.Weight      = 10
+        PacketType      models.PackageType = "packet"
+)
+
+type PacketPackage struct {
+}
+
+func NewPacketPackage() *PacketPackage <span class="cov8" title="1">{
+        return &amp;PacketPackage{}
+}</span>
+
+func (p *PacketPackage) Validate(weight models.Weight) error <span class="cov8" title="1">{
+        if weight &lt; MaxPacketWeight </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov8" title="1">return util.ErrWeightExceeds</span>
+}
+
+func (c *PacketPackage) Apply(order *models.Order) <span class="cov0" title="0">{
+        order.PackageType = PacketType
+        order.PackagePrice = PacketPrice
+        order.OrderPrice += PacketPrice
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package service
+
+import (
+        "homework/internal/models"
+        pkg "homework/internal/service/package"
+        "homework/internal/util"
+        "strconv"
+        "strings"
+        "time"
+)
+
+type ValidationService interface {
+        ValidateAccept(dto models.Dto) (models.Order, error)
+        ValidateIssue(idsStr string) ([]models.Order, error)
+        ValidateAcceptReturn(id, userId string) (models.Order, error)
+        ValidateReturnToCourier(id string) error
+        ValidateList(offset, limit string) (int, int, error)
+}
+
+type validationService struct {
+        orderService   OrderService
+        packageService pkg.PackageService
+}
+
+func NewValidationService(orderService OrderService, packageService pkg.PackageService) ValidationService <span class="cov8" title="1">{
+        return &amp;validationService{
+                orderService:   orderService,
+                packageService: packageService,
+        }
+}</span>
+
+func (v *validationService) ValidateAccept(dto models.Dto) (models.Order, error) <span class="cov8" title="1">{
+        if isArgEmpty(dto.ID) </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrOrderIdNotProvided
+        }</span>
+        <span class="cov8" title="1">if isArgEmpty(dto.UserID) </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrUserIdNotProvided
+        }</span>
+        <span class="cov8" title="1">if isArgEmpty(dto.Weight) </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrWeightNotProvided
+        }</span>
+        <span class="cov8" title="1">if isArgEmpty(dto.OrderPrice) </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrPriceNotProvided
+        }</span>
+
+        <span class="cov8" title="1">storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)
+        if err != nil </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrParsingDate
+        }</span> else<span class="cov8" title="1"> if storageUntil.Before(time.Now()) </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrDateInvalid
+        }</span>
+
+        <span class="cov8" title="1">orderPriceFloat, err := strconv.ParseFloat(dto.OrderPrice, 64)
+        if err != nil || orderPriceFloat &lt;= 0 </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrOrderPriceInvalid
+        }</span>
+
+        <span class="cov8" title="1">weightFloat, err := strconv.ParseFloat(dto.Weight, 64)
+        if err != nil || weightFloat &lt;= 0 </span><span class="cov8" title="1">{
+                return models.Order{}, util.ErrWeightInvalid
+        }</span>
+
+        <span class="cov0" title="0">_, exists := v.orderService.Exists(dto.ID)
+        if exists </span><span class="cov0" title="0">{
+                return models.Order{}, util.ErrOrderExists
+        }</span>
+
+        <span class="cov0" title="0">orderPrice := models.Price(orderPriceFloat)
+        weight := models.Weight(weightFloat)
+        packageType := models.PackageType(dto.PackageType)
+
+        if err = v.packageService.ValidatePackage(weight, packageType); err != nil </span><span class="cov0" title="0">{
+                return models.Order{}, err
+        }</span>
+
+        <span class="cov0" title="0">order := models.Order{
+                ID:           dto.ID,
+                UserID:       dto.UserID,
+                StorageUntil: storageUntil,
+                OrderPrice:   orderPrice,
+                Weight:       weight,
+        }
+
+        return order, nil</span>
+}
+
+func (v *validationService) ValidateIssue(idsStr string) ([]models.Order, error) <span class="cov8" title="1">{
+        var emptyOrders []models.Order
+        var ordersToIssue []models.Order
+        if len(idsStr) == 0 </span><span class="cov8" title="1">{
+                return emptyOrders, util.ErrUserIdNotProvided
+        }</span>
+
+        <span class="cov8" title="1">ids := strings.Split(idsStr, ",")
+
+        order, exists := v.orderService.Exists(ids[0])
+        if !exists </span><span class="cov8" title="1">{
+                return emptyOrders, util.ErrOrderNotFound
+        }</span>
+
+        <span class="cov8" title="1">recipientID := order.UserID
+
+        for _, id := range ids </span><span class="cov8" title="1">{
+                order, exists := v.orderService.Exists(id)
+                if !exists </span><span class="cov0" title="0">{
+                        return emptyOrders, util.ErrOrderNotFound
+                }</span>
+                <span class="cov8" title="1">if order.Issued </span><span class="cov8" title="1">{
+                        return emptyOrders, util.ErrOrderIssued
+                }</span>
+                <span class="cov8" title="1">if order.Returned </span><span class="cov8" title="1">{
+                        return emptyOrders, util.ErrOrderReturned
+                }</span>
+                <span class="cov8" title="1">if time.Now().After(order.StorageUntil) </span><span class="cov8" title="1">{
+                        return emptyOrders, util.ErrOrderExpired
+                }</span>
+
+                //Check if users are equal
+                <span class="cov0" title="0">if order.UserID != recipientID </span><span class="cov0" title="0">{
+                        return emptyOrders, util.ErrOrdersUserDiffers
+                }</span>
+
+                <span class="cov0" title="0">ordersToIssue = append(ordersToIssue, order)</span>
+        }
+
+        <span class="cov0" title="0">return ordersToIssue, nil</span>
+}
+
+func (v *validationService) ValidateAcceptReturn(id, userId string) (models.Order, error) <span class="cov8" title="1">{
+        emptyOrder := models.Order{}
+        if isArgEmpty(id) </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrOrderIdNotProvided
+        }</span>
+        <span class="cov8" title="1">if isArgEmpty(userId) </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrUserIdNotProvided
+        }</span>
+
+        <span class="cov8" title="1">order, exists := v.orderService.Exists(id)
+        if !exists </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrOrderNotFound
+        }</span>
+
+        <span class="cov8" title="1">if order.UserID != userId </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrOrderDoesNotBelong
+        }</span>
+        <span class="cov8" title="1">if !order.Issued </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrOrderNotIssued
+        }</span>
+        <span class="cov8" title="1">if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) </span><span class="cov8" title="1">{
+                return emptyOrder, util.ErrReturnPeriodExpired
+        }</span>
+
+        <span class="cov0" title="0">return order, nil</span>
+}
+
+func (v *validationService) ValidateReturnToCourier(id string) error <span class="cov8" title="1">{
+        if isArgEmpty(id) </span><span class="cov8" title="1">{
+                return util.ErrOrderIdNotProvided
+        }</span>
+
+        <span class="cov8" title="1">if _, err := strconv.Atoi(id); err != nil </span><span class="cov0" title="0">{
+                return util.ErrOrderIdInvalid
+        }</span>
+
+        <span class="cov8" title="1">order, exists := v.orderService.Exists(id)
+        if !exists </span><span class="cov8" title="1">{
+                return util.ErrOrderNotFound
+        }</span>
+
+        <span class="cov8" title="1">if order.Issued </span><span class="cov8" title="1">{
+                return util.ErrOrderIssued
+        }</span>
+
+        //skip checking for a period, to ensure that its working
+        //if time.Now().Before(order.StorageUntil) {
+        //        return util.ErrOrderNotExpired
+        //}
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (v *validationService) ValidateList(offset, limit string) (int, int, error) <span class="cov8" title="1">{
+        if isArgEmpty(offset) </span><span class="cov8" title="1">{
+                return -1, -1, util.ErrOffsetNotProvided
+        }</span>
+        <span class="cov8" title="1">if isArgEmpty(limit) </span><span class="cov8" title="1">{
+                return -1, -1, util.ErrLimitNotProvided
+        }</span>
+        <span class="cov0" title="0">offsetInt, err := strconv.Atoi(offset)
+        if err != nil </span><span class="cov0" title="0">{
+                return -1, -1, err
+        }</span>
+        <span class="cov0" title="0">limitInt, err := strconv.Atoi(limit)
+        if err != nil </span><span class="cov0" title="0">{
+                return -1, -1, err
+        }</span>
+
+        <span class="cov0" title="0">return offsetInt, limitInt, nil</span>
+}
+
+func isArgEmpty(id string) bool <span class="cov8" title="1">{
+        if len(id) == 0 </span><span class="cov8" title="1">{
+                return true
+        }</span>
+        <span class="cov8" title="1">return false</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package db
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "github.com/georgysavva/scany/v2/pgxscan"
+        "github.com/jackc/pgx/v5"
+        "github.com/jackc/pgx/v5/pgconn"
+        "github.com/jackc/pgx/v5/pgxpool"
+        "homework/internal/models"
+        "homework/internal/storage"
+        "homework/internal/util"
+        "log"
+)
+
+type Repository struct {
+        Pool *pgxpool.Pool
+        Ctx  context.Context
+}
+
+func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage <span class="cov0" title="0">{
+        connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+        var pool *pgxpool.Pool
+        var err error
+
+        err = util.DoWithTries(func() error </span><span class="cov0" title="0">{
+                ctxTimeout, cancel := context.WithTimeout(ctx, cfg.Timeout)
+                defer cancel()
+
+                pool, err = pgxpool.New(ctxTimeout, connStr)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err, "db connection error")
+                }</span>
+
+                <span class="cov0" title="0">return nil</span>
+        }, cfg.Attempts, cfg.Timeout)
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err, "DoWithTries error")
+        }</span>
+        <span class="cov0" title="0">log.Println("Connected to db")
+
+        return &amp;Repository{
+                Pool: pool,
+                Ctx:  ctx,
+        }</span>
+}
+
+func (r *Repository) Insert(order models.Order, schemaName string) (string, error) <span class="cov0" title="0">{
+        query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  RETURNING id`
+        query = AddSchemaPrefix(schemaName, query)
+
+        var id string
+        err := r.Pool.QueryRow(r.Ctx, query, order.ID, order.UserID,
+                order.StorageUntil, order.Issued, order.IssuedAt, order.Returned,
+                order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice,
+                order.Hash).Scan(&amp;id)
+
+        if err != nil </span><span class="cov0" title="0">{
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) </span><span class="cov0" title="0">{
+                        log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+                }</span>
+                <span class="cov0" title="0">return "", err</span>
+        }
+        <span class="cov0" title="0">return id, nil</span>
+}
+
+func (r *Repository) Update(order models.Order, schemaName string) (bool, error) <span class="cov0" title="0">{
+        query := `UPDATE orders SET returned=$1
+        WHERE id=$2 RETURNING returned
+        `
+        query = AddSchemaPrefix(schemaName, query)
+
+        var returned bool
+        err := r.Pool.QueryRow(r.Ctx, query, order.Returned, order.ID).Scan(&amp;returned)
+        if err != nil </span><span class="cov0" title="0">{
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) </span><span class="cov0" title="0">{
+                        log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+                }</span>
+                <span class="cov0" title="0">return false, err</span>
+        }
+        <span class="cov0" title="0">return returned, nil</span>
+}
+
+func (r *Repository) IssueUpdate(orders []models.Order, schemaName string) error <span class="cov0" title="0">{
+        tx, err := r.Pool.BeginTx(r.Ctx, pgx.TxOptions{
+                IsoLevel:   pgx.RepeatableRead,
+                AccessMode: pgx.ReadWrite,
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">defer tx.Rollback(r.Ctx)
+
+        query := `UPDATE orders SET issued=$1, issued_at=$2
+        WHERE id=$3
+        `
+        batch := &amp;pgx.Batch{}
+        for _, order := range orders </span><span class="cov0" title="0">{
+                batch.Queue(query, order.Issued, order.IssuedAt, order.ID)
+                log.Printf("Order with id:%s issued\n", order.ID)
+        }</span>
+
+        <span class="cov0" title="0">br := tx.SendBatch(r.Ctx, batch)
+        for i := range orders </span><span class="cov0" title="0">{
+                _, err := br.Exec()
+                if err != nil </span><span class="cov0" title="0">{
+                        br.Close()
+                        return fmt.Errorf("error executing batch at order index %d: %w", i, err)
+                }</span>
+        }
+        <span class="cov0" title="0">err = br.Close()
+
+        return tx.Commit(r.Ctx)</span>
+}
+
+func (r *Repository) Delete(id string, schemaName string) (string, error) <span class="cov0" title="0">{
+        query := `DELETE FROM orders WHERE id=$1 RETURNING id
+                `
+        query = AddSchemaPrefix(schemaName, query)
+        var idd string
+        err := r.Pool.QueryRow(r.Ctx, query, id).Scan(&amp;idd)
+        if err != nil </span><span class="cov0" title="0">{
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) </span><span class="cov0" title="0">{
+                        log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+                }</span>
+                <span class="cov0" title="0">return "", err</span>
+        }
+
+        <span class="cov0" title="0">return idd, nil</span>
+}
+
+func (r *Repository) Get(id string, schemaName string) (models.Order, error) <span class="cov0" title="0">{
+        var order models.Order
+        query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
+                WHERE id=$1
+                `
+        query = AddSchemaPrefix(schemaName, query)
+        if err := pgxscan.Get(r.Ctx, r.Pool, &amp;order, query, id); err != nil </span><span class="cov0" title="0">{
+                if errors.Is(err, pgx.ErrNoRows) </span><span class="cov0" title="0">{
+                        return models.Order{}, util.ErrOrderNotFound
+                }</span>
+                <span class="cov0" title="0">return models.Order{}, err</span>
+        }
+        <span class="cov0" title="0">return order, nil</span>
+}
+
+func (r *Repository) GetReturns(offset, limit int, schemaName string) ([]models.Order, error) <span class="cov0" title="0">{
+        query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
+        FROM orders
+        WHERE returned = TRUE
+        ORDER BY id
+        OFFSET $1
+                 FETCH NEXT $2 ROWS ONLY
+    `
+        query = AddSchemaPrefix(schemaName, query)
+        rows, err := r.Pool.Query(r.Ctx, query, offset, limit)
+        if err != nil </span><span class="cov0" title="0">{
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) </span><span class="cov0" title="0">{
+                        log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+                }</span>
+                <span class="cov0" title="0">return nil, err</span>
+        }
+
+        <span class="cov0" title="0">defer rows.Close()
+
+        var returns []models.Order
+        if err := pgxscan.ScanAll(&amp;returns, rows); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return returns, nil</span>
+}
+
+func (r *Repository) GetOrders(userId string, offset, limit int, schemaName string) ([]models.Order, error) <span class="cov0" title="0">{
+        query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
+                FROM orders
+                WHERE user_id = $1 AND issued = FALSE
+                ORDER BY storage_until
+                OFFSET $2
+                FETCH NEXT $3 ROWS ONLY
+        `
+        query = AddSchemaPrefix(schemaName, query)
+        rows, err := r.Pool.Query(r.Ctx, query, userId, offset, limit)
+        if err != nil </span><span class="cov0" title="0">{
+                var pgErr *pgconn.PgError
+                if errors.As(err, &amp;pgErr) </span><span class="cov0" title="0">{
+                        log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+                }</span>
+                <span class="cov0" title="0">return nil, err</span>
+        }
+        <span class="cov0" title="0">defer rows.Close()
+
+        var userOrders []models.Order
+        if err := pgxscan.ScanAll(&amp;userOrders, rows); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return userOrders, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package db
+
+import (
+        "fmt"
+        "regexp"
+)
+
+// list of regexp pattern for adding schema to the query
+var schemaPrefixRegexps = [...]*regexp.Regexp{
+        regexp.MustCompile(`(?i)(CREATE TABLE\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(CREATE INDEX \w+ ON\s+)(\w+)(\s.*;)`),
+        regexp.MustCompile(`(?i)(UPDATE\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(INSERT INTO\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(DELETE FROM\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(SELECT\s+.*?\s+FROM\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(DROP INDEX\s+)(\w+)(\s.*)`),
+        regexp.MustCompile(`(?i)(DROP TABLE\s+)(\w+)(\s.*)`),
+}
+
+func AddSchemaPrefix(schemaName, query string) string <span class="cov0" title="0">{
+        prefixedQuery := query
+        for _, re := range schemaPrefixRegexps </span><span class="cov0" title="0">{
+                prefixedQuery = re.ReplaceAllString(prefixedQuery, fmt.Sprintf("${1}%s.${2}${3}", schemaName))
+        }</span>
+        <span class="cov0" title="0">return prefixedQuery</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package util
+
+import (
+        "github.com/joho/godotenv"
+        "homework/internal/models"
+        "log"
+        "os"
+        "strconv"
+        "time"
+)
+
+func NewConfig() *models.Config <span class="cov0" title="0">{
+        err := godotenv.Load("./.env")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("err loading: %v", err)
+        }</span>
+
+        <span class="cov0" title="0">attempts, err := strconv.Atoi(os.Getenv("ATTEMPTS"))
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("err converting ATTEMPTS: %v\n", err)
+        }</span>
+
+        <span class="cov0" title="0">timeout, err := time.ParseDuration(os.Getenv("TIMEOUT"))
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error parsing TIMEOUT: %v\n", err)
+        }</span>
+
+        <span class="cov0" title="0">return &amp;models.Config{
+                User:     os.Getenv("POSTGRES_USER"),
+                Password: os.Getenv("POSTGRES_PASSWORD"),
+                Host:     os.Getenv("POSTGRES_HOST"),
+                Port:     os.Getenv("POSTGRES_PORT"),
+                DBName:   os.Getenv("POSTGRES_DB"),
+                Attempts: attempts,
+                Timeout:  timeout,
+        }</span>
+}
+
+func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error) <span class="cov0" title="0">{
+        for attempts &gt; 0 </span><span class="cov0" title="0">{
+                if err = fn(); err != nil </span><span class="cov0" title="0">{
+                        time.Sleep(delay)
+                        attempts--
+
+                        continue</span>
+                }
+                <span class="cov0" title="0">return nil</span>
+        }
+        <span class="cov0" title="0">return</span>
+}
+
+func NewTestConfig() *models.Config <span class="cov0" title="0">{
+        //for single stage build using @go test ./tests -tags=integration
+        err := godotenv.Load("../.env")
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("err loading: %v", err)
+        }</span>
+        <span class="cov0" title="0">return &amp;models.Config{
+                User:     os.Getenv("TEST_USER"),
+                Password: os.Getenv("TEST_PASSWORD"),
+                Host:     os.Getenv("TEST_HOST"),
+                Port:     os.Getenv("TEST_PORT"),
+                DBName:   os.Getenv("TEST_DB"),
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package view
+
+import (
+        "bufio"
+        "errors"
+        "flag"
+        "fmt"
+        "homework/internal/models"
+        "homework/internal/service"
+        "log"
+        "os"
+        "os/signal"
+        "runtime"
+        "strconv"
+        "strings"
+        "sync"
+        "sync/atomic"
+        "syscall"
+)
+
+type CLI struct {
+        validationService service.ValidationService
+        orderService      service.OrderService
+        commandList       []command
+
+        maxGoroutines    uint64
+        activeGoroutines uint64
+}
+
+func NewCLI(os service.OrderService, vs service.ValidationService) *CLI <span class="cov0" title="0">{
+        return &amp;CLI{
+                orderService:      os,
+                validationService: vs,
+                commandList: []command{
+                        {
+                                name:        help,
+                                description: "Справка",
+                        },
+                        {
+                                name:        acceptOrder,
+                                description: "Принять заказ: accept -id=12345 -u_id=54321 -date=2077-06-06",
+                        },
+                        {
+                                name:        returnOrderToCourier,
+                                description: "Вернуть заказ курьеру: return_courier -id=12345",
+                        },
+                        {
+                                name:        issueOrders,
+                                description: "Выдать заказ клиенту: issue -ids=1,2,3",
+                        },
+                        {
+                                name:        acceptReturn,
+                                description: "Принять возврат: accept_return -id=1 -u_id=2",
+                        },
+                        {
+                                name:        listReturns,
+                                description: "Список возвратов: list_returns -lmt=10 -ofs=0",
+                        },
+                        {
+                                name:        listOrders,
+                                description: "Список заказов: list_orders -u_id=1 -lmt=10 -ofs=0",
+                        },
+                        {
+                                name:        setMaxGoroutines,
+                                description: "Максимальное кол-во горутин: set_mg -n=1",
+                        },
+                        {
+                                name:        exit,
+                                description: "Выход",
+                        },
+                },
+        }
+}</span>
+
+func (c *CLI) Run() error <span class="cov0" title="0">{
+        semaphore := make(chan struct{}, 1)
+        commandChannel := make(chan string)
+        done := make(chan struct{})
+
+        signalChannel := make(chan os.Signal, 1)
+        signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+        if err := c.setMaxGoroutines(fmt.Sprintf(
+                "set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))),
+                &amp;semaphore); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">var wg sync.WaitGroup
+
+        go signalListener(signalChannel, done)
+
+        //Reader
+        go func() </span><span class="cov0" title="0">{
+                scanner := bufio.NewScanner(os.Stdin)
+                for scanner.Scan() </span><span class="cov0" title="0">{
+                        commandChannel &lt;- scanner.Text()
+                }</span>
+        }()
+
+        //Handler
+        <span class="cov0" title="0">go c.commandHandler(commandChannel, semaphore, done, &amp;wg)
+
+        &lt;-done
+
+        wg.Wait()
+
+        //Close where created
+        close(semaphore)
+        fmt.Println("All goroutines finished. Exiting...")
+
+        return nil</span>
+}
+
+func signalListener(signalChannel chan os.Signal, done chan struct{}) <span class="cov0" title="0">{
+        for </span><span class="cov0" title="0">{
+                &lt;-signalChannel
+                fmt.Println("\nReceived shutdown signal")
+                done &lt;- struct{}{}
+        }</span>
+}
+
+func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) <span class="cov0" title="0">{
+        for </span><span class="cov0" title="0">{
+                cmd := &lt;-commandChannel
+
+                if strings.HasPrefix(cmd, exit) </span><span class="cov0" title="0">{
+                        done &lt;- struct{}{}
+                }</span> else<span class="cov0" title="0"> if strings.HasPrefix(cmd, setMaxGoroutines) </span><span class="cov0" title="0">{
+                        if err := c.setMaxGoroutines(cmd, &amp;semaphore); err != nil </span><span class="cov0" title="0">{
+                                log.Fatal(err)
+                        }</span>
+                } else<span class="cov0" title="0"> {
+                        wg.Add(1)
+                        atomic.AddUint64(&amp;c.activeGoroutines, 1)
+                        id := atomic.LoadUint64(&amp;c.activeGoroutines)
+
+                        go c.worker(cmd, id, semaphore, wg)
+                }</span>
+        }
+}
+
+func (c *CLI) worker(cmd string, id uint64, semaphore chan struct{}, wg *sync.WaitGroup) <span class="cov0" title="0">{
+        defer wg.Done()
+        log.Printf("Worker %d: Waiting to acquire semaphore\n", id)
+        semaphore &lt;- struct{}{}
+
+        log.Printf("Worker %d: Working\n", id)
+        c.processCommand(cmd)
+
+        log.Printf("Worker %d: Semaphore released\n\n", id)
+        &lt;-semaphore
+}</span>
+
+func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error <span class="cov0" title="0">{
+        args := strings.Split(input, " ")
+        args = args[1:]
+        var ns string
+        fs := flag.NewFlagSet(setMaxGoroutines, flag.ContinueOnError)
+        fs.StringVar(&amp;ns, "n", "0", "use -n=1")
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if len(ns) == 0 </span><span class="cov0" title="0">{
+                return errors.New("number of goroutines is required")
+        }</span>
+        <span class="cov0" title="0">n, err := strconv.Atoi(ns)
+        if err != nil </span><span class="cov0" title="0">{
+                return errors.Join(err, errors.New("invalid argument"))
+        }</span>
+        <span class="cov0" title="0">if n &lt; 1 </span><span class="cov0" title="0">{
+                return errors.New("number of goroutines must be &gt; 0")
+        }</span>
+
+        <span class="cov0" title="0">atomic.StoreUint64(&amp;c.maxGoroutines, uint64(n))
+        *semaphore = make(chan struct{}, n)
+
+        fmt.Printf("Number of goroutines set to %d\n", n)
+        return nil</span>
+}
+
+func (c *CLI) processCommand(input string) <span class="cov0" title="0">{
+        args := strings.Split(input, " ")
+        commandName := args[0]
+
+        switch commandName </span>{
+        case acceptOrder:<span class="cov0" title="0">
+                if err := c.acceptOrder(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span> else<span class="cov0" title="0"> {
+                        log.Println("Order accepted.")
+                }</span>
+        case issueOrders:<span class="cov0" title="0">
+                if err := c.issueOrders(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span>
+        case acceptReturn:<span class="cov0" title="0">
+                if err := c.acceptReturn(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span> else<span class="cov0" title="0"> {
+                        log.Println("Return accepted.")
+                }</span>
+        case returnOrderToCourier:<span class="cov0" title="0">
+                if err := c.returnOrderToCourier(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span> else<span class="cov0" title="0"> {
+                        log.Println("Order returned.")
+                }</span>
+        case listReturns:<span class="cov0" title="0">
+                if err := c.listReturns(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span>
+        case listOrders:<span class="cov0" title="0">
+                if err := c.listOrders(args[1:]); err != nil </span><span class="cov0" title="0">{
+                        log.Println(err)
+                }</span>
+        case help:<span class="cov0" title="0">
+                c.help()</span>
+        default:<span class="cov0" title="0">
+                fmt.Println("Unknown command. Type 'help' for a list of commands.")</span>
+        }
+}
+
+func (c *CLI) acceptOrder(args []string) error <span class="cov0" title="0">{
+        dto := models.Dto{}
+        fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
+        fs.StringVar(&amp;dto.ID, "id", "", "use -id=12345")
+        fs.StringVar(&amp;dto.UserID, "u_id", "", "use -u_id=54321")
+        fs.StringVar(&amp;dto.StorageUntil, "date", "", "use -date=2024-06-06")
+        fs.StringVar(&amp;dto.OrderPrice, "price", "", "use -price=999.99")
+        fs.StringVar(&amp;dto.Weight, "w", "", "use -w=10.0")
+        fs.StringVar(&amp;dto.PackageType, "p", "", "use -p=box")
+
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">order, err := c.validationService.ValidateAccept(dto)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return c.orderService.Accept(&amp;order, dto.PackageType)</span>
+}
+
+func (c *CLI) issueOrders(args []string) error <span class="cov0" title="0">{
+        var idsStr string
+        fs := flag.NewFlagSet(issueOrders, flag.ContinueOnError)
+        fs.StringVar(&amp;idsStr, "ids", "", "use -ids=1,2,3")
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">ordersToIssue, err := c.validationService.ValidateIssue(idsStr)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">return c.orderService.Issue(&amp;ordersToIssue)</span>
+}
+
+func (c *CLI) acceptReturn(args []string) error <span class="cov0" title="0">{
+        var id, userId string
+        fs := flag.NewFlagSet(acceptReturn, flag.ContinueOnError)
+        fs.StringVar(&amp;id, "id", "0", "use -id=12345")
+        fs.StringVar(&amp;userId, "u_id", "0", "use -u_id=54321")
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">orderToReturn, err := c.validationService.ValidateAcceptReturn(id, userId)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov0" title="0">return c.orderService.Return(&amp;orderToReturn)</span>
+}
+
+func (c *CLI) returnOrderToCourier(args []string) error <span class="cov0" title="0">{
+        var id string
+        fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
+        fs.StringVar(&amp;id, "id", "0", "use -id=12345")
+
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">if err := c.validationService.ValidateReturnToCourier(id); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return c.orderService.ReturnToCourier(id)</span>
+}
+
+func (c *CLI) listReturns(args []string) error <span class="cov0" title="0">{
+        var offsetStr, limitStr string
+        fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
+        fs.StringVar(&amp;offsetStr, "ofs", "0", "use -ofs=0")
+        fs.StringVar(&amp;limitStr, "lmt", "0", "use -lmt=10")
+
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">orderIDs, err := c.orderService.ListReturns(offset, limit)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">c.orderService.PrintList(orderIDs)
+
+        return nil</span>
+}
+
+func (c *CLI) listOrders(args []string) error <span class="cov0" title="0">{
+        var userId, offsetStr, limitStr string
+        fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
+        fs.StringVar(&amp;userId, "u_id", "0", "use -u_id=1")
+        fs.StringVar(&amp;offsetStr, "ofs", "0", "use -ofs=0")
+        fs.StringVar(&amp;limitStr, "lmt", "0", "use -lmt=10")
+
+        if err := fs.Parse(args); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">orders, err := c.orderService.ListOrders(userId, offset, limit)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">c.orderService.PrintList(orders)
+
+        return nil</span>
+}
+
+func (c *CLI) help() <span class="cov0" title="0">{
+        fmt.Println("Command list:")
+        fmt.Printf("%-15s | %-30s | %s\n", "Command", "Description", "Example")
+        fmt.Println("---------------------------------------------------------------------------------------------------")
+        for _, cmd := range c.commandList </span><span class="cov0" title="0">{
+                parts := strings.SplitN(cmd.description, ":", 2)
+                description := ""
+                example := ""
+                if len(parts) &gt; 0 </span><span class="cov0" title="0">{
+                        description = strings.TrimSpace(parts[0])
+                }</span>
+                <span class="cov0" title="0">if len(parts) &gt; 1 </span><span class="cov0" title="0">{
+                        example = strings.TrimSpace(parts[1])
+                }</span>
+                <span class="cov0" title="0">fmt.Printf("%-15s | %-30s | %s\n", cmd.name, description, example)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">// Code generated by mockery v2.43.2. DO NOT EDIT.
+
+package mocks
+
+import (
+        models "homework/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockOrderService is an autogenerated mock type for the OrderService type
+type MockOrderService struct {
+        mock.Mock
+}
+
+type MockOrderService_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockOrderService) EXPECT() *MockOrderService_Expecter <span class="cov8" title="1">{
+        return &amp;MockOrderService_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Accept provides a mock function with given fields: order, pkgTypeStr
+func (_m *MockOrderService) Accept(order *models.Order, pkgTypeStr string) error <span class="cov0" title="0">{
+        ret := _m.Called(order, pkgTypeStr)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Accept")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*models.Order, string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(order, pkgTypeStr)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockOrderService_Accept_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Accept'
+type MockOrderService_Accept_Call struct {
+        *mock.Call
+}
+
+// Accept is a helper method to define mock.On call
+//   - order *models.Order
+//   - pkgTypeStr string
+func (_e *MockOrderService_Expecter) Accept(order interface{}, pkgTypeStr interface{}) *MockOrderService_Accept_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_Accept_Call{Call: _e.mock.On("Accept", order, pkgTypeStr)}
+}</span>
+
+func (_c *MockOrderService_Accept_Call) Run(run func(order *models.Order, pkgTypeStr string)) *MockOrderService_Accept_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.Order), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_Accept_Call) Return(_a0 error) *MockOrderService_Accept_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockOrderService_Accept_Call) RunAndReturn(run func(*models.Order, string) error) *MockOrderService_Accept_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Exists provides a mock function with given fields: userId
+func (_m *MockOrderService) Exists(userId string) (models.Order, bool) <span class="cov8" title="1">{
+        ret := _m.Called(userId)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Exists")</span>
+        }
+
+        <span class="cov8" title="1">var r0 models.Order
+        var r1 bool
+        if rf, ok := ret.Get(0).(func(string) (models.Order, bool)); ok </span><span class="cov0" title="0">{
+                return rf(userId)
+        }</span>
+        <span class="cov8" title="1">if rf, ok := ret.Get(0).(func(string) models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(userId)
+        }</span> else<span class="cov8" title="1"> {
+                r0 = ret.Get(0).(models.Order)
+        }</span>
+
+        <span class="cov8" title="1">if rf, ok := ret.Get(1).(func(string) bool); ok </span><span class="cov0" title="0">{
+                r1 = rf(userId)
+        }</span> else<span class="cov8" title="1"> {
+                r1 = ret.Get(1).(bool)
+        }</span>
+
+        <span class="cov8" title="1">return r0, r1</span>
+}
+
+// MockOrderService_Exists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Exists'
+type MockOrderService_Exists_Call struct {
+        *mock.Call
+}
+
+// Exists is a helper method to define mock.On call
+//   - userId string
+func (_e *MockOrderService_Expecter) Exists(userId interface{}) *MockOrderService_Exists_Call <span class="cov8" title="1">{
+        return &amp;MockOrderService_Exists_Call{Call: _e.mock.On("Exists", userId)}
+}</span>
+
+func (_c *MockOrderService_Exists_Call) Run(run func(userId string)) *MockOrderService_Exists_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_Exists_Call) Return(_a0 models.Order, _a1 bool) *MockOrderService_Exists_Call <span class="cov8" title="1">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockOrderService_Exists_Call) RunAndReturn(run func(string) (models.Order, bool)) *MockOrderService_Exists_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Issue provides a mock function with given fields: ordersToIssue
+func (_m *MockOrderService) Issue(ordersToIssue *[]models.Order) error <span class="cov0" title="0">{
+        ret := _m.Called(ordersToIssue)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Issue")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*[]models.Order) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(ordersToIssue)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockOrderService_Issue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Issue'
+type MockOrderService_Issue_Call struct {
+        *mock.Call
+}
+
+// Issue is a helper method to define mock.On call
+//   - ordersToIssue *[]models.Order
+func (_e *MockOrderService_Expecter) Issue(ordersToIssue interface{}) *MockOrderService_Issue_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_Issue_Call{Call: _e.mock.On("Issue", ordersToIssue)}
+}</span>
+
+func (_c *MockOrderService_Issue_Call) Run(run func(ordersToIssue *[]models.Order)) *MockOrderService_Issue_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*[]models.Order))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_Issue_Call) Return(_a0 error) *MockOrderService_Issue_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockOrderService_Issue_Call) RunAndReturn(run func(*[]models.Order) error) *MockOrderService_Issue_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ListOrders provides a mock function with given fields: userId, offset, limit
+func (_m *MockOrderService) ListOrders(userId string, offset int, limit int) ([]models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(userId, offset, limit)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ListOrders")</span>
+        }
+
+        <span class="cov0" title="0">var r0 []models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string, int, int) ([]models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(userId, offset, limit)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, int, int) []models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(userId, offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).([]models.Order)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, int, int) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(userId, offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockOrderService_ListOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListOrders'
+type MockOrderService_ListOrders_Call struct {
+        *mock.Call
+}
+
+// ListOrders is a helper method to define mock.On call
+//   - userId string
+//   - offset int
+//   - limit int
+func (_e *MockOrderService_Expecter) ListOrders(userId interface{}, offset interface{}, limit interface{}) *MockOrderService_ListOrders_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_ListOrders_Call{Call: _e.mock.On("ListOrders", userId, offset, limit)}
+}</span>
+
+func (_c *MockOrderService_ListOrders_Call) Run(run func(userId string, offset int, limit int)) *MockOrderService_ListOrders_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(int), args[2].(int))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_ListOrders_Call) Return(_a0 []models.Order, _a1 error) *MockOrderService_ListOrders_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockOrderService_ListOrders_Call) RunAndReturn(run func(string, int, int) ([]models.Order, error)) *MockOrderService_ListOrders_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ListReturns provides a mock function with given fields: offset, limit
+func (_m *MockOrderService) ListReturns(offset int, limit int) ([]models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(offset, limit)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ListReturns")</span>
+        }
+
+        <span class="cov0" title="0">var r0 []models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(int, int) ([]models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(offset, limit)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(int, int) []models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).([]models.Order)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(int, int) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockOrderService_ListReturns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListReturns'
+type MockOrderService_ListReturns_Call struct {
+        *mock.Call
+}
+
+// ListReturns is a helper method to define mock.On call
+//   - offset int
+//   - limit int
+func (_e *MockOrderService_Expecter) ListReturns(offset interface{}, limit interface{}) *MockOrderService_ListReturns_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_ListReturns_Call{Call: _e.mock.On("ListReturns", offset, limit)}
+}</span>
+
+func (_c *MockOrderService_ListReturns_Call) Run(run func(offset int, limit int)) *MockOrderService_ListReturns_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(int), args[1].(int))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_ListReturns_Call) Return(_a0 []models.Order, _a1 error) *MockOrderService_ListReturns_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockOrderService_ListReturns_Call) RunAndReturn(run func(int, int) ([]models.Order, error)) *MockOrderService_ListReturns_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// PrintList provides a mock function with given fields: orders
+func (_m *MockOrderService) PrintList(orders []models.Order) <span class="cov0" title="0">{
+        _m.Called(orders)
+}</span>
+
+// MockOrderService_PrintList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PrintList'
+type MockOrderService_PrintList_Call struct {
+        *mock.Call
+}
+
+// PrintList is a helper method to define mock.On call
+//   - orders []models.Order
+func (_e *MockOrderService_Expecter) PrintList(orders interface{}) *MockOrderService_PrintList_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_PrintList_Call{Call: _e.mock.On("PrintList", orders)}
+}</span>
+
+func (_c *MockOrderService_PrintList_Call) Run(run func(orders []models.Order)) *MockOrderService_PrintList_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].([]models.Order))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_PrintList_Call) Return() *MockOrderService_PrintList_Call <span class="cov0" title="0">{
+        _c.Call.Return()
+        return _c
+}</span>
+
+func (_c *MockOrderService_PrintList_Call) RunAndReturn(run func([]models.Order)) *MockOrderService_PrintList_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Return provides a mock function with given fields: orders
+func (_m *MockOrderService) Return(orders *models.Order) error <span class="cov0" title="0">{
+        ret := _m.Called(orders)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Return")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(*models.Order) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(orders)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockOrderService_Return_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Return'
+type MockOrderService_Return_Call struct {
+        *mock.Call
+}
+
+// Return is a helper method to define mock.On call
+//   - orders *models.Order
+func (_e *MockOrderService_Expecter) Return(orders interface{}) *MockOrderService_Return_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_Return_Call{Call: _e.mock.On("Return", orders)}
+}</span>
+
+func (_c *MockOrderService_Return_Call) Run(run func(orders *models.Order)) *MockOrderService_Return_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.Order))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_Return_Call) Return(_a0 error) *MockOrderService_Return_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockOrderService_Return_Call) RunAndReturn(run func(*models.Order) error) *MockOrderService_Return_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ReturnToCourier provides a mock function with given fields: id
+func (_m *MockOrderService) ReturnToCourier(id string) error <span class="cov0" title="0">{
+        ret := _m.Called(id)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ReturnToCourier")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockOrderService_ReturnToCourier_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReturnToCourier'
+type MockOrderService_ReturnToCourier_Call struct {
+        *mock.Call
+}
+
+// ReturnToCourier is a helper method to define mock.On call
+//   - id string
+func (_e *MockOrderService_Expecter) ReturnToCourier(id interface{}) *MockOrderService_ReturnToCourier_Call <span class="cov0" title="0">{
+        return &amp;MockOrderService_ReturnToCourier_Call{Call: _e.mock.On("ReturnToCourier", id)}
+}</span>
+
+func (_c *MockOrderService_ReturnToCourier_Call) Run(run func(id string)) *MockOrderService_ReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockOrderService_ReturnToCourier_Call) Return(_a0 error) *MockOrderService_ReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockOrderService_ReturnToCourier_Call) RunAndReturn(run func(string) error) *MockOrderService_ReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockOrderService creates a new instance of MockOrderService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockOrderService(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockOrderService <span class="cov8" title="1">{
+        mock := &amp;MockOrderService{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov8" title="1">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov8" title="1">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">// Code generated by mockery v2.43.2. DO NOT EDIT.
+
+package mocks
+
+import (
+        models "homework/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockPackageService is an autogenerated mock type for the PackageService type
+type MockPackageService struct {
+        mock.Mock
+}
+
+type MockPackageService_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockPackageService) EXPECT() *MockPackageService_Expecter <span class="cov0" title="0">{
+        return &amp;MockPackageService_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// ApplyPackage provides a mock function with given fields: order, packageType
+func (_m *MockPackageService) ApplyPackage(order *models.Order, packageType models.PackageType) <span class="cov0" title="0">{
+        _m.Called(order, packageType)
+}</span>
+
+// MockPackageService_ApplyPackage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApplyPackage'
+type MockPackageService_ApplyPackage_Call struct {
+        *mock.Call
+}
+
+// ApplyPackage is a helper method to define mock.On call
+//   - order *models.Order
+//   - packageType models.PackageType
+func (_e *MockPackageService_Expecter) ApplyPackage(order interface{}, packageType interface{}) *MockPackageService_ApplyPackage_Call <span class="cov0" title="0">{
+        return &amp;MockPackageService_ApplyPackage_Call{Call: _e.mock.On("ApplyPackage", order, packageType)}
+}</span>
+
+func (_c *MockPackageService_ApplyPackage_Call) Run(run func(order *models.Order, packageType models.PackageType)) *MockPackageService_ApplyPackage_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(*models.Order), args[1].(models.PackageType))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockPackageService_ApplyPackage_Call) Return() *MockPackageService_ApplyPackage_Call <span class="cov0" title="0">{
+        _c.Call.Return()
+        return _c
+}</span>
+
+func (_c *MockPackageService_ApplyPackage_Call) RunAndReturn(run func(*models.Order, models.PackageType)) *MockPackageService_ApplyPackage_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ValidatePackage provides a mock function with given fields: weight, packageType
+func (_m *MockPackageService) ValidatePackage(weight models.Weight, packageType models.PackageType) error <span class="cov0" title="0">{
+        ret := _m.Called(weight, packageType)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidatePackage")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(models.Weight, models.PackageType) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(weight, packageType)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockPackageService_ValidatePackage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidatePackage'
+type MockPackageService_ValidatePackage_Call struct {
+        *mock.Call
+}
+
+// ValidatePackage is a helper method to define mock.On call
+//   - weight models.Weight
+//   - packageType models.PackageType
+func (_e *MockPackageService_Expecter) ValidatePackage(weight interface{}, packageType interface{}) *MockPackageService_ValidatePackage_Call <span class="cov0" title="0">{
+        return &amp;MockPackageService_ValidatePackage_Call{Call: _e.mock.On("ValidatePackage", weight, packageType)}
+}</span>
+
+func (_c *MockPackageService_ValidatePackage_Call) Run(run func(weight models.Weight, packageType models.PackageType)) *MockPackageService_ValidatePackage_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(models.Weight), args[1].(models.PackageType))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockPackageService_ValidatePackage_Call) Return(_a0 error) *MockPackageService_ValidatePackage_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockPackageService_ValidatePackage_Call) RunAndReturn(run func(models.Weight, models.PackageType) error) *MockPackageService_ValidatePackage_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockPackageService creates a new instance of MockPackageService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockPackageService(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockPackageService <span class="cov8" title="1">{
+        mock := &amp;MockPackageService{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov8" title="1">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov8" title="1">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">// Code generated by mockery v2.43.2. DO NOT EDIT.
+
+package mocks
+
+import (
+        models "homework/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockStorage is an autogenerated mock type for the Storage type
+type MockStorage struct {
+        mock.Mock
+}
+
+type MockStorage_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockStorage) EXPECT() *MockStorage_Expecter <span class="cov0" title="0">{
+        return &amp;MockStorage_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// Delete provides a mock function with given fields: id, schemaName
+func (_m *MockStorage) Delete(id string, schemaName string) (string, error) <span class="cov0" title="0">{
+        ret := _m.Called(id, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Delete")</span>
+        }
+
+        <span class="cov0" title="0">var r0 string
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string, string) (string, error)); ok </span><span class="cov0" title="0">{
+                return rf(id, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, string) string); ok </span><span class="cov0" title="0">{
+                r0 = rf(id, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(string)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
+type MockStorage_Delete_Call struct {
+        *mock.Call
+}
+
+// Delete is a helper method to define mock.On call
+//   - id string
+//   - schemaName string
+func (_e *MockStorage_Expecter) Delete(id interface{}, schemaName interface{}) *MockStorage_Delete_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_Delete_Call{Call: _e.mock.On("Delete", id, schemaName)}
+}</span>
+
+func (_c *MockStorage_Delete_Call) Run(run func(id string, schemaName string)) *MockStorage_Delete_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_Delete_Call) Return(_a0 string, _a1 error) *MockStorage_Delete_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string, string) (string, error)) *MockStorage_Delete_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Get provides a mock function with given fields: id, schemaName
+func (_m *MockStorage) Get(id string, schemaName string) (models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(id, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Get")</span>
+        }
+
+        <span class="cov0" title="0">var r0 models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string, string) (models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(id, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, string) models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(id, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(models.Order)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_Get_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Get'
+type MockStorage_Get_Call struct {
+        *mock.Call
+}
+
+// Get is a helper method to define mock.On call
+//   - id string
+//   - schemaName string
+func (_e *MockStorage_Expecter) Get(id interface{}, schemaName interface{}) *MockStorage_Get_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_Get_Call{Call: _e.mock.On("Get", id, schemaName)}
+}</span>
+
+func (_c *MockStorage_Get_Call) Run(run func(id string, schemaName string)) *MockStorage_Get_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_Get_Call) Return(_a0 models.Order, _a1 error) *MockStorage_Get_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_Get_Call) RunAndReturn(run func(string, string) (models.Order, error)) *MockStorage_Get_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// GetOrders provides a mock function with given fields: userId, offset, limit, schemaName
+func (_m *MockStorage) GetOrders(userId string, offset int, limit int, schemaName string) ([]models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(userId, offset, limit, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for GetOrders")</span>
+        }
+
+        <span class="cov0" title="0">var r0 []models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string, int, int, string) ([]models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(userId, offset, limit, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, int, int, string) []models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(userId, offset, limit, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).([]models.Order)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, int, int, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(userId, offset, limit, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_GetOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrders'
+type MockStorage_GetOrders_Call struct {
+        *mock.Call
+}
+
+// GetOrders is a helper method to define mock.On call
+//   - userId string
+//   - offset int
+//   - limit int
+//   - schemaName string
+func (_e *MockStorage_Expecter) GetOrders(userId interface{}, offset interface{}, limit interface{}, schemaName interface{}) *MockStorage_GetOrders_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_GetOrders_Call{Call: _e.mock.On("GetOrders", userId, offset, limit, schemaName)}
+}</span>
+
+func (_c *MockStorage_GetOrders_Call) Run(run func(userId string, offset int, limit int, schemaName string)) *MockStorage_GetOrders_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(int), args[2].(int), args[3].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_GetOrders_Call) Return(_a0 []models.Order, _a1 error) *MockStorage_GetOrders_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_GetOrders_Call) RunAndReturn(run func(string, int, int, string) ([]models.Order, error)) *MockStorage_GetOrders_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// GetReturns provides a mock function with given fields: offset, limit, schemaName
+func (_m *MockStorage) GetReturns(offset int, limit int, schemaName string) ([]models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(offset, limit, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for GetReturns")</span>
+        }
+
+        <span class="cov0" title="0">var r0 []models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(int, int, string) ([]models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(offset, limit, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(int, int, string) []models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(offset, limit, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).([]models.Order)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(int, int, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(offset, limit, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_GetReturns_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetReturns'
+type MockStorage_GetReturns_Call struct {
+        *mock.Call
+}
+
+// GetReturns is a helper method to define mock.On call
+//   - offset int
+//   - limit int
+//   - schemaName string
+func (_e *MockStorage_Expecter) GetReturns(offset interface{}, limit interface{}, schemaName interface{}) *MockStorage_GetReturns_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_GetReturns_Call{Call: _e.mock.On("GetReturns", offset, limit, schemaName)}
+}</span>
+
+func (_c *MockStorage_GetReturns_Call) Run(run func(offset int, limit int, schemaName string)) *MockStorage_GetReturns_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(int), args[1].(int), args[2].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_GetReturns_Call) Return(_a0 []models.Order, _a1 error) *MockStorage_GetReturns_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(int, int, string) ([]models.Order, error)) *MockStorage_GetReturns_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Insert provides a mock function with given fields: order, schemaName
+func (_m *MockStorage) Insert(order models.Order, schemaName string) (string, error) <span class="cov0" title="0">{
+        ret := _m.Called(order, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Insert")</span>
+        }
+
+        <span class="cov0" title="0">var r0 string
+        var r1 error
+        if rf, ok := ret.Get(0).(func(models.Order, string) (string, error)); ok </span><span class="cov0" title="0">{
+                return rf(order, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(models.Order, string) string); ok </span><span class="cov0" title="0">{
+                r0 = rf(order, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(string)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(models.Order, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(order, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_Insert_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Insert'
+type MockStorage_Insert_Call struct {
+        *mock.Call
+}
+
+// Insert is a helper method to define mock.On call
+//   - order models.Order
+//   - schemaName string
+func (_e *MockStorage_Expecter) Insert(order interface{}, schemaName interface{}) *MockStorage_Insert_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_Insert_Call{Call: _e.mock.On("Insert", order, schemaName)}
+}</span>
+
+func (_c *MockStorage_Insert_Call) Run(run func(order models.Order, schemaName string)) *MockStorage_Insert_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(models.Order), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_Insert_Call) Return(_a0 string, _a1 error) *MockStorage_Insert_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order, string) (string, error)) *MockStorage_Insert_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// IssueUpdate provides a mock function with given fields: orders, schemaName
+func (_m *MockStorage) IssueUpdate(orders []models.Order, schemaName string) error <span class="cov0" title="0">{
+        ret := _m.Called(orders, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for IssueUpdate")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func([]models.Order, string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(orders, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockStorage_IssueUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IssueUpdate'
+type MockStorage_IssueUpdate_Call struct {
+        *mock.Call
+}
+
+// IssueUpdate is a helper method to define mock.On call
+//   - orders []models.Order
+//   - schemaName string
+func (_e *MockStorage_Expecter) IssueUpdate(orders interface{}, schemaName interface{}) *MockStorage_IssueUpdate_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_IssueUpdate_Call{Call: _e.mock.On("IssueUpdate", orders, schemaName)}
+}</span>
+
+func (_c *MockStorage_IssueUpdate_Call) Run(run func(orders []models.Order, schemaName string)) *MockStorage_IssueUpdate_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].([]models.Order), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_IssueUpdate_Call) Return(_a0 error) *MockStorage_IssueUpdate_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func([]models.Order, string) error) *MockStorage_IssueUpdate_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// Update provides a mock function with given fields: order, schemaName
+func (_m *MockStorage) Update(order models.Order, schemaName string) (bool, error) <span class="cov0" title="0">{
+        ret := _m.Called(order, schemaName)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for Update")</span>
+        }
+
+        <span class="cov0" title="0">var r0 bool
+        var r1 error
+        if rf, ok := ret.Get(0).(func(models.Order, string) (bool, error)); ok </span><span class="cov0" title="0">{
+                return rf(order, schemaName)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(models.Order, string) bool); ok </span><span class="cov0" title="0">{
+                r0 = rf(order, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(bool)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(models.Order, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(order, schemaName)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockStorage_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockStorage_Update_Call struct {
+        *mock.Call
+}
+
+// Update is a helper method to define mock.On call
+//   - order models.Order
+//   - schemaName string
+func (_e *MockStorage_Expecter) Update(order interface{}, schemaName interface{}) *MockStorage_Update_Call <span class="cov0" title="0">{
+        return &amp;MockStorage_Update_Call{Call: _e.mock.On("Update", order, schemaName)}
+}</span>
+
+func (_c *MockStorage_Update_Call) Run(run func(order models.Order, schemaName string)) *MockStorage_Update_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(models.Order), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockStorage_Update_Call) Return(_a0 bool, _a1 error) *MockStorage_Update_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order, string) (bool, error)) *MockStorage_Update_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockStorage creates a new instance of MockStorage. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockStorage(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockStorage <span class="cov0" title="0">{
+        mock := &amp;MockStorage{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">// Code generated by mockery v2.43.2. DO NOT EDIT.
+
+package mocks
+
+import (
+        models "homework/internal/models"
+
+        mock "github.com/stretchr/testify/mock"
+)
+
+// MockValidationService is an autogenerated mock type for the ValidationService type
+type MockValidationService struct {
+        mock.Mock
+}
+
+type MockValidationService_Expecter struct {
+        mock *mock.Mock
+}
+
+func (_m *MockValidationService) EXPECT() *MockValidationService_Expecter <span class="cov0" title="0">{
+        return &amp;MockValidationService_Expecter{mock: &amp;_m.Mock}
+}</span>
+
+// ValidateAccept provides a mock function with given fields: dto
+func (_m *MockValidationService) ValidateAccept(dto models.Dto) (models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(dto)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidateAccept")</span>
+        }
+
+        <span class="cov0" title="0">var r0 models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(models.Dto) (models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(dto)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(models.Dto) models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(dto)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(models.Order)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(models.Dto) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(dto)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockValidationService_ValidateAccept_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateAccept'
+type MockValidationService_ValidateAccept_Call struct {
+        *mock.Call
+}
+
+// ValidateAccept is a helper method to define mock.On call
+//   - dto models.Dto
+func (_e *MockValidationService_Expecter) ValidateAccept(dto interface{}) *MockValidationService_ValidateAccept_Call <span class="cov0" title="0">{
+        return &amp;MockValidationService_ValidateAccept_Call{Call: _e.mock.On("ValidateAccept", dto)}
+}</span>
+
+func (_c *MockValidationService_ValidateAccept_Call) Run(run func(dto models.Dto)) *MockValidationService_ValidateAccept_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(models.Dto))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockValidationService_ValidateAccept_Call) Return(_a0 models.Order, _a1 error) *MockValidationService_ValidateAccept_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockValidationService_ValidateAccept_Call) RunAndReturn(run func(models.Dto) (models.Order, error)) *MockValidationService_ValidateAccept_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ValidateAcceptReturn provides a mock function with given fields: id, userId
+func (_m *MockValidationService) ValidateAcceptReturn(id string, userId string) (models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(id, userId)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidateAcceptReturn")</span>
+        }
+
+        <span class="cov0" title="0">var r0 models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string, string) (models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(id, userId)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, string) models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(id, userId)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(models.Order)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(id, userId)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockValidationService_ValidateAcceptReturn_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateAcceptReturn'
+type MockValidationService_ValidateAcceptReturn_Call struct {
+        *mock.Call
+}
+
+// ValidateAcceptReturn is a helper method to define mock.On call
+//   - id string
+//   - userId string
+func (_e *MockValidationService_Expecter) ValidateAcceptReturn(id interface{}, userId interface{}) *MockValidationService_ValidateAcceptReturn_Call <span class="cov0" title="0">{
+        return &amp;MockValidationService_ValidateAcceptReturn_Call{Call: _e.mock.On("ValidateAcceptReturn", id, userId)}
+}</span>
+
+func (_c *MockValidationService_ValidateAcceptReturn_Call) Run(run func(id string, userId string)) *MockValidationService_ValidateAcceptReturn_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockValidationService_ValidateAcceptReturn_Call) Return(_a0 models.Order, _a1 error) *MockValidationService_ValidateAcceptReturn_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockValidationService_ValidateAcceptReturn_Call) RunAndReturn(run func(string, string) (models.Order, error)) *MockValidationService_ValidateAcceptReturn_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ValidateIssue provides a mock function with given fields: idsStr
+func (_m *MockValidationService) ValidateIssue(idsStr string) ([]models.Order, error) <span class="cov0" title="0">{
+        ret := _m.Called(idsStr)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidateIssue")</span>
+        }
+
+        <span class="cov0" title="0">var r0 []models.Order
+        var r1 error
+        if rf, ok := ret.Get(0).(func(string) ([]models.Order, error)); ok </span><span class="cov0" title="0">{
+                return rf(idsStr)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string) []models.Order); ok </span><span class="cov0" title="0">{
+                r0 = rf(idsStr)
+        }</span> else<span class="cov0" title="0"> {
+                if ret.Get(0) != nil </span><span class="cov0" title="0">{
+                        r0 = ret.Get(0).([]models.Order)
+                }</span>
+        }
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string) error); ok </span><span class="cov0" title="0">{
+                r1 = rf(idsStr)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Error(1)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1</span>
+}
+
+// MockValidationService_ValidateIssue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateIssue'
+type MockValidationService_ValidateIssue_Call struct {
+        *mock.Call
+}
+
+// ValidateIssue is a helper method to define mock.On call
+//   - idsStr string
+func (_e *MockValidationService_Expecter) ValidateIssue(idsStr interface{}) *MockValidationService_ValidateIssue_Call <span class="cov0" title="0">{
+        return &amp;MockValidationService_ValidateIssue_Call{Call: _e.mock.On("ValidateIssue", idsStr)}
+}</span>
+
+func (_c *MockValidationService_ValidateIssue_Call) Run(run func(idsStr string)) *MockValidationService_ValidateIssue_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockValidationService_ValidateIssue_Call) Return(_a0 []models.Order, _a1 error) *MockValidationService_ValidateIssue_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1)
+        return _c
+}</span>
+
+func (_c *MockValidationService_ValidateIssue_Call) RunAndReturn(run func(string) ([]models.Order, error)) *MockValidationService_ValidateIssue_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ValidateList provides a mock function with given fields: offset, limit
+func (_m *MockValidationService) ValidateList(offset string, limit string) (int, int, error) <span class="cov0" title="0">{
+        ret := _m.Called(offset, limit)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidateList")</span>
+        }
+
+        <span class="cov0" title="0">var r0 int
+        var r1 int
+        var r2 error
+        if rf, ok := ret.Get(0).(func(string, string) (int, int, error)); ok </span><span class="cov0" title="0">{
+                return rf(offset, limit)
+        }</span>
+        <span class="cov0" title="0">if rf, ok := ret.Get(0).(func(string, string) int); ok </span><span class="cov0" title="0">{
+                r0 = rf(offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Get(0).(int)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(1).(func(string, string) int); ok </span><span class="cov0" title="0">{
+                r1 = rf(offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                r1 = ret.Get(1).(int)
+        }</span>
+
+        <span class="cov0" title="0">if rf, ok := ret.Get(2).(func(string, string) error); ok </span><span class="cov0" title="0">{
+                r2 = rf(offset, limit)
+        }</span> else<span class="cov0" title="0"> {
+                r2 = ret.Error(2)
+        }</span>
+
+        <span class="cov0" title="0">return r0, r1, r2</span>
+}
+
+// MockValidationService_ValidateList_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateList'
+type MockValidationService_ValidateList_Call struct {
+        *mock.Call
+}
+
+// ValidateList is a helper method to define mock.On call
+//   - offset string
+//   - limit string
+func (_e *MockValidationService_Expecter) ValidateList(offset interface{}, limit interface{}) *MockValidationService_ValidateList_Call <span class="cov0" title="0">{
+        return &amp;MockValidationService_ValidateList_Call{Call: _e.mock.On("ValidateList", offset, limit)}
+}</span>
+
+func (_c *MockValidationService_ValidateList_Call) Run(run func(offset string, limit string)) *MockValidationService_ValidateList_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string), args[1].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockValidationService_ValidateList_Call) Return(_a0 int, _a1 int, _a2 error) *MockValidationService_ValidateList_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0, _a1, _a2)
+        return _c
+}</span>
+
+func (_c *MockValidationService_ValidateList_Call) RunAndReturn(run func(string, string) (int, int, error)) *MockValidationService_ValidateList_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// ValidateReturnToCourier provides a mock function with given fields: id
+func (_m *MockValidationService) ValidateReturnToCourier(id string) error <span class="cov0" title="0">{
+        ret := _m.Called(id)
+
+        if len(ret) == 0 </span><span class="cov0" title="0">{
+                panic("no return value specified for ValidateReturnToCourier")</span>
+        }
+
+        <span class="cov0" title="0">var r0 error
+        if rf, ok := ret.Get(0).(func(string) error); ok </span><span class="cov0" title="0">{
+                r0 = rf(id)
+        }</span> else<span class="cov0" title="0"> {
+                r0 = ret.Error(0)
+        }</span>
+
+        <span class="cov0" title="0">return r0</span>
+}
+
+// MockValidationService_ValidateReturnToCourier_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ValidateReturnToCourier'
+type MockValidationService_ValidateReturnToCourier_Call struct {
+        *mock.Call
+}
+
+// ValidateReturnToCourier is a helper method to define mock.On call
+//   - id string
+func (_e *MockValidationService_Expecter) ValidateReturnToCourier(id interface{}) *MockValidationService_ValidateReturnToCourier_Call <span class="cov0" title="0">{
+        return &amp;MockValidationService_ValidateReturnToCourier_Call{Call: _e.mock.On("ValidateReturnToCourier", id)}
+}</span>
+
+func (_c *MockValidationService_ValidateReturnToCourier_Call) Run(run func(id string)) *MockValidationService_ValidateReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Run(func(args mock.Arguments) </span><span class="cov0" title="0">{
+                run(args[0].(string))
+        }</span>)
+        <span class="cov0" title="0">return _c</span>
+}
+
+func (_c *MockValidationService_ValidateReturnToCourier_Call) Return(_a0 error) *MockValidationService_ValidateReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Return(_a0)
+        return _c
+}</span>
+
+func (_c *MockValidationService_ValidateReturnToCourier_Call) RunAndReturn(run func(string) error) *MockValidationService_ValidateReturnToCourier_Call <span class="cov0" title="0">{
+        _c.Call.Return(run)
+        return _c
+}</span>
+
+// NewMockValidationService creates a new instance of MockValidationService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMockValidationService(t interface {
+        mock.TestingT
+        Cleanup(func())
+}) *MockValidationService <span class="cov0" title="0">{
+        mock := &amp;MockValidationService{}
+        mock.Mock.Test(t)
+
+        t.Cleanup(func() </span><span class="cov0" title="0">{ mock.AssertExpectations(t) }</span>)
+
+        <span class="cov0" title="0">return mock</span>
+}
+</pre>
+		
+		<pre class="file" id="file15" style="display: none">package hash
+
+import (
+        "time"
+
+        "github.com/google/uuid"
+)
+
+// GenerateHash возвращает случайный "хэш"
+func GenerateHash() string <span class="cov0" title="0">{
+        time.Sleep(time.Second * 5) // имитируем долгую работу
+        id := uuid.New()
+
+        return id.String()
+}</span>
+</pre>
+		
+		<pre class="file" id="file16" style="display: none">package db
+
+import (
+        "context"
+        "fmt"
+        "github.com/jackc/pgx/v5/pgxpool"
+        "homework/internal/models"
+        "homework/internal/storage/db"
+        "log"
+)
+
+type TestRepository struct {
+        Repo *db.Repository
+}
+
+func NewTestRepository(ctx context.Context, cfg *models.Config, schemaName string) TestRepository <span class="cov0" title="0">{
+        connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+        pool, err := pgxpool.New(ctx, connStr)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatal(err, "db connection error")
+        }</span>
+        <span class="cov0" title="0">log.Println("Connected to db")
+
+        return TestRepository{
+                &amp;db.Repository{
+                        Pool: pool,
+                        Ctx:  ctx,
+                },
+        }</span>
+}
+
+//        func loadTestData(t *testing.T, db *sql.DB, schemaName string, testDatabase string) {
+//                for _, testDataName := range testDataNames {
+//                        file, err := os.Open(fmt.Sprintf("./testdata/%s.sql", testDataName))
+//                        require.NoError(t, err)
+//                        reader := bufio.NewReader(file)
+//                        var query string
+//                        for {
+//                                line, err := reader.ReadString('\n')
+//                                if err == io.EOF {
+//                                        break
+//                                }
+//                                require.NoError(t, err)
+//                                line = line[:len(line)-1]
+//                                if line == "" {
+//                                        query = addSchemaPrefix(schemaName, query)
+//                                        _, err := db.Exec(query)
+//                                        require.NoError(t, err)
+//                                        query = ""
+//                                }
+//                                query += line
+//                        }
+//                        file.Close()
+//                }
+//        }
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

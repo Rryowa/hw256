@@ -17,3 +17,4 @@ packages:
       recursive: True
     interfaces:
       ValidationService:
+      OrderService:

@@ -11,12 +11,16 @@ import (
 	"log"
 )
 
+const (
+	schemaName = "public"
+)
+
 func main() {
 	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
 
 	packageService := pkg.NewPackageService()
-	orderService := service.NewOrderService(repository, packageService)
-	validationService := service.NewValidationService(repository, packageService)
+	orderService := service.NewOrderService(schemaName, repository, packageService)
+	validationService := service.NewValidationService(orderService, packageService)
 
 	commands := view.NewCLI(orderService, validationService)
 	if err := commands.Run(); err != nil {
