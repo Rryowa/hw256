@@ -1,28 +1,12 @@
-package _package
+package service
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"homework/internal/models"
+	_package "homework/internal/service/package"
 	"homework/internal/util"
 	"testing"
 )
-
-type UnitTestSuite struct {
-	suite.Suite
-	packageService PackageService
-
-	weight  models.Weight
-	pkgType models.PackageType
-}
-
-func TestUnitTestSuite(t *testing.T) {
-	suite.Run(t, new(UnitTestSuite))
-}
-
-func (uts *UnitTestSuite) SetupTest() {
-	uts.packageService = NewPackageService()
-}
 
 func (uts *UnitTestSuite) Test_ValidatePackage() {
 	tests := []struct {
@@ -60,7 +44,8 @@ func (uts *UnitTestSuite) Test_ValidatePackage() {
 		uts.T().Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := uts.packageService.ValidatePackage(tt.weight, tt.pkgType)
+			pkg := _package.NewPackageService()
+			err := pkg.ValidatePackage(tt.weight, tt.pkgType)
 
 			assert.Equal(t, tt.expectedErr, err)
 		})
