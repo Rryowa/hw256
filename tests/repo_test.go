@@ -25,15 +25,16 @@ import (
 type IntTestSuite struct {
 	suite.Suite
 	createQuery   string
-	dropQuery     string
 	expectedOrder models.Order
+	cfg           *models.Config
 }
 
 func TestIntTestSuite(t *testing.T) {
 	suite.Run(t, new(IntTestSuite))
 }
 
-func (s *IntTestSuite) SetupTest() {
+func (s *IntTestSuite) SetupSuite() {
+	s.cfg = util.NewTestConfig()
 	dto := models.Dto{
 		ID:           "1",
 		UserID:       "1",
@@ -51,6 +52,7 @@ func (s *IntTestSuite) SetupTest() {
 		StorageUntil: storageUntilDate,
 		OrderPrice:   models.Price(orderPriceFloat),
 		Weight:       models.Weight(weightFloat),
+		Returned:     false,
 	}
 
 	s.createQuery = `CREATE TABLE orders (
@@ -70,164 +72,119 @@ func (s *IntTestSuite) SetupTest() {
 	CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);`
 }
 
+func (s *IntTestSuite) SetupTest() {
+	s.T().Parallel()
+}
+
+func (s *IntTestSuite) createSchemaAndRepo(ctx context.Context) (db.TestRepository, string) {
+	name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+	schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
+	tr := db.NewTestRepository(ctx, s.cfg, schemaName)
+	_, err := tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
+	require.NoError(s.T(), err)
+
+	query := storage.AddSchemaPrefix(schemaName, s.createQuery)
+	_, err = tr.Repo.Pool.Exec(ctx, query)
+	require.NoError(s.T(), err)
+
+	return tr, schemaName
+}
+
+func (s *IntTestSuite) dropSchema(ctx context.Context, tr db.TestRepository, schemaName string) {
+	_, err := tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
+	require.NoError(s.T(), err)
+}
+
 func (s *IntTestSuite) TestInsertOrder() {
 	s.T().Run("TestInsertOrder", func(t *testing.T) {
-		t.Parallel()
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		id, err := tr.Repo.Insert(s.expectedOrder, schemaName)
+
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, id)
-
-		tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
 	})
 }
 
 func (s *IntTestSuite) TestUpdateOrder() {
 	s.T().Run("TestUpd", func(t *testing.T) {
-		t.Parallel()
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		order := s.expectedOrder
 		order.Returned = true
-		_, err = tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		returned, err := tr.Repo.Update(order, schemaName)
-
 		require.NoError(t, err)
 		require.Equal(t, order.Returned, returned)
-
-		tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
 	})
 }
 
 func (s *IntTestSuite) TestDelete() {
 	s.T().Run("TestDelete", func(t *testing.T) {
-		t.Parallel()
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		//Create table inside a new scheme
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		order := s.expectedOrder
-		_, err = tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		id, err := tr.Repo.Delete(order.ID, schemaName)
-
 		require.NoError(t, err)
 		require.Equal(t, order.ID, id)
-
-		tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
 	})
 }
 
 func (s *IntTestSuite) TestGet() {
 	s.T().Run("TestGet", func(t *testing.T) {
-		t.Parallel()
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		//Create table inside a new scheme
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		order := s.expectedOrder
-		_, err = tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		order, err = tr.Repo.Get(order.ID, schemaName)
-
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, order.ID)
-
-		tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
 	})
 }
 
 func (s *IntTestSuite) TestGetReturns() {
 	s.T().Run("TestGetReturns", func(t *testing.T) {
-		t.Parallel()
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		//Create table inside a new scheme
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		order := s.expectedOrder
 		order.Returned = true
-		_, err = tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		orders, err := tr.Repo.GetReturns(0, 10, schemaName)
-
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
-
-		tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
 	})
 }
 
 func (s *IntTestSuite) TestGetOrders() {
-	s.T().Run("TestGetReturns", func(t *testing.T) {
-		t.Parallel()
+	s.T().Run("TestGetOrders", func(t *testing.T) {
 		ctx := context.Background()
-		cfg := util.NewTestConfig()
-		name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-		schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
-		tr := db.NewTestRepository(ctx, cfg, schemaName)
-		tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
-		query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-
-		//Create table inside a new scheme
-		_, err := tr.Repo.Pool.Exec(ctx, query)
-		require.NoError(t, err)
+		tr, schemaName := s.createSchemaAndRepo(ctx)
+		defer s.dropSchema(ctx, tr, schemaName)
 
 		order := s.expectedOrder
-		_, err = tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order, schemaName)
 		require.NoError(t, err)
 
 		orders, err := tr.Repo.GetOrders(order.ID, 0, 10, schemaName)
-
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
 	})
