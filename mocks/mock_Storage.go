@@ -21,9 +21,9 @@ func (_m *MockStorage) EXPECT() *MockStorage_Expecter {
 	return &MockStorage_Expecter{mock: &_m.Mock}
 }
 
-// Delete provides a mock function with given fields: id, schemaName
-func (_m *MockStorage) Delete(id string, schemaName string) (string, error) {
-	ret := _m.Called(id, schemaName)
+// Delete provides a mock function with given fields: id
+func (_m *MockStorage) Delete(id string) (string, error) {
+	ret := _m.Called(id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Delete")
@@ -31,17 +31,17 @@ func (_m *MockStorage) Delete(id string, schemaName string) (string, error) {
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (string, error)); ok {
-		return rf(id, schemaName)
+	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
+		return rf(id)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(id, schemaName)
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(id)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(id, schemaName)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -56,14 +56,13 @@ type MockStorage_Delete_Call struct {
 
 // Delete is a helper method to define mock.On call
 //   - id string
-//   - schemaName string
-func (_e *MockStorage_Expecter) Delete(id interface{}, schemaName interface{}) *MockStorage_Delete_Call {
-	return &MockStorage_Delete_Call{Call: _e.mock.On("Delete", id, schemaName)}
+func (_e *MockStorage_Expecter) Delete(id interface{}) *MockStorage_Delete_Call {
+	return &MockStorage_Delete_Call{Call: _e.mock.On("Delete", id)}
 }
 
-func (_c *MockStorage_Delete_Call) Run(run func(id string, schemaName string)) *MockStorage_Delete_Call {
+func (_c *MockStorage_Delete_Call) Run(run func(id string)) *MockStorage_Delete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -73,14 +72,14 @@ func (_c *MockStorage_Delete_Call) Return(_a0 string, _a1 error) *MockStorage_De
 	return _c
 }
 
-func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string, string) (string, error)) *MockStorage_Delete_Call {
+func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string) (string, error)) *MockStorage_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Get provides a mock function with given fields: id, schemaName
-func (_m *MockStorage) Get(id string, schemaName string) (models.Order, error) {
-	ret := _m.Called(id, schemaName)
+// Get provides a mock function with given fields: id
+func (_m *MockStorage) Get(id string) (models.Order, error) {
+	ret := _m.Called(id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
@@ -88,17 +87,17 @@ func (_m *MockStorage) Get(id string, schemaName string) (models.Order, error) {
 
 	var r0 models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (models.Order, error)); ok {
-		return rf(id, schemaName)
+	if rf, ok := ret.Get(0).(func(string) (models.Order, error)); ok {
+		return rf(id)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) models.Order); ok {
-		r0 = rf(id, schemaName)
+	if rf, ok := ret.Get(0).(func(string) models.Order); ok {
+		r0 = rf(id)
 	} else {
 		r0 = ret.Get(0).(models.Order)
 	}
 
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(id, schemaName)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -113,14 +112,13 @@ type MockStorage_Get_Call struct {
 
 // Get is a helper method to define mock.On call
 //   - id string
-//   - schemaName string
-func (_e *MockStorage_Expecter) Get(id interface{}, schemaName interface{}) *MockStorage_Get_Call {
-	return &MockStorage_Get_Call{Call: _e.mock.On("Get", id, schemaName)}
+func (_e *MockStorage_Expecter) Get(id interface{}) *MockStorage_Get_Call {
+	return &MockStorage_Get_Call{Call: _e.mock.On("Get", id)}
 }
 
-func (_c *MockStorage_Get_Call) Run(run func(id string, schemaName string)) *MockStorage_Get_Call {
+func (_c *MockStorage_Get_Call) Run(run func(id string)) *MockStorage_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -130,14 +128,14 @@ func (_c *MockStorage_Get_Call) Return(_a0 models.Order, _a1 error) *MockStorage
 	return _c
 }
 
-func (_c *MockStorage_Get_Call) RunAndReturn(run func(string, string) (models.Order, error)) *MockStorage_Get_Call {
+func (_c *MockStorage_Get_Call) RunAndReturn(run func(string) (models.Order, error)) *MockStorage_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// GetOrders provides a mock function with given fields: userId, offset, limit, schemaName
-func (_m *MockStorage) GetOrders(userId string, offset int, limit int, schemaName string) ([]models.Order, error) {
-	ret := _m.Called(userId, offset, limit, schemaName)
+// GetOrders provides a mock function with given fields: userId, offset, limit
+func (_m *MockStorage) GetOrders(userId string, offset int, limit int) ([]models.Order, error) {
+	ret := _m.Called(userId, offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrders")
@@ -145,19 +143,19 @@ func (_m *MockStorage) GetOrders(userId string, offset int, limit int, schemaNam
 
 	var r0 []models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, int, int, string) ([]models.Order, error)); ok {
-		return rf(userId, offset, limit, schemaName)
+	if rf, ok := ret.Get(0).(func(string, int, int) ([]models.Order, error)); ok {
+		return rf(userId, offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(string, int, int, string) []models.Order); ok {
-		r0 = rf(userId, offset, limit, schemaName)
+	if rf, ok := ret.Get(0).(func(string, int, int) []models.Order); ok {
+		r0 = rf(userId, offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, int, int, string) error); ok {
-		r1 = rf(userId, offset, limit, schemaName)
+	if rf, ok := ret.Get(1).(func(string, int, int) error); ok {
+		r1 = rf(userId, offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -174,14 +172,13 @@ type MockStorage_GetOrders_Call struct {
 //   - userId string
 //   - offset int
 //   - limit int
-//   - schemaName string
-func (_e *MockStorage_Expecter) GetOrders(userId interface{}, offset interface{}, limit interface{}, schemaName interface{}) *MockStorage_GetOrders_Call {
-	return &MockStorage_GetOrders_Call{Call: _e.mock.On("GetOrders", userId, offset, limit, schemaName)}
+func (_e *MockStorage_Expecter) GetOrders(userId interface{}, offset interface{}, limit interface{}) *MockStorage_GetOrders_Call {
+	return &MockStorage_GetOrders_Call{Call: _e.mock.On("GetOrders", userId, offset, limit)}
 }
 
-func (_c *MockStorage_GetOrders_Call) Run(run func(userId string, offset int, limit int, schemaName string)) *MockStorage_GetOrders_Call {
+func (_c *MockStorage_GetOrders_Call) Run(run func(userId string, offset int, limit int)) *MockStorage_GetOrders_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(int), args[2].(int), args[3].(string))
+		run(args[0].(string), args[1].(int), args[2].(int))
 	})
 	return _c
 }
@@ -191,14 +188,14 @@ func (_c *MockStorage_GetOrders_Call) Return(_a0 []models.Order, _a1 error) *Moc
 	return _c
 }
 
-func (_c *MockStorage_GetOrders_Call) RunAndReturn(run func(string, int, int, string) ([]models.Order, error)) *MockStorage_GetOrders_Call {
+func (_c *MockStorage_GetOrders_Call) RunAndReturn(run func(string, int, int) ([]models.Order, error)) *MockStorage_GetOrders_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// GetReturns provides a mock function with given fields: offset, limit, schemaName
-func (_m *MockStorage) GetReturns(offset int, limit int, schemaName string) ([]models.Order, error) {
-	ret := _m.Called(offset, limit, schemaName)
+// GetReturns provides a mock function with given fields: offset, limit
+func (_m *MockStorage) GetReturns(offset int, limit int) ([]models.Order, error) {
+	ret := _m.Called(offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetReturns")
@@ -206,19 +203,19 @@ func (_m *MockStorage) GetReturns(offset int, limit int, schemaName string) ([]m
 
 	var r0 []models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(int, int, string) ([]models.Order, error)); ok {
-		return rf(offset, limit, schemaName)
+	if rf, ok := ret.Get(0).(func(int, int) ([]models.Order, error)); ok {
+		return rf(offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(int, int, string) []models.Order); ok {
-		r0 = rf(offset, limit, schemaName)
+	if rf, ok := ret.Get(0).(func(int, int) []models.Order); ok {
+		r0 = rf(offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(int, int, string) error); ok {
-		r1 = rf(offset, limit, schemaName)
+	if rf, ok := ret.Get(1).(func(int, int) error); ok {
+		r1 = rf(offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -234,14 +231,13 @@ type MockStorage_GetReturns_Call struct {
 // GetReturns is a helper method to define mock.On call
 //   - offset int
 //   - limit int
-//   - schemaName string
-func (_e *MockStorage_Expecter) GetReturns(offset interface{}, limit interface{}, schemaName interface{}) *MockStorage_GetReturns_Call {
-	return &MockStorage_GetReturns_Call{Call: _e.mock.On("GetReturns", offset, limit, schemaName)}
+func (_e *MockStorage_Expecter) GetReturns(offset interface{}, limit interface{}) *MockStorage_GetReturns_Call {
+	return &MockStorage_GetReturns_Call{Call: _e.mock.On("GetReturns", offset, limit)}
 }
 
-func (_c *MockStorage_GetReturns_Call) Run(run func(offset int, limit int, schemaName string)) *MockStorage_GetReturns_Call {
+func (_c *MockStorage_GetReturns_Call) Run(run func(offset int, limit int)) *MockStorage_GetReturns_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int), args[1].(int), args[2].(string))
+		run(args[0].(int), args[1].(int))
 	})
 	return _c
 }
@@ -251,14 +247,14 @@ func (_c *MockStorage_GetReturns_Call) Return(_a0 []models.Order, _a1 error) *Mo
 	return _c
 }
 
-func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(int, int, string) ([]models.Order, error)) *MockStorage_GetReturns_Call {
+func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(int, int) ([]models.Order, error)) *MockStorage_GetReturns_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Insert provides a mock function with given fields: order, schemaName
-func (_m *MockStorage) Insert(order models.Order, schemaName string) (string, error) {
-	ret := _m.Called(order, schemaName)
+// Insert provides a mock function with given fields: order
+func (_m *MockStorage) Insert(order models.Order) (string, error) {
+	ret := _m.Called(order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Insert")
@@ -266,17 +262,17 @@ func (_m *MockStorage) Insert(order models.Order, schemaName string) (string, er
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(models.Order, string) (string, error)); ok {
-		return rf(order, schemaName)
+	if rf, ok := ret.Get(0).(func(models.Order) (string, error)); ok {
+		return rf(order)
 	}
-	if rf, ok := ret.Get(0).(func(models.Order, string) string); ok {
-		r0 = rf(order, schemaName)
+	if rf, ok := ret.Get(0).(func(models.Order) string); ok {
+		r0 = rf(order)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(models.Order, string) error); ok {
-		r1 = rf(order, schemaName)
+	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
+		r1 = rf(order)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -291,14 +287,13 @@ type MockStorage_Insert_Call struct {
 
 // Insert is a helper method to define mock.On call
 //   - order models.Order
-//   - schemaName string
-func (_e *MockStorage_Expecter) Insert(order interface{}, schemaName interface{}) *MockStorage_Insert_Call {
-	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", order, schemaName)}
+func (_e *MockStorage_Expecter) Insert(order interface{}) *MockStorage_Insert_Call {
+	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", order)}
 }
 
-func (_c *MockStorage_Insert_Call) Run(run func(order models.Order, schemaName string)) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) Run(run func(order models.Order)) *MockStorage_Insert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(models.Order), args[1].(string))
+		run(args[0].(models.Order))
 	})
 	return _c
 }
@@ -308,22 +303,22 @@ func (_c *MockStorage_Insert_Call) Return(_a0 string, _a1 error) *MockStorage_In
 	return _c
 }
 
-func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order, string) (string, error)) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order) (string, error)) *MockStorage_Insert_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// IssueUpdate provides a mock function with given fields: orders, schemaName
-func (_m *MockStorage) IssueUpdate(orders []models.Order, schemaName string) error {
-	ret := _m.Called(orders, schemaName)
+// IssueUpdate provides a mock function with given fields: orders
+func (_m *MockStorage) IssueUpdate(orders []models.Order) error {
+	ret := _m.Called(orders)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IssueUpdate")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]models.Order, string) error); ok {
-		r0 = rf(orders, schemaName)
+	if rf, ok := ret.Get(0).(func([]models.Order) error); ok {
+		r0 = rf(orders)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -338,14 +333,13 @@ type MockStorage_IssueUpdate_Call struct {
 
 // IssueUpdate is a helper method to define mock.On call
 //   - orders []models.Order
-//   - schemaName string
-func (_e *MockStorage_Expecter) IssueUpdate(orders interface{}, schemaName interface{}) *MockStorage_IssueUpdate_Call {
-	return &MockStorage_IssueUpdate_Call{Call: _e.mock.On("IssueUpdate", orders, schemaName)}
+func (_e *MockStorage_Expecter) IssueUpdate(orders interface{}) *MockStorage_IssueUpdate_Call {
+	return &MockStorage_IssueUpdate_Call{Call: _e.mock.On("IssueUpdate", orders)}
 }
 
-func (_c *MockStorage_IssueUpdate_Call) Run(run func(orders []models.Order, schemaName string)) *MockStorage_IssueUpdate_Call {
+func (_c *MockStorage_IssueUpdate_Call) Run(run func(orders []models.Order)) *MockStorage_IssueUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]models.Order), args[1].(string))
+		run(args[0].([]models.Order))
 	})
 	return _c
 }
@@ -355,14 +349,14 @@ func (_c *MockStorage_IssueUpdate_Call) Return(_a0 error) *MockStorage_IssueUpda
 	return _c
 }
 
-func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func([]models.Order, string) error) *MockStorage_IssueUpdate_Call {
+func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func([]models.Order) error) *MockStorage_IssueUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Update provides a mock function with given fields: order, schemaName
-func (_m *MockStorage) Update(order models.Order, schemaName string) (bool, error) {
-	ret := _m.Called(order, schemaName)
+// Update provides a mock function with given fields: order
+func (_m *MockStorage) Update(order models.Order) (bool, error) {
+	ret := _m.Called(order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -370,17 +364,17 @@ func (_m *MockStorage) Update(order models.Order, schemaName string) (bool, erro
 
 	var r0 bool
 	var r1 error
-	if rf, ok := ret.Get(0).(func(models.Order, string) (bool, error)); ok {
-		return rf(order, schemaName)
+	if rf, ok := ret.Get(0).(func(models.Order) (bool, error)); ok {
+		return rf(order)
 	}
-	if rf, ok := ret.Get(0).(func(models.Order, string) bool); ok {
-		r0 = rf(order, schemaName)
+	if rf, ok := ret.Get(0).(func(models.Order) bool); ok {
+		r0 = rf(order)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
-	if rf, ok := ret.Get(1).(func(models.Order, string) error); ok {
-		r1 = rf(order, schemaName)
+	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
+		r1 = rf(order)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -395,14 +389,13 @@ type MockStorage_Update_Call struct {
 
 // Update is a helper method to define mock.On call
 //   - order models.Order
-//   - schemaName string
-func (_e *MockStorage_Expecter) Update(order interface{}, schemaName interface{}) *MockStorage_Update_Call {
-	return &MockStorage_Update_Call{Call: _e.mock.On("Update", order, schemaName)}
+func (_e *MockStorage_Expecter) Update(order interface{}) *MockStorage_Update_Call {
+	return &MockStorage_Update_Call{Call: _e.mock.On("Update", order)}
 }
 
-func (_c *MockStorage_Update_Call) Run(run func(order models.Order, schemaName string)) *MockStorage_Update_Call {
+func (_c *MockStorage_Update_Call) Run(run func(order models.Order)) *MockStorage_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(models.Order), args[1].(string))
+		run(args[0].(models.Order))
 	})
 	return _c
 }
@@ -412,7 +405,7 @@ func (_c *MockStorage_Update_Call) Return(_a0 bool, _a1 error) *MockStorage_Upda
 	return _c
 }
 
-func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order, string) (bool, error)) *MockStorage_Update_Call {
+func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order) (bool, error)) *MockStorage_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

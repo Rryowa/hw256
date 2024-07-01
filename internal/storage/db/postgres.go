@@ -47,10 +47,9 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 	}
 }
 
-func (r *Repository) Insert(order models.Order, schemaName string) (string, error) {
+func (r *Repository) Insert(order models.Order) (string, error) {
 	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  RETURNING id`
-	query = AddSchemaPrefix(schemaName, query)
 
 	var id string
 	err := r.Pool.QueryRow(r.Ctx, query, order.ID, order.UserID,
@@ -68,11 +67,10 @@ func (r *Repository) Insert(order models.Order, schemaName string) (string, erro
 	return id, nil
 }
 
-func (r *Repository) Update(order models.Order, schemaName string) (bool, error) {
+func (r *Repository) Update(order models.Order) (bool, error) {
 	query := `UPDATE orders SET returned=$1
         WHERE id=$2 RETURNING returned
         `
-	query = AddSchemaPrefix(schemaName, query)
 
 	var returned bool
 	err := r.Pool.QueryRow(r.Ctx, query, order.Returned, order.ID).Scan(&returned)
@@ -86,7 +84,7 @@ func (r *Repository) Update(order models.Order, schemaName string) (bool, error)
 	return returned, nil
 }
 
-func (r *Repository) IssueUpdate(orders []models.Order, schemaName string) error {
+func (r *Repository) IssueUpdate(orders []models.Order) error {
 	tx, err := r.Pool.BeginTx(r.Ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadWrite,
@@ -118,10 +116,10 @@ func (r *Repository) IssueUpdate(orders []models.Order, schemaName string) error
 	return tx.Commit(r.Ctx)
 }
 
-func (r *Repository) Delete(id string, schemaName string) (string, error) {
+func (r *Repository) Delete(id string) (string, error) {
 	query := `DELETE FROM orders WHERE id=$1 RETURNING id
 		`
-	query = AddSchemaPrefix(schemaName, query)
+
 	var idd string
 	err := r.Pool.QueryRow(r.Ctx, query, id).Scan(&idd)
 	if err != nil {
@@ -135,22 +133,26 @@ func (r *Repository) Delete(id string, schemaName string) (string, error) {
 	return idd, nil
 }
 
-func (r *Repository) Get(id string, schemaName string) (models.Order, error) {
+func (r *Repository) Get(id string) (models.Order, error) {
 	var order models.Order
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
 		WHERE id=$1
 		`
-	query = AddSchemaPrefix(schemaName, query)
+
 	if err := pgxscan.Get(r.Ctx, r.Pool, &order, query, id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		var pgErr *pgconn.PgError
+		//TODO: check if ErrOrderNOtFoudn is returend
+		if errors.As(err, &pgErr) {
+			log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+			return models.Order{}, err
+		} else if errors.Is(err, pgx.ErrNoRows) {
 			return models.Order{}, util.ErrOrderNotFound
 		}
-		return models.Order{}, err
 	}
 	return order, nil
 }
 
-func (r *Repository) GetReturns(offset, limit int, schemaName string) ([]models.Order, error) {
+func (r *Repository) GetReturns(offset, limit int) ([]models.Order, error) {
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
         FROM orders
         WHERE returned = TRUE
@@ -158,7 +160,7 @@ func (r *Repository) GetReturns(offset, limit int, schemaName string) ([]models.
         OFFSET $1
  		FETCH NEXT $2 ROWS ONLY
     `
-	query = AddSchemaPrefix(schemaName, query)
+
 	rows, err := r.Pool.Query(r.Ctx, query, offset, limit)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -177,7 +179,7 @@ func (r *Repository) GetReturns(offset, limit int, schemaName string) ([]models.
 	return returns, nil
 }
 
-func (r *Repository) GetOrders(userId string, offset, limit int, schemaName string) ([]models.Order, error) {
+func (r *Repository) GetOrders(userId string, offset, limit int) ([]models.Order, error) {
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
 		FROM orders
 		WHERE user_id = $1 AND issued = FALSE
@@ -185,7 +187,7 @@ func (r *Repository) GetOrders(userId string, offset, limit int, schemaName stri
 		OFFSET $2
 		FETCH NEXT $3 ROWS ONLY
 	`
-	query = AddSchemaPrefix(schemaName, query)
+
 	rows, err := r.Pool.Query(r.Ctx, query, userId, offset, limit)
 	if err != nil {
 		var pgErr *pgconn.PgError

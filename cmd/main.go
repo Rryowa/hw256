@@ -4,25 +4,19 @@ import (
 	"context"
 	"fmt"
 	"homework/internal/service"
-	pkg "homework/internal/service/package"
 	"homework/internal/storage/db"
 	"homework/internal/util"
 	"homework/internal/view"
 	"log"
 )
 
-const (
-	schemaName = "public"
-)
-
 func main() {
 	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
 
-	packageService := pkg.NewPackageService()
-	orderService := service.NewOrderService(schemaName, repository, packageService)
-	validationService := service.NewValidationService(orderService, packageService)
+	packageService := service.NewPackageService()
+	orderService := service.NewOrderService(repository, packageService)
 
-	commands := view.NewCLI(orderService, validationService)
+	commands := view.NewCLI(orderService)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}

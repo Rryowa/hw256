@@ -69,7 +69,7 @@ func (s *IntTestSuite) SetupSuite() {
 	CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);`
 }
 
-func (s *IntTestSuite) createSchemaAndRepo(ctx context.Context) (db.TestRepository, string) {
+func (s *IntTestSuite) createRepoAndSchema(ctx context.Context) db.TestRepository {
 	name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 	schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
 
@@ -82,22 +82,17 @@ func (s *IntTestSuite) createSchemaAndRepo(ctx context.Context) (db.TestReposito
 	_, err = tr.Repo.Pool.Exec(ctx, query)
 	require.NoError(s.T(), err)
 
-	return tr, schemaName
-}
-
-func (s *IntTestSuite) dropSchema(ctx context.Context, tr db.TestRepository, schemaName string) {
-	_, err := tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+schemaName+" CASCADE")
-	require.NoError(s.T(), err)
+	return tr
 }
 
 func (s *IntTestSuite) TestInsertOrder() {
 	s.T().Run("TestInsertOrder", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 
-		id, err := tr.Repo.Insert(s.expectedOrder, schemaName)
+		id, err := tr.Repo.Insert(s.expectedOrder)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, id)
@@ -108,14 +103,14 @@ func (s *IntTestSuite) TestUpdateOrder() {
 	s.T().Run("TestUpd", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 		order := s.expectedOrder
 		order.Returned = true
-		_, err := tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order)
 		require.NoError(t, err)
 
-		returned, err := tr.Repo.Update(order, schemaName)
+		returned, err := tr.Repo.Update(order)
 
 		require.NoError(t, err)
 		require.Equal(t, order.Returned, returned)
@@ -126,13 +121,13 @@ func (s *IntTestSuite) TestDelete() {
 	s.T().Run("TestDelete", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order)
 		require.NoError(t, err)
 
-		id, err := tr.Repo.Delete(order.ID, schemaName)
+		id, err := tr.Repo.Delete(order.ID)
 
 		require.NoError(t, err)
 		require.Equal(t, order.ID, id)
@@ -143,13 +138,13 @@ func (s *IntTestSuite) TestGet() {
 	s.T().Run("TestGet", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order)
 		require.NoError(t, err)
 
-		order, err = tr.Repo.Get(order.ID, schemaName)
+		order, err = tr.Repo.Get(order.ID)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, order.ID)
@@ -160,14 +155,14 @@ func (s *IntTestSuite) TestGetReturns() {
 	s.T().Run("TestGetReturns", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 		order := s.expectedOrder
 		order.Returned = true
-		_, err := tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order)
 		require.NoError(t, err)
 
-		orders, err := tr.Repo.GetReturns(0, 10, schemaName)
+		orders, err := tr.Repo.GetReturns(0, 10)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
@@ -178,13 +173,13 @@ func (s *IntTestSuite) TestGetOrders() {
 	s.T().Run("TestGetOrders", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr, schemaName := s.createSchemaAndRepo(ctx)
-		defer s.dropSchema(ctx, tr, schemaName)
+		tr := s.createRepoAndSchema(ctx)
+		defer tr.DropSchema(t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order, schemaName)
+		_, err := tr.Repo.Insert(order)
 		require.NoError(t, err)
 
-		orders, err := tr.Repo.GetOrders(order.ID, 0, 10, schemaName)
+		orders, err := tr.Repo.GetOrders(order.ID, 0, 10)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)

@@ -4,17 +4,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 	"homework/internal/models"
 	"homework/internal/storage/db"
 	"log"
+	"testing"
 )
 
 type TestRepository struct {
-	Repo *db.Repository
+	Repo   *db.Repository
+	schema string
 }
 
-func NewTestRepository(ctx context.Context, cfg *models.Config, schemaName string) TestRepository {
-	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
+func NewTestRepository(ctx context.Context, cfg *models.Config, schema string) TestRepository {
+	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?search_path=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, schema)
 	pool, err := pgxpool.New(ctx, connStr)
 	if err != nil {
 		log.Fatal(err, "db connection error")
@@ -22,34 +26,15 @@ func NewTestRepository(ctx context.Context, cfg *models.Config, schemaName strin
 	log.Println("Connected to db")
 
 	return TestRepository{
-		&db.Repository{
+		Repo: &db.Repository{
 			Pool: pool,
 			Ctx:  ctx,
 		},
+		schema: schema,
 	}
 }
 
-//	func loadTestData(t *testing.T, db *sql.DB, schemaName string, testDatabase string) {
-//		for _, testDataName := range testDataNames {
-//			file, err := os.Open(fmt.Sprintf("./testdata/%s.sql", testDataName))
-//			require.NoError(t, err)
-//			reader := bufio.NewReader(file)
-//			var query string
-//			for {
-//				line, err := reader.ReadString('\n')
-//				if err == io.EOF {
-//					break
-//				}
-//				require.NoError(t, err)
-//				line = line[:len(line)-1]
-//				if line == "" {
-//					query = addSchemaPrefix(schemaName, query)
-//					_, err := db.Exec(query)
-//					require.NoError(t, err)
-//					query = ""
-//				}
-//				query += line
-//			}
-//			file.Close()
-//		}
-//	}
+func (tr *TestRepository) DropSchema(t *testing.T) {
+	_, err := tr.Repo.Pool.Exec(tr.Repo.Ctx, "DROP SCHEMA "+tr.schema+" CASCADE")
+	require.NoError(t, err)
+}

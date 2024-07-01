@@ -17,7 +17,6 @@ func NewFilmPackage() *FilmPackage {
 	return &FilmPackage{}
 }
 
-// ValidatePackage provides validation
 func (p *FilmPackage) Validate(weight models.Weight) error {
 	return nil
 }

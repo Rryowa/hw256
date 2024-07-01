@@ -19,18 +19,16 @@ import (
 )
 
 type CLI struct {
-	validationService service.ValidationService
-	orderService      service.OrderService
-	commandList       []command
+	orderService service.OrderService
+	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, vs service.ValidationService) *CLI {
+func NewCLI(os service.OrderService) *CLI {
 	return &CLI{
-		orderService:      os,
-		validationService: vs,
+		orderService: os,
 		commandList: []command{
 			{
 				name:        help,
@@ -235,12 +233,11 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	order, err := c.validationService.ValidateAccept(dto)
-	if err != nil {
+	if err := ValidateAcceptArgs(dto); err != nil {
 		return err
 	}
 
-	return c.orderService.Accept(&order, dto.PackageType)
+	return c.orderService.Accept(dto, dto.PackageType)
 }
 
 func (c *CLI) issueOrders(args []string) error {
@@ -250,11 +247,12 @@ func (c *CLI) issueOrders(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	ordersToIssue, err := c.validationService.ValidateIssue(idsStr)
-	if err != nil {
+
+	if err := ValidateIssueArgs(idsStr); err != nil {
 		return err
 	}
-	return c.orderService.Issue(&ordersToIssue)
+
+	return c.orderService.Issue(idsStr)
 }
 
 func (c *CLI) acceptReturn(args []string) error {
@@ -266,11 +264,12 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	orderToReturn, err := c.validationService.ValidateAcceptReturn(id, userId)
+	err := ValidateAcceptReturnArgs(id, userId)
 	if err != nil {
 		return err
 	}
-	return c.orderService.Return(&orderToReturn)
+
+	return c.orderService.Return(id, userId)
 }
 
 func (c *CLI) returnOrderToCourier(args []string) error {
@@ -282,7 +281,7 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 		return err
 	}
 
-	if err := c.validationService.ValidateReturnToCourier(id); err != nil {
+	if err := ValidateReturnToCourierArgs(id); err != nil {
 		return err
 	}
 
@@ -299,12 +298,12 @@ func (c *CLI) listReturns(args []string) error {
 		return err
 	}
 
-	offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
+	err := ValidateListArgs(offsetStr, limitStr)
 	if err != nil {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListReturns(offset, limit)
+	orderIDs, err := c.orderService.ListReturns(offsetStr, limitStr)
 	if err != nil {
 		return err
 	}
@@ -325,12 +324,11 @@ func (c *CLI) listOrders(args []string) error {
 		return err
 	}
 
-	offset, limit, err := c.validationService.ValidateList(offsetStr, limitStr)
-	if err != nil {
+	if err := ValidateListArgs(offsetStr, limitStr); err != nil {
 		return err
 	}
 
-	orders, err := c.orderService.ListOrders(userId, offset, limit)
+	orders, err := c.orderService.ListOrders(userId, offsetStr, limitStr)
 	if err != nil {
 		return err
 	}

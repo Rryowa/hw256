@@ -1,42 +1,81 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"homework/internal/models"
-	pkg "homework/internal/service/package"
 	"homework/internal/storage"
+	"homework/internal/util"
 	"homework/pkg/hash"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type OrderService interface {
-	Accept(order *models.Order, pkgTypeStr string) error
-	Issue(ordersToIssue *[]models.Order) error
-	Return(orders *models.Order) error
+	Accept(dto models.Dto, pkgTypeStr string) error
+	Issue(idsStr string) error
+	Return(id, userId string) error
 	ReturnToCourier(id string) error
-	ListReturns(offset, limit int) ([]models.Order, error)
-	ListOrders(userId string, offset, limit int) ([]models.Order, error)
+	ListReturns(offsetStr, limitStr string) ([]models.Order, error)
+	ListOrders(userId, offsetStr, limitStr string) ([]models.Order, error)
 	PrintList(orders []models.Order)
-	Exists(userId string) (models.Order, bool)
 }
 
 type orderService struct {
-	schemaName     string
 	repository     storage.Storage
-	packageService pkg.PackageService
+	packageService PackageService
 }
 
-func NewOrderService(schemaName string, repository storage.Storage, packageService pkg.PackageService) OrderService {
+func NewOrderService(repository storage.Storage, packageService PackageService) OrderService {
 	return &orderService{
-		schemaName:     schemaName,
 		repository:     repository,
 		packageService: packageService,
 	}
 }
 
-func (os *orderService) Accept(order *models.Order, pkgTypeStr string) error {
-	os.packageService.ApplyPackage(order, models.PackageType(pkgTypeStr))
+func (os *orderService) Accept(dto models.Dto, pkgTypeStr string) error {
+	_, err := os.repository.Get(dto.ID)
+	if !errors.Is(err, util.ErrOrderNotFound) {
+		return util.ErrOrderExists
+	}
+
+	storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)
+	if err != nil {
+		return util.ErrParsingDate
+	}
+	if storageUntil.Before(time.Now()) {
+		return util.ErrDateInvalid
+	}
+
+	orderPriceFloat, err := strconv.ParseFloat(dto.OrderPrice, 64)
+	if err != nil || orderPriceFloat <= 0 {
+		return util.ErrOrderPriceInvalid
+	}
+	orderPrice := models.Price(orderPriceFloat)
+
+	weightFloat, err := strconv.ParseFloat(dto.Weight, 64)
+	if err != nil || weightFloat <= 0 {
+		return util.ErrWeightInvalid
+	}
+	weight := models.Weight(weightFloat)
+
+	if len(pkgTypeStr) != 0 {
+		packageType := models.PackageType(pkgTypeStr)
+		if err = os.packageService.ValidatePackage(weight, packageType); err != nil {
+			return err
+		}
+	}
+
+	order := models.Order{
+		ID:           dto.ID,
+		UserID:       dto.UserID,
+		StorageUntil: storageUntil,
+		OrderPrice:   orderPrice,
+		Weight:       weight,
+	}
+
+	os.packageService.ApplyPackage(&order, models.PackageType(pkgTypeStr))
 
 	fmt.Print("Calculating hash.")
 
@@ -57,49 +96,118 @@ func (os *orderService) Accept(order *models.Order, pkgTypeStr string) error {
 		order.Hash = hash.GenerateHash()
 		ticker.Stop()
 		done <- struct{}{}
-	}(order, ticker, done)
+	}(&order, ticker, done)
 
 	<-done
 
-	_, err := os.repository.Insert(*order, os.schemaName)
+	_, err = os.repository.Insert(order)
 	return err
 }
 
-func (os *orderService) Issue(orders *[]models.Order) error {
-	for i := range *orders {
-		(*orders)[i].Issued = true
-		(*orders)[i].IssuedAt = time.Now()
+func (os *orderService) Issue(idsStr string) error {
+	ids := strings.Split(idsStr, ",")
+	order, err := os.repository.Get(ids[0])
+	if err != nil {
+		return util.ErrOrderNotFound
+	}
+	recipientID := order.UserID
+
+	var orders []models.Order
+	for _, id := range ids {
+		order, err := os.repository.Get(id)
+		if err != nil {
+			return util.ErrOrderNotFound
+		}
+		if order.Issued {
+			return util.ErrOrderIssued
+		}
+		if order.Returned {
+			return util.ErrOrderReturned
+		}
+		if time.Now().After(order.StorageUntil) {
+			return util.ErrOrderExpired
+		}
+
+		//Check if users are equal
+		if order.UserID != recipientID {
+			return util.ErrOrdersUserDiffers
+		}
+
+		orders = append(orders, order)
 	}
 
-	return os.repository.IssueUpdate(*orders, os.schemaName)
+	for i := range orders {
+		orders[i].Issued = true
+		orders[i].IssuedAt = time.Now()
+	}
+
+	return os.repository.IssueUpdate(orders)
 }
 
-func (os *orderService) Return(order *models.Order) error {
+func (os *orderService) Return(id, userId string) error {
+	order, err := os.repository.Get(id)
+	if err != nil {
+		return util.ErrOrderNotFound
+	}
+	if order.UserID != userId {
+		return util.ErrOrderDoesNotBelong
+	}
+	if !order.Issued {
+		return util.ErrOrderNotIssued
+	}
+	if time.Now().After(order.IssuedAt.Add(48 * time.Hour)) {
+		return util.ErrReturnPeriodExpired
+	}
+
 	order.Returned = true
 
-	_, err := os.repository.Update(*order, os.schemaName)
+	_, err = os.repository.Update(order)
 	return err
 }
 
 func (os *orderService) ReturnToCourier(id string) error {
-	_, err := os.repository.Delete(id, os.schemaName)
+	order, err := os.repository.Get(id)
+	if err != nil {
+		return util.ErrOrderNotFound
+	}
+
+	if order.Issued {
+		return util.ErrOrderIssued
+	}
+
+	//skip checking for a period, to ensure that its working
+	//if time.Now().Before(order.StorageUntil) {
+	//	return util.ErrOrderNotExpired
+	//}
+
+	_, err = os.repository.Delete(id)
 	return err
 }
 
-func (os *orderService) ListReturns(offset, limit int) ([]models.Order, error) {
-	return os.repository.GetReturns(offset, limit, os.schemaName)
-}
-
-func (os *orderService) ListOrders(userId string, offset, limit int) ([]models.Order, error) {
-	return os.repository.GetOrders(userId, offset, limit, os.schemaName)
-}
-
-func (os *orderService) Exists(userId string) (models.Order, bool) {
-	order, err := os.repository.Get(userId, os.schemaName)
+func (os *orderService) ListReturns(offsetStr, limitStr string) ([]models.Order, error) {
+	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
-		return models.Order{}, false
+		return []models.Order{}, util.ErrOffsetInvalid
 	}
-	return order, true
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return []models.Order{}, util.ErrLimitInvalid
+	}
+
+	return os.repository.GetReturns(offset, limit)
+}
+
+func (os *orderService) ListOrders(userId, offsetStr, limitStr string) ([]models.Order, error) {
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		return []models.Order{}, util.ErrOffsetInvalid
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return []models.Order{}, util.ErrLimitInvalid
+	}
+
+	return os.repository.GetOrders(userId, offset, limit)
 }
 
 func (os *orderService) PrintList(orders []models.Order) {
