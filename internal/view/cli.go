@@ -2,6 +2,7 @@ package view
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -180,36 +181,37 @@ func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 func (c *CLI) processCommand(input string) {
 	args := strings.Split(input, " ")
 	commandName := args[0]
+	ctx := context.Background()
 
 	switch commandName {
 	case acceptOrder:
-		if err := c.acceptOrder(args[1:]); err != nil {
+		if err := c.acceptOrder(ctx, args[1:]); err != nil {
 			log.Println(err)
 		} else {
 			log.Println("Order accepted.")
 		}
 	case issueOrders:
-		if err := c.issueOrders(args[1:]); err != nil {
+		if err := c.issueOrders(ctx, args[1:]); err != nil {
 			log.Println(err)
 		}
 	case acceptReturn:
-		if err := c.acceptReturn(args[1:]); err != nil {
+		if err := c.acceptReturn(ctx, args[1:]); err != nil {
 			log.Println(err)
 		} else {
 			log.Println("Return accepted.")
 		}
 	case returnOrderToCourier:
-		if err := c.returnOrderToCourier(args[1:]); err != nil {
+		if err := c.returnOrderToCourier(ctx, args[1:]); err != nil {
 			log.Println(err)
 		} else {
 			log.Println("Order returned.")
 		}
 	case listReturns:
-		if err := c.listReturns(args[1:]); err != nil {
+		if err := c.listReturns(ctx, args[1:]); err != nil {
 			log.Println(err)
 		}
 	case listOrders:
-		if err := c.listOrders(args[1:]); err != nil {
+		if err := c.listOrders(ctx, args[1:]); err != nil {
 			log.Println(err)
 		}
 	case help:
@@ -219,7 +221,7 @@ func (c *CLI) processCommand(input string) {
 	}
 }
 
-func (c *CLI) acceptOrder(args []string) error {
+func (c *CLI) acceptOrder(ctx context.Context, args []string) error {
 	dto := models.Dto{}
 	fs := flag.NewFlagSet(acceptOrder, flag.ContinueOnError)
 	fs.StringVar(&dto.ID, "id", "", "use -id=12345")
@@ -237,10 +239,10 @@ func (c *CLI) acceptOrder(args []string) error {
 		return err
 	}
 
-	return c.orderService.Accept(dto, dto.PackageType)
+	return c.orderService.Accept(ctx, dto, dto.PackageType)
 }
 
-func (c *CLI) issueOrders(args []string) error {
+func (c *CLI) issueOrders(ctx context.Context, args []string) error {
 	var idsStr string
 	fs := flag.NewFlagSet(issueOrders, flag.ContinueOnError)
 	fs.StringVar(&idsStr, "ids", "", "use -ids=1,2,3")
@@ -252,10 +254,10 @@ func (c *CLI) issueOrders(args []string) error {
 		return err
 	}
 
-	return c.orderService.Issue(idsStr)
+	return c.orderService.Issue(ctx, idsStr)
 }
 
-func (c *CLI) acceptReturn(args []string) error {
+func (c *CLI) acceptReturn(ctx context.Context, args []string) error {
 	var id, userId string
 	fs := flag.NewFlagSet(acceptReturn, flag.ContinueOnError)
 	fs.StringVar(&id, "id", "0", "use -id=12345")
@@ -269,10 +271,10 @@ func (c *CLI) acceptReturn(args []string) error {
 		return err
 	}
 
-	return c.orderService.Return(id, userId)
+	return c.orderService.Return(ctx, id, userId)
 }
 
-func (c *CLI) returnOrderToCourier(args []string) error {
+func (c *CLI) returnOrderToCourier(ctx context.Context, args []string) error {
 	var id string
 	fs := flag.NewFlagSet(returnOrderToCourier, flag.ContinueOnError)
 	fs.StringVar(&id, "id", "0", "use -id=12345")
@@ -285,10 +287,10 @@ func (c *CLI) returnOrderToCourier(args []string) error {
 		return err
 	}
 
-	return c.orderService.ReturnToCourier(id)
+	return c.orderService.ReturnToCourier(ctx, id)
 }
 
-func (c *CLI) listReturns(args []string) error {
+func (c *CLI) listReturns(ctx context.Context, args []string) error {
 	var offsetStr, limitStr string
 	fs := flag.NewFlagSet(listReturns, flag.ContinueOnError)
 	fs.StringVar(&offsetStr, "ofs", "0", "use -ofs=0")
@@ -303,7 +305,7 @@ func (c *CLI) listReturns(args []string) error {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListReturns(offsetStr, limitStr)
+	orderIDs, err := c.orderService.ListReturns(ctx, offsetStr, limitStr)
 	if err != nil {
 		return err
 	}
@@ -313,7 +315,7 @@ func (c *CLI) listReturns(args []string) error {
 	return nil
 }
 
-func (c *CLI) listOrders(args []string) error {
+func (c *CLI) listOrders(ctx context.Context, args []string) error {
 	var userId, offsetStr, limitStr string
 	fs := flag.NewFlagSet(listOrders, flag.ContinueOnError)
 	fs.StringVar(&userId, "u_id", "0", "use -u_id=1")
@@ -328,7 +330,7 @@ func (c *CLI) listOrders(args []string) error {
 		return err
 	}
 
-	orders, err := c.orderService.ListOrders(userId, offsetStr, limitStr)
+	orders, err := c.orderService.ListOrders(ctx, userId, offsetStr, limitStr)
 	if err != nil {
 		return err
 	}

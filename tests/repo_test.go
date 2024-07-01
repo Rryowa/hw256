@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"hash/maphash"
 	"homework/internal/models"
-	storage "homework/internal/storage/db"
-	"homework/internal/util"
 	"homework/tests/db"
 	"math/rand"
 	"strconv"
@@ -31,7 +29,7 @@ func TestIntTestSuite(t *testing.T) {
 }
 
 func (s *IntTestSuite) SetupSuite() {
-	s.cfg = util.NewTestConfig()
+	s.cfg = NewTestConfig()
 	dto := models.Dto{
 		ID:           "1",
 		UserID:       "1",
@@ -64,7 +62,7 @@ func (s *IntTestSuite) SetupSuite() {
 		package_type VARCHAR(255) NOT NULL,
 		package_price FLOAT NOT NULL,
 		hash VARCHAR(255) NOT NULL
-    );
+	);
 	CREATE INDEX id_asc ON orders (id ASC);
 	CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);`
 }
@@ -78,8 +76,8 @@ func (s *IntTestSuite) createRepoAndSchema(ctx context.Context) db.TestRepositor
 	_, err := tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
 	require.NoError(s.T(), err)
 
-	query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-	_, err = tr.Repo.Pool.Exec(ctx, query)
+	//query := storage.AddSchemaPrefix(schemaName, s.createQuery)
+	_, err = tr.Repo.Pool.Exec(ctx, s.createQuery)
 	require.NoError(s.T(), err)
 
 	return tr
@@ -90,9 +88,9 @@ func (s *IntTestSuite) TestInsertOrder() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 
-		id, err := tr.Repo.Insert(s.expectedOrder)
+		id, err := tr.Repo.Insert(ctx, s.expectedOrder)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, id)
@@ -104,13 +102,13 @@ func (s *IntTestSuite) TestUpdateOrder() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 		order := s.expectedOrder
 		order.Returned = true
-		_, err := tr.Repo.Insert(order)
+		_, err := tr.Repo.Insert(ctx, order)
 		require.NoError(t, err)
 
-		returned, err := tr.Repo.Update(order)
+		returned, err := tr.Repo.Update(ctx, order)
 
 		require.NoError(t, err)
 		require.Equal(t, order.Returned, returned)
@@ -122,12 +120,12 @@ func (s *IntTestSuite) TestDelete() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order)
+		_, err := tr.Repo.Insert(ctx, order)
 		require.NoError(t, err)
 
-		id, err := tr.Repo.Delete(order.ID)
+		id, err := tr.Repo.Delete(ctx, order.ID)
 
 		require.NoError(t, err)
 		require.Equal(t, order.ID, id)
@@ -139,12 +137,12 @@ func (s *IntTestSuite) TestGet() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order)
+		_, err := tr.Repo.Insert(ctx, order)
 		require.NoError(t, err)
 
-		order, err = tr.Repo.Get(order.ID)
+		order, err = tr.Repo.Get(ctx, order.ID)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, order.ID)
@@ -156,13 +154,13 @@ func (s *IntTestSuite) TestGetReturns() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 		order := s.expectedOrder
 		order.Returned = true
-		_, err := tr.Repo.Insert(order)
+		_, err := tr.Repo.Insert(ctx, order)
 		require.NoError(t, err)
 
-		orders, err := tr.Repo.GetReturns(0, 10)
+		orders, err := tr.Repo.GetReturns(ctx, 0, 10)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
@@ -174,12 +172,12 @@ func (s *IntTestSuite) TestGetOrders() {
 		t.Parallel()
 		ctx := context.Background()
 		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(t)
+		defer tr.DropSchema(ctx, t)
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(order)
+		_, err := tr.Repo.Insert(ctx, order)
 		require.NoError(t, err)
 
-		orders, err := tr.Repo.GetOrders(order.ID, 0, 10)
+		orders, err := tr.Repo.GetOrders(ctx, order.ID, 0, 10)
 
 		require.NoError(t, err)
 		require.Equal(t, s.expectedOrder.ID, orders[0].ID)

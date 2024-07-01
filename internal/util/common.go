@@ -48,18 +48,3 @@ func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error)
 	}
 	return
 }
-
-func NewTestConfig() *models.Config {
-	//for single stage build using @go test ./tests -tags=integration
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Fatalf("err loading: %v", err)
-	}
-	return &models.Config{
-		User:     os.Getenv("TEST_USER"),
-		Password: os.Getenv("TEST_PASSWORD"),
-		Host:     os.Getenv("TEST_HOST"),
-		Port:     os.Getenv("TEST_PORT"),
-		DBName:   os.Getenv("TEST_DB"),
-	}
-}

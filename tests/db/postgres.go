@@ -28,13 +28,12 @@ func NewTestRepository(ctx context.Context, cfg *models.Config, schema string) T
 	return TestRepository{
 		Repo: &db.Repository{
 			Pool: pool,
-			Ctx:  ctx,
 		},
 		schema: schema,
 	}
 }
 
-func (tr *TestRepository) DropSchema(t *testing.T) {
-	_, err := tr.Repo.Pool.Exec(tr.Repo.Ctx, "DROP SCHEMA "+tr.schema+" CASCADE")
+func (tr *TestRepository) DropSchema(ctx context.Context, t *testing.T) {
+	_, err := tr.Repo.Pool.Exec(ctx, "DROP SCHEMA "+tr.schema+" CASCADE")
 	require.NoError(t, err)
 }

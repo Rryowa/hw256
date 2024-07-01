@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"homework/internal/models"
@@ -13,12 +14,12 @@ import (
 )
 
 type OrderService interface {
-	Accept(dto models.Dto, pkgTypeStr string) error
-	Issue(idsStr string) error
-	Return(id, userId string) error
-	ReturnToCourier(id string) error
-	ListReturns(offsetStr, limitStr string) ([]models.Order, error)
-	ListOrders(userId, offsetStr, limitStr string) ([]models.Order, error)
+	Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error
+	Issue(ctx context.Context, idsStr string) error
+	Return(ctx context.Context, id, userId string) error
+	ReturnToCourier(ctx context.Context, id string) error
+	ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error)
+	ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error)
 	PrintList(orders []models.Order)
 }
 
@@ -34,8 +35,8 @@ func NewOrderService(repository storage.Storage, packageService PackageService) 
 	}
 }
 
-func (os *orderService) Accept(dto models.Dto, pkgTypeStr string) error {
-	_, err := os.repository.Get(dto.ID)
+func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
+	_, err := os.repository.Get(ctx, dto.ID)
 	if !errors.Is(err, util.ErrOrderNotFound) {
 		return util.ErrOrderExists
 	}
@@ -100,13 +101,13 @@ func (os *orderService) Accept(dto models.Dto, pkgTypeStr string) error {
 
 	<-done
 
-	_, err = os.repository.Insert(order)
+	_, err = os.repository.Insert(ctx, order)
 	return err
 }
 
-func (os *orderService) Issue(idsStr string) error {
+func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 	ids := strings.Split(idsStr, ",")
-	order, err := os.repository.Get(ids[0])
+	order, err := os.repository.Get(ctx, ids[0])
 	if err != nil {
 		return util.ErrOrderNotFound
 	}
@@ -114,7 +115,7 @@ func (os *orderService) Issue(idsStr string) error {
 
 	var orders []models.Order
 	for _, id := range ids {
-		order, err := os.repository.Get(id)
+		order, err := os.repository.Get(ctx, id)
 		if err != nil {
 			return util.ErrOrderNotFound
 		}
@@ -141,11 +142,11 @@ func (os *orderService) Issue(idsStr string) error {
 		orders[i].IssuedAt = time.Now()
 	}
 
-	return os.repository.IssueUpdate(orders)
+	return os.repository.IssueUpdate(ctx, orders)
 }
 
-func (os *orderService) Return(id, userId string) error {
-	order, err := os.repository.Get(id)
+func (os *orderService) Return(ctx context.Context, id, userId string) error {
+	order, err := os.repository.Get(ctx, id)
 	if err != nil {
 		return util.ErrOrderNotFound
 	}
@@ -161,12 +162,12 @@ func (os *orderService) Return(id, userId string) error {
 
 	order.Returned = true
 
-	_, err = os.repository.Update(order)
+	_, err = os.repository.Update(ctx, order)
 	return err
 }
 
-func (os *orderService) ReturnToCourier(id string) error {
-	order, err := os.repository.Get(id)
+func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
+	order, err := os.repository.Get(ctx, id)
 	if err != nil {
 		return util.ErrOrderNotFound
 	}
@@ -180,11 +181,11 @@ func (os *orderService) ReturnToCourier(id string) error {
 	//	return util.ErrOrderNotExpired
 	//}
 
-	_, err = os.repository.Delete(id)
+	_, err = os.repository.Delete(ctx, id)
 	return err
 }
 
-func (os *orderService) ListReturns(offsetStr, limitStr string) ([]models.Order, error) {
+func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error) {
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
 		return []models.Order{}, util.ErrOffsetInvalid
@@ -194,10 +195,10 @@ func (os *orderService) ListReturns(offsetStr, limitStr string) ([]models.Order,
 		return []models.Order{}, util.ErrLimitInvalid
 	}
 
-	return os.repository.GetReturns(offset, limit)
+	return os.repository.GetReturns(ctx, offset, limit)
 }
 
-func (os *orderService) ListOrders(userId, offsetStr, limitStr string) ([]models.Order, error) {
+func (os *orderService) ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error) {
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
 		return []models.Order{}, util.ErrOffsetInvalid
@@ -207,7 +208,7 @@ func (os *orderService) ListOrders(userId, offsetStr, limitStr string) ([]models
 		return []models.Order{}, util.ErrLimitInvalid
 	}
 
-	return os.repository.GetOrders(userId, offset, limit)
+	return os.repository.GetOrders(ctx, userId, offset, limit)
 }
 
 func (os *orderService) PrintList(orders []models.Order) {
