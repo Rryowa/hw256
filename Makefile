@@ -36,31 +36,23 @@ up:
 down:
 	@goose -dir $(MIGRATIONS_DIR) postgres $(DB_STRING) down
 
-.PHONY: test-up
-test-up:
+.PHONY: up-test
+up-test:
 	@goose -dir $(MIGRATIONS_DIR) postgres $(TEST_STRING) up
 
-.PHONY: test-down
-test-down:
+.PHONY: down-test
+down-test:
 	@goose -dir $(MIGRATIONS_DIR) postgres $(TEST_STRING) down
 
-.PHONY: compose-db-up
-compose-db-up:
-	@docker compose up db db_test -d
+.PHONY: compose-up
+compose-up:
+	@docker compose up -d
+#	@docker exec -it go bash
 
-.PHONY: compose-db-rm
-compose-db-rm:
-	@docker compose rm db db_test -fvs
+.PHONY: compose-rm
+compose-rm:
+	@docker compose rm -fvs
 
 .PHONY: exec-pg
 exec-pg:
 	@docker exec -it pg psql -U postgres
-
-#.PHONY: compose-up
-#compose-up:
-#	@docker compose up app db db_test -d
-#	@docker exec -it go bash
-#
-#.PHONY: compose-rm
-#compose-rm:
-#	@docker compose rm app db db_test -fvs

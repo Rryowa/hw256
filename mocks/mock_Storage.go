@@ -3,6 +3,7 @@
 package mocks
 
 import (
+	context "context"
 	models "homework/internal/models"
 
 	mock "github.com/stretchr/testify/mock"
@@ -21,9 +22,9 @@ func (_m *MockStorage) EXPECT() *MockStorage_Expecter {
 	return &MockStorage_Expecter{mock: &_m.Mock}
 }
 
-// Delete provides a mock function with given fields: id
-func (_m *MockStorage) Delete(id string) (string, error) {
-	ret := _m.Called(id)
+// Delete provides a mock function with given fields: ctx, id
+func (_m *MockStorage) Delete(ctx context.Context, id string) (string, error) {
+	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Delete")
@@ -31,17 +32,17 @@ func (_m *MockStorage) Delete(id string) (string, error) {
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
-		return rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(string) string); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -55,14 +56,15 @@ type MockStorage_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) Delete(id interface{}) *MockStorage_Delete_Call {
-	return &MockStorage_Delete_Call{Call: _e.mock.On("Delete", id)}
+func (_e *MockStorage_Expecter) Delete(ctx interface{}, id interface{}) *MockStorage_Delete_Call {
+	return &MockStorage_Delete_Call{Call: _e.mock.On("Delete", ctx, id)}
 }
 
-func (_c *MockStorage_Delete_Call) Run(run func(id string)) *MockStorage_Delete_Call {
+func (_c *MockStorage_Delete_Call) Run(run func(ctx context.Context, id string)) *MockStorage_Delete_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -72,14 +74,14 @@ func (_c *MockStorage_Delete_Call) Return(_a0 string, _a1 error) *MockStorage_De
 	return _c
 }
 
-func (_c *MockStorage_Delete_Call) RunAndReturn(run func(string) (string, error)) *MockStorage_Delete_Call {
+func (_c *MockStorage_Delete_Call) RunAndReturn(run func(context.Context, string) (string, error)) *MockStorage_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Get provides a mock function with given fields: id
-func (_m *MockStorage) Get(id string) (models.Order, error) {
-	ret := _m.Called(id)
+// Get provides a mock function with given fields: ctx, id
+func (_m *MockStorage) Get(ctx context.Context, id string) (models.Order, error) {
+	ret := _m.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
@@ -87,17 +89,17 @@ func (_m *MockStorage) Get(id string) (models.Order, error) {
 
 	var r0 models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (models.Order, error)); ok {
-		return rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) (models.Order, error)); ok {
+		return rf(ctx, id)
 	}
-	if rf, ok := ret.Get(0).(func(string) models.Order); ok {
-		r0 = rf(id)
+	if rf, ok := ret.Get(0).(func(context.Context, string) models.Order); ok {
+		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Get(0).(models.Order)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -111,14 +113,15 @@ type MockStorage_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
+//   - ctx context.Context
 //   - id string
-func (_e *MockStorage_Expecter) Get(id interface{}) *MockStorage_Get_Call {
-	return &MockStorage_Get_Call{Call: _e.mock.On("Get", id)}
+func (_e *MockStorage_Expecter) Get(ctx interface{}, id interface{}) *MockStorage_Get_Call {
+	return &MockStorage_Get_Call{Call: _e.mock.On("Get", ctx, id)}
 }
 
-func (_c *MockStorage_Get_Call) Run(run func(id string)) *MockStorage_Get_Call {
+func (_c *MockStorage_Get_Call) Run(run func(ctx context.Context, id string)) *MockStorage_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -128,14 +131,14 @@ func (_c *MockStorage_Get_Call) Return(_a0 models.Order, _a1 error) *MockStorage
 	return _c
 }
 
-func (_c *MockStorage_Get_Call) RunAndReturn(run func(string) (models.Order, error)) *MockStorage_Get_Call {
+func (_c *MockStorage_Get_Call) RunAndReturn(run func(context.Context, string) (models.Order, error)) *MockStorage_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// GetOrders provides a mock function with given fields: userId, offset, limit
-func (_m *MockStorage) GetOrders(userId string, offset int, limit int) ([]models.Order, error) {
-	ret := _m.Called(userId, offset, limit)
+// GetOrders provides a mock function with given fields: ctx, userId, offset, limit
+func (_m *MockStorage) GetOrders(ctx context.Context, userId string, offset int, limit int) ([]models.Order, error) {
+	ret := _m.Called(ctx, userId, offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetOrders")
@@ -143,19 +146,19 @@ func (_m *MockStorage) GetOrders(userId string, offset int, limit int) ([]models
 
 	var r0 []models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, int, int) ([]models.Order, error)); ok {
-		return rf(userId, offset, limit)
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) ([]models.Order, error)); ok {
+		return rf(ctx, userId, offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(string, int, int) []models.Order); ok {
-		r0 = rf(userId, offset, limit)
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, int) []models.Order); ok {
+		r0 = rf(ctx, userId, offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, int, int) error); ok {
-		r1 = rf(userId, offset, limit)
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, int) error); ok {
+		r1 = rf(ctx, userId, offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -169,16 +172,17 @@ type MockStorage_GetOrders_Call struct {
 }
 
 // GetOrders is a helper method to define mock.On call
+//   - ctx context.Context
 //   - userId string
 //   - offset int
 //   - limit int
-func (_e *MockStorage_Expecter) GetOrders(userId interface{}, offset interface{}, limit interface{}) *MockStorage_GetOrders_Call {
-	return &MockStorage_GetOrders_Call{Call: _e.mock.On("GetOrders", userId, offset, limit)}
+func (_e *MockStorage_Expecter) GetOrders(ctx interface{}, userId interface{}, offset interface{}, limit interface{}) *MockStorage_GetOrders_Call {
+	return &MockStorage_GetOrders_Call{Call: _e.mock.On("GetOrders", ctx, userId, offset, limit)}
 }
 
-func (_c *MockStorage_GetOrders_Call) Run(run func(userId string, offset int, limit int)) *MockStorage_GetOrders_Call {
+func (_c *MockStorage_GetOrders_Call) Run(run func(ctx context.Context, userId string, offset int, limit int)) *MockStorage_GetOrders_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(int), args[2].(int))
+		run(args[0].(context.Context), args[1].(string), args[2].(int), args[3].(int))
 	})
 	return _c
 }
@@ -188,14 +192,14 @@ func (_c *MockStorage_GetOrders_Call) Return(_a0 []models.Order, _a1 error) *Moc
 	return _c
 }
 
-func (_c *MockStorage_GetOrders_Call) RunAndReturn(run func(string, int, int) ([]models.Order, error)) *MockStorage_GetOrders_Call {
+func (_c *MockStorage_GetOrders_Call) RunAndReturn(run func(context.Context, string, int, int) ([]models.Order, error)) *MockStorage_GetOrders_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// GetReturns provides a mock function with given fields: offset, limit
-func (_m *MockStorage) GetReturns(offset int, limit int) ([]models.Order, error) {
-	ret := _m.Called(offset, limit)
+// GetReturns provides a mock function with given fields: ctx, offset, limit
+func (_m *MockStorage) GetReturns(ctx context.Context, offset int, limit int) ([]models.Order, error) {
+	ret := _m.Called(ctx, offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetReturns")
@@ -203,19 +207,19 @@ func (_m *MockStorage) GetReturns(offset int, limit int) ([]models.Order, error)
 
 	var r0 []models.Order
 	var r1 error
-	if rf, ok := ret.Get(0).(func(int, int) ([]models.Order, error)); ok {
-		return rf(offset, limit)
+	if rf, ok := ret.Get(0).(func(context.Context, int, int) ([]models.Order, error)); ok {
+		return rf(ctx, offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(int, int) []models.Order); ok {
-		r0 = rf(offset, limit)
+	if rf, ok := ret.Get(0).(func(context.Context, int, int) []models.Order); ok {
+		r0 = rf(ctx, offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.Order)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(int, int) error); ok {
-		r1 = rf(offset, limit)
+	if rf, ok := ret.Get(1).(func(context.Context, int, int) error); ok {
+		r1 = rf(ctx, offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -229,15 +233,16 @@ type MockStorage_GetReturns_Call struct {
 }
 
 // GetReturns is a helper method to define mock.On call
+//   - ctx context.Context
 //   - offset int
 //   - limit int
-func (_e *MockStorage_Expecter) GetReturns(offset interface{}, limit interface{}) *MockStorage_GetReturns_Call {
-	return &MockStorage_GetReturns_Call{Call: _e.mock.On("GetReturns", offset, limit)}
+func (_e *MockStorage_Expecter) GetReturns(ctx interface{}, offset interface{}, limit interface{}) *MockStorage_GetReturns_Call {
+	return &MockStorage_GetReturns_Call{Call: _e.mock.On("GetReturns", ctx, offset, limit)}
 }
 
-func (_c *MockStorage_GetReturns_Call) Run(run func(offset int, limit int)) *MockStorage_GetReturns_Call {
+func (_c *MockStorage_GetReturns_Call) Run(run func(ctx context.Context, offset int, limit int)) *MockStorage_GetReturns_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(int), args[1].(int))
+		run(args[0].(context.Context), args[1].(int), args[2].(int))
 	})
 	return _c
 }
@@ -247,14 +252,14 @@ func (_c *MockStorage_GetReturns_Call) Return(_a0 []models.Order, _a1 error) *Mo
 	return _c
 }
 
-func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(int, int) ([]models.Order, error)) *MockStorage_GetReturns_Call {
+func (_c *MockStorage_GetReturns_Call) RunAndReturn(run func(context.Context, int, int) ([]models.Order, error)) *MockStorage_GetReturns_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Insert provides a mock function with given fields: order
-func (_m *MockStorage) Insert(order models.Order) (string, error) {
-	ret := _m.Called(order)
+// Insert provides a mock function with given fields: ctx, order
+func (_m *MockStorage) Insert(ctx context.Context, order models.Order) (string, error) {
+	ret := _m.Called(ctx, order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Insert")
@@ -262,17 +267,17 @@ func (_m *MockStorage) Insert(order models.Order) (string, error) {
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(models.Order) (string, error)); ok {
-		return rf(order)
+	if rf, ok := ret.Get(0).(func(context.Context, models.Order) (string, error)); ok {
+		return rf(ctx, order)
 	}
-	if rf, ok := ret.Get(0).(func(models.Order) string); ok {
-		r0 = rf(order)
+	if rf, ok := ret.Get(0).(func(context.Context, models.Order) string); ok {
+		r0 = rf(ctx, order)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
-		r1 = rf(order)
+	if rf, ok := ret.Get(1).(func(context.Context, models.Order) error); ok {
+		r1 = rf(ctx, order)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -286,14 +291,15 @@ type MockStorage_Insert_Call struct {
 }
 
 // Insert is a helper method to define mock.On call
+//   - ctx context.Context
 //   - order models.Order
-func (_e *MockStorage_Expecter) Insert(order interface{}) *MockStorage_Insert_Call {
-	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", order)}
+func (_e *MockStorage_Expecter) Insert(ctx interface{}, order interface{}) *MockStorage_Insert_Call {
+	return &MockStorage_Insert_Call{Call: _e.mock.On("Insert", ctx, order)}
 }
 
-func (_c *MockStorage_Insert_Call) Run(run func(order models.Order)) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) Run(run func(ctx context.Context, order models.Order)) *MockStorage_Insert_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(models.Order))
+		run(args[0].(context.Context), args[1].(models.Order))
 	})
 	return _c
 }
@@ -303,27 +309,39 @@ func (_c *MockStorage_Insert_Call) Return(_a0 string, _a1 error) *MockStorage_In
 	return _c
 }
 
-func (_c *MockStorage_Insert_Call) RunAndReturn(run func(models.Order) (string, error)) *MockStorage_Insert_Call {
+func (_c *MockStorage_Insert_Call) RunAndReturn(run func(context.Context, models.Order) (string, error)) *MockStorage_Insert_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// IssueUpdate provides a mock function with given fields: orders
-func (_m *MockStorage) IssueUpdate(orders []models.Order) error {
-	ret := _m.Called(orders)
+// IssueUpdate provides a mock function with given fields: ctx, orders
+func (_m *MockStorage) IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error) {
+	ret := _m.Called(ctx, orders)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IssueUpdate")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func([]models.Order) error); ok {
-		r0 = rf(orders)
+	var r0 []bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []models.Order) ([]bool, error)); ok {
+		return rf(ctx, orders)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []models.Order) []bool); ok {
+		r0 = rf(ctx, orders)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]bool)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, []models.Order) error); ok {
+		r1 = rf(ctx, orders)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockStorage_IssueUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IssueUpdate'
@@ -332,31 +350,79 @@ type MockStorage_IssueUpdate_Call struct {
 }
 
 // IssueUpdate is a helper method to define mock.On call
+//   - ctx context.Context
 //   - orders []models.Order
-func (_e *MockStorage_Expecter) IssueUpdate(orders interface{}) *MockStorage_IssueUpdate_Call {
-	return &MockStorage_IssueUpdate_Call{Call: _e.mock.On("IssueUpdate", orders)}
+func (_e *MockStorage_Expecter) IssueUpdate(ctx interface{}, orders interface{}) *MockStorage_IssueUpdate_Call {
+	return &MockStorage_IssueUpdate_Call{Call: _e.mock.On("IssueUpdate", ctx, orders)}
 }
 
-func (_c *MockStorage_IssueUpdate_Call) Run(run func(orders []models.Order)) *MockStorage_IssueUpdate_Call {
+func (_c *MockStorage_IssueUpdate_Call) Run(run func(ctx context.Context, orders []models.Order)) *MockStorage_IssueUpdate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]models.Order))
+		run(args[0].(context.Context), args[1].([]models.Order))
 	})
 	return _c
 }
 
-func (_c *MockStorage_IssueUpdate_Call) Return(_a0 error) *MockStorage_IssueUpdate_Call {
-	_c.Call.Return(_a0)
+func (_c *MockStorage_IssueUpdate_Call) Return(_a0 []bool, _a1 error) *MockStorage_IssueUpdate_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func([]models.Order) error) *MockStorage_IssueUpdate_Call {
+func (_c *MockStorage_IssueUpdate_Call) RunAndReturn(run func(context.Context, []models.Order) ([]bool, error)) *MockStorage_IssueUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Update provides a mock function with given fields: order
-func (_m *MockStorage) Update(order models.Order) (bool, error) {
-	ret := _m.Called(order)
+// Truncate provides a mock function with given fields: ctx, table
+func (_m *MockStorage) Truncate(ctx context.Context, table string) error {
+	ret := _m.Called(ctx, table)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Truncate")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, table)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockStorage_Truncate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Truncate'
+type MockStorage_Truncate_Call struct {
+	*mock.Call
+}
+
+// Truncate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - table string
+func (_e *MockStorage_Expecter) Truncate(ctx interface{}, table interface{}) *MockStorage_Truncate_Call {
+	return &MockStorage_Truncate_Call{Call: _e.mock.On("Truncate", ctx, table)}
+}
+
+func (_c *MockStorage_Truncate_Call) Run(run func(ctx context.Context, table string)) *MockStorage_Truncate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockStorage_Truncate_Call) Return(_a0 error) *MockStorage_Truncate_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockStorage_Truncate_Call) RunAndReturn(run func(context.Context, string) error) *MockStorage_Truncate_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Update provides a mock function with given fields: ctx, order
+func (_m *MockStorage) Update(ctx context.Context, order models.Order) (bool, error) {
+	ret := _m.Called(ctx, order)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -364,17 +430,17 @@ func (_m *MockStorage) Update(order models.Order) (bool, error) {
 
 	var r0 bool
 	var r1 error
-	if rf, ok := ret.Get(0).(func(models.Order) (bool, error)); ok {
-		return rf(order)
+	if rf, ok := ret.Get(0).(func(context.Context, models.Order) (bool, error)); ok {
+		return rf(ctx, order)
 	}
-	if rf, ok := ret.Get(0).(func(models.Order) bool); ok {
-		r0 = rf(order)
+	if rf, ok := ret.Get(0).(func(context.Context, models.Order) bool); ok {
+		r0 = rf(ctx, order)
 	} else {
 		r0 = ret.Get(0).(bool)
 	}
 
-	if rf, ok := ret.Get(1).(func(models.Order) error); ok {
-		r1 = rf(order)
+	if rf, ok := ret.Get(1).(func(context.Context, models.Order) error); ok {
+		r1 = rf(ctx, order)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -388,14 +454,15 @@ type MockStorage_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
+//   - ctx context.Context
 //   - order models.Order
-func (_e *MockStorage_Expecter) Update(order interface{}) *MockStorage_Update_Call {
-	return &MockStorage_Update_Call{Call: _e.mock.On("Update", order)}
+func (_e *MockStorage_Expecter) Update(ctx interface{}, order interface{}) *MockStorage_Update_Call {
+	return &MockStorage_Update_Call{Call: _e.mock.On("Update", ctx, order)}
 }
 
-func (_c *MockStorage_Update_Call) Run(run func(order models.Order)) *MockStorage_Update_Call {
+func (_c *MockStorage_Update_Call) Run(run func(ctx context.Context, order models.Order)) *MockStorage_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(models.Order))
+		run(args[0].(context.Context), args[1].(models.Order))
 	})
 	return _c
 }
@@ -405,7 +472,7 @@ func (_c *MockStorage_Update_Call) Return(_a0 bool, _a1 error) *MockStorage_Upda
 	return _c
 }
 
-func (_c *MockStorage_Update_Call) RunAndReturn(run func(models.Order) (bool, error)) *MockStorage_Update_Call {
+func (_c *MockStorage_Update_Call) RunAndReturn(run func(context.Context, models.Order) (bool, error)) *MockStorage_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

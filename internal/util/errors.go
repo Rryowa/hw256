@@ -23,7 +23,7 @@ var (
 	ErrOrderIdNotProvided  = errors.New("error - order id not provided")
 	ErrUserIdNotProvided   = errors.New("error - user ids not provided")
 	ErrOrdersUserDiffers   = errors.New("error - order's user differs")
-	ErrOrderReturned       = errors.New("error - order has been returned")
+	ErrOrderNotExpired     = errors.New("error - order cant be returned (not expired)")
 	ErrOrderDoesNotBelong  = errors.New("error - order does not belong to user")
 	ErrReturnPeriodExpired = errors.New("error - order cant be returned (period is expired)")
 	ErrOffsetNotProvided   = errors.New("error - offset not provided")

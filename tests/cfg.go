@@ -8,7 +8,6 @@ import (
 )
 
 func NewTestConfig() *models.Config {
-	//for single stage build using @go test ./tests -tags=integration
 	err := godotenv.Load("test.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)

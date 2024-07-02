@@ -15,13 +15,11 @@ import (
 	"time"
 )
 
-// IntTestSuite Parallel integration tests using postgres schemas
 type IntTestSuite struct {
 	suite.Suite
 
-	createQuery   string
+	tr            db.TestRepository
 	expectedOrder models.Order
-	cfg           *models.Config
 }
 
 func TestIntTestSuite(t *testing.T) {
@@ -29,7 +27,11 @@ func TestIntTestSuite(t *testing.T) {
 }
 
 func (s *IntTestSuite) SetupSuite() {
-	s.cfg = NewTestConfig()
+	cfg := NewTestConfig()
+	ctx := context.Background()
+
+	s.tr = db.NewTestRepository(ctx, cfg)
+
 	dto := models.Dto{
 		ID:           "1",
 		UserID:       "1",
@@ -45,55 +47,41 @@ func (s *IntTestSuite) SetupSuite() {
 		ID:           dto.ID,
 		UserID:       dto.UserID,
 		StorageUntil: storageUntilDate,
+		Issued:       false,
 		OrderPrice:   models.Price(orderPriceFloat),
 		Weight:       models.Weight(weightFloat),
 		Returned:     false,
 	}
-
-	s.createQuery = `CREATE TABLE orders (
-		id VARCHAR(255) PRIMARY KEY,
-		user_id VARCHAR(255) NOT NULL,
-		storage_until TIMESTAMPTZ NOT NULL,
-		issued BOOLEAN NOT NULL,
-		issued_at TIMESTAMPTZ,
-		returned BOOLEAN NOT NULL,
-		order_price FLOAT NOT NULL,
-		weight FLOAT NOT NULL,
-		package_type VARCHAR(255) NOT NULL,
-		package_price FLOAT NOT NULL,
-		hash VARCHAR(255) NOT NULL
-	);
-	CREATE INDEX id_asc ON orders (id ASC);
-	CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);`
 }
 
-func (s *IntTestSuite) createRepoAndSchema(ctx context.Context) db.TestRepository {
-	name := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
-	schemaName := "test" + strconv.FormatInt(name.Int63(), 10)
+func (s *IntTestSuite) TearDownSuite() {
+	ctx := context.Background()
 
-	tr := db.NewTestRepository(ctx, s.cfg, schemaName)
+	err := s.tr.Repo.Truncate(ctx, "orders")
 
-	_, err := tr.Repo.Pool.Exec(ctx, "CREATE SCHEMA "+schemaName)
 	require.NoError(s.T(), err)
-
-	//query := storage.AddSchemaPrefix(schemaName, s.createQuery)
-	_, err = tr.Repo.Pool.Exec(ctx, s.createQuery)
-	require.NoError(s.T(), err)
-
-	return tr
 }
 
-func (s *IntTestSuite) TestInsertOrder() {
-	s.T().Run("TestInsertOrder", func(t *testing.T) {
+func (s *IntTestSuite) setupOrder() (context.Context, models.Order) {
+	ctx := context.Background()
+	r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+	order := s.expectedOrder
+	order.ID = strconv.FormatInt(r.Int63(), 10)
+	return ctx, order
+}
+
+func (s *IntTestSuite) TestInsert() {
+	s.T().Run("TestInsert", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+		order := s.expectedOrder
+		order.ID = strconv.FormatInt(r.Int63(), 10)
 
-		id, err := tr.Repo.Insert(ctx, s.expectedOrder)
+		id, err := s.tr.Repo.Insert(ctx, order)
 
-		require.NoError(t, err)
-		require.Equal(t, s.expectedOrder.ID, id)
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), order.ID, id)
 	})
 }
 
@@ -101,14 +89,13 @@ func (s *IntTestSuite) TestUpdateOrder() {
 	s.T().Run("TestUpd", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 		order := s.expectedOrder
+		order.ID = strconv.FormatInt(r.Int63(), 10)
+		_, err := s.tr.Repo.Insert(ctx, order)
 		order.Returned = true
-		_, err := tr.Repo.Insert(ctx, order)
-		require.NoError(t, err)
 
-		returned, err := tr.Repo.Update(ctx, order)
+		returned, err := s.tr.Repo.Update(ctx, order)
 
 		require.NoError(t, err)
 		require.Equal(t, order.Returned, returned)
@@ -119,13 +106,12 @@ func (s *IntTestSuite) TestDelete() {
 	s.T().Run("TestDelete", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(ctx, order)
-		require.NoError(t, err)
+		order.ID = strconv.FormatInt(r.Int63(), 10)
+		_, err := s.tr.Repo.Insert(ctx, order)
 
-		id, err := tr.Repo.Delete(ctx, order.ID)
+		id, err := s.tr.Repo.Delete(ctx, order.ID)
 
 		require.NoError(t, err)
 		require.Equal(t, order.ID, id)
@@ -136,34 +122,15 @@ func (s *IntTestSuite) TestGet() {
 	s.T().Run("TestGet", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(ctx, order)
-		require.NoError(t, err)
+		order.ID = strconv.FormatInt(r.Int63(), 10)
+		_, err := s.tr.Repo.Insert(ctx, order)
 
-		order, err = tr.Repo.Get(ctx, order.ID)
-
-		require.NoError(t, err)
-		require.Equal(t, s.expectedOrder.ID, order.ID)
-	})
-}
-
-func (s *IntTestSuite) TestGetReturns() {
-	s.T().Run("TestGetReturns", func(t *testing.T) {
-		t.Parallel()
-		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
-		order := s.expectedOrder
-		order.Returned = true
-		_, err := tr.Repo.Insert(ctx, order)
-		require.NoError(t, err)
-
-		orders, err := tr.Repo.GetReturns(ctx, 0, 10)
+		order2, err := s.tr.Repo.Get(ctx, order.ID)
 
 		require.NoError(t, err)
-		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
+		require.Equal(t, order.ID, order2.ID)
 	})
 }
 
@@ -171,15 +138,32 @@ func (s *IntTestSuite) TestGetOrders() {
 	s.T().Run("TestGetOrders", func(t *testing.T) {
 		t.Parallel()
 		ctx := context.Background()
-		tr := s.createRepoAndSchema(ctx)
-		defer tr.DropSchema(ctx, t)
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
 		order := s.expectedOrder
-		_, err := tr.Repo.Insert(ctx, order)
-		require.NoError(t, err)
+		order.ID = strconv.FormatInt(r.Int63(), 10)
+		_, err := s.tr.Repo.Insert(ctx, order)
 
-		orders, err := tr.Repo.GetOrders(ctx, order.ID, 0, 10)
+		orders, err := s.tr.Repo.GetOrders(ctx, order.UserID, 0, 10)
 
 		require.NoError(t, err)
-		require.Equal(t, s.expectedOrder.ID, orders[0].ID)
+		require.Equal(t, order.ID, orders[0].ID)
+		require.Equal(t, order.Issued, orders[0].Issued)
+	})
+}
+
+func (s *IntTestSuite) TestGetReturns() {
+	s.T().Run("TestGetReturns", func(t *testing.T) {
+		t.Parallel()
+		ctx := context.Background()
+		r := rand.New(rand.NewSource(int64(new(maphash.Hash).Sum64())))
+		order := s.expectedOrder
+		order.ID = strconv.FormatInt(r.Int63(), 10)
+		order.Returned = true
+		_, err := s.tr.Repo.Insert(ctx, order)
+
+		orders, err := s.tr.Repo.GetReturns(ctx, 0, 10)
+
+		require.NoError(t, err)
+		require.Equal(t, order.Returned, orders[0].Returned)
 	})
 }

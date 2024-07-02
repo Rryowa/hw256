@@ -7,14 +7,19 @@ packages:
       recursive: True
     interfaces:
       Storage:
-  homework/internal/service/package:
-    config:
-      recursive: True
-    interfaces:
-      PackageService:
   homework/internal/service:
     config:
       recursive: True
     interfaces:
+      PackageService:
       ValidationService:
-      OrderService:
+  homework/pkg/hash:
+    config:
+      recursive: True
+    interfaces:
+      Hasher:
+  homework/pkg/timer:
+    config:
+      recursive: True
+    interfaces:
+      Timer:

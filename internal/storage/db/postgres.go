@@ -47,14 +47,14 @@ func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
 
 func (r *Repository) Insert(ctx context.Context, order models.Order) (string, error) {
 	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)  RETURNING id`
-	log.Println(query)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`
+
 	var id string
-	err := r.Pool.QueryRow(ctx, query, order.ID, order.UserID,
+	row := r.Pool.QueryRow(ctx, query, order.ID, order.UserID,
 		order.StorageUntil, order.Issued, order.IssuedAt, order.Returned,
 		order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice,
-		order.Hash).Scan(&id)
-
+		order.Hash)
+	err := row.Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -82,19 +82,20 @@ func (r *Repository) Update(ctx context.Context, order models.Order) (bool, erro
 	return returned, nil
 }
 
-func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) error {
+func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error) {
 	tx, err := r.Pool.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadWrite,
 	})
 	if err != nil {
-		return err
+		return []bool{}, err
 	}
 	defer tx.Rollback(ctx)
 
 	query := `UPDATE orders SET issued=$1, issued_at=$2
         WHERE id=$3
         `
+
 	batch := &pgx.Batch{}
 	for _, order := range orders {
 		batch.Queue(query, order.Issued, order.IssuedAt, order.ID)
@@ -102,16 +103,18 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) err
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	for i := range orders {
+	var issuedOrders []bool
+	for i, order := range orders {
 		_, err := br.Exec()
 		if err != nil {
 			br.Close()
-			return fmt.Errorf("error executing batch at order index %d: %w", i, err)
+			return []bool{}, fmt.Errorf("error executing batch at order index %d: %w", i, err)
 		}
+		issuedOrders = append(issuedOrders, order.Issued)
 	}
 	err = br.Close()
 
-	return tx.Commit(ctx)
+	return issuedOrders, tx.Commit(ctx)
 }
 
 func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
@@ -139,7 +142,7 @@ func (r *Repository) Get(ctx context.Context, id string) (models.Order, error) {
 
 	if err := pgxscan.Get(ctx, r.Pool, &order, query, id); err != nil {
 		var pgErr *pgconn.PgError
-		//TODO: check if ErrOrderNOtFoudn is returend
+
 		if errors.As(err, &pgErr) {
 			log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
 			return models.Order{}, err
@@ -174,6 +177,7 @@ func (r *Repository) GetReturns(ctx context.Context, offset, limit int) ([]model
 	if err := pgxscan.ScanAll(&returns, rows); err != nil {
 		return nil, err
 	}
+
 	return returns, nil
 }
 
@@ -201,4 +205,12 @@ func (r *Repository) GetOrders(ctx context.Context, userId string, offset, limit
 		return nil, err
 	}
 	return userOrders, err
+}
+
+func (r *Repository) Truncate(ctx context.Context, table string) error {
+	_, err := r.Pool.Exec(ctx, fmt.Sprintf(`truncate table %s`, table))
+	if err != nil {
+		return err
+	}
+	return nil
 }

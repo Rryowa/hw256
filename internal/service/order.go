@@ -8,6 +8,7 @@ import (
 	"homework/internal/storage"
 	"homework/internal/util"
 	"homework/pkg/hash"
+	"homework/pkg/timer"
 	"strconv"
 	"strings"
 	"time"
@@ -26,16 +27,21 @@ type OrderService interface {
 type orderService struct {
 	repository     storage.Storage
 	packageService PackageService
+	hashGenerator  hash.Hasher
+	timeGenerator  timer.Timer
 }
 
-func NewOrderService(repository storage.Storage, packageService PackageService) OrderService {
+func NewOrderService(repository storage.Storage, packageService PackageService, hashGenerator hash.Hasher, timeGenerator timer.Timer) OrderService {
 	return &orderService{
 		repository:     repository,
 		packageService: packageService,
+		hashGenerator:  hashGenerator,
+		timeGenerator:  timeGenerator,
 	}
 }
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
+
 	_, err := os.repository.Get(ctx, dto.ID)
 	if !errors.Is(err, util.ErrOrderNotFound) {
 		return util.ErrOrderExists
@@ -61,13 +67,6 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 	}
 	weight := models.Weight(weightFloat)
 
-	if len(pkgTypeStr) != 0 {
-		packageType := models.PackageType(pkgTypeStr)
-		if err = os.packageService.ValidatePackage(weight, packageType); err != nil {
-			return err
-		}
-	}
-
 	order := models.Order{
 		ID:           dto.ID,
 		UserID:       dto.UserID,
@@ -75,8 +74,6 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 		OrderPrice:   orderPrice,
 		Weight:       weight,
 	}
-
-	os.packageService.ApplyPackage(&order, models.PackageType(pkgTypeStr))
 
 	fmt.Print("Calculating hash.")
 
@@ -94,12 +91,21 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 	}()
 
 	go func(order *models.Order, ticker *time.Ticker, done chan struct{}) {
-		order.Hash = hash.GenerateHash()
+		order.Hash = os.hashGenerator.GenerateHash()
 		ticker.Stop()
 		done <- struct{}{}
 	}(&order, ticker, done)
 
 	<-done
+	fmt.Println()
+
+	if len(pkgTypeStr) != 0 {
+		packageType := models.PackageType(pkgTypeStr)
+		if err = os.packageService.ValidatePackage(weight, packageType); err != nil {
+			return err
+		}
+		os.packageService.ApplyPackage(&order, models.PackageType(pkgTypeStr))
+	}
 
 	_, err = os.repository.Insert(ctx, order)
 	return err
@@ -122,9 +128,6 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 		if order.Issued {
 			return util.ErrOrderIssued
 		}
-		if order.Returned {
-			return util.ErrOrderReturned
-		}
 		if time.Now().After(order.StorageUntil) {
 			return util.ErrOrderExpired
 		}
@@ -139,10 +142,11 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 
 	for i := range orders {
 		orders[i].Issued = true
-		orders[i].IssuedAt = time.Now()
+		orders[i].IssuedAt = os.timeGenerator.TimeNow()
 	}
 
-	return os.repository.IssueUpdate(ctx, orders)
+	_, err = os.repository.IssueUpdate(ctx, orders)
+	return err
 }
 
 func (os *orderService) Return(ctx context.Context, id, userId string) error {
@@ -176,10 +180,9 @@ func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 		return util.ErrOrderIssued
 	}
 
-	//skip checking for a period, to ensure that its working
-	//if time.Now().Before(order.StorageUntil) {
-	//	return util.ErrOrderNotExpired
-	//}
+	if time.Now().Before(order.StorageUntil) {
+		return util.ErrOrderNotExpired
+	}
 
 	_, err = os.repository.Delete(ctx, id)
 	return err
