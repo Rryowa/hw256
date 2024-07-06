@@ -21,14 +21,14 @@ import (
 
 type CLI struct {
 	orderService service.OrderService
-	kafkaBox     *service.OutboxRepo
+	kafkaBox     service.Outbox
 	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, kafkaBox *service.OutboxRepo) *CLI {
+func NewCLI(os service.OrderService, kafkaBox service.Outbox) *CLI {
 	return &CLI{
 		orderService: os,
 		kafkaBox:     kafkaBox,
@@ -188,7 +188,7 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 
 	err := c.kafkaBox.CreateEvent(ctx, input)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	switch commandName {

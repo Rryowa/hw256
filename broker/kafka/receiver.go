@@ -36,17 +36,16 @@ func (r *KafkaReceiver) Subscribe(topic string) error {
 
 	for _, partition := range partitionList {
 		pc, err := r.consumer.SingleConsumer.ConsumePartition(topic, partition, initialOffset)
-
 		if err != nil {
 			return err
 		}
 
 		go func(pc sarama.PartitionConsumer, partition int32) {
+			defer pc.Close()
 			for message := range pc.Messages() {
 				handler(message)
 			}
 		}(pc, partition)
 	}
-
 	return nil
 }
