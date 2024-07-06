@@ -40,7 +40,7 @@ func TestAccept_HappyPath(t *testing.T) {
 	//I mocked Hasher because creating an alias for GenerateHash() is not concurrency safe.
 	mockHasher := mocks.NewMockHasher(t)
 	mockHasher.EXPECT().GenerateHash().Return(expected.Hash)
-	orderSvc := NewOrderService(mockRepo, mockPackageSrvc, mockHasher, mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mockPackageSrvc, mockHasher)
 
 	mockRepo.EXPECT().Insert(mock.Anything, expected).Return(expected.ID, nil)
 
@@ -61,7 +61,7 @@ func TestAccept_ErrOrderExists(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.Accept(ctx, dto, "")
 
@@ -81,7 +81,7 @@ func TestAccept_ErrDateInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 
@@ -99,7 +99,7 @@ func TestAccept_ErrDateInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 
@@ -120,7 +120,7 @@ func TestAccept_ErrOrderPriceInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 		require.Equal(t, util.ErrOrderPriceInvalid, err)
@@ -137,7 +137,7 @@ func TestAccept_ErrOrderPriceInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 		require.Equal(t, util.ErrOrderPriceInvalid, err)
@@ -157,7 +157,7 @@ func TestAccept_ErrWeightInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 		require.Equal(t, util.ErrWeightInvalid, err)
@@ -174,7 +174,7 @@ func TestAccept_ErrWeightInvalid(t *testing.T) {
 		}
 		mockRepo := mocks.NewMockStorage(t)
 		mockRepo.EXPECT().Get(mock.Anything, dto.ID).Return(models.Order{}, util.ErrOrderNotFound)
-		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+		orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 		err := orderSvc.Accept(ctx, dto, "")
 		require.Equal(t, util.ErrWeightInvalid, err)

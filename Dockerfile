@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/cli ./cmd/main.go
 #WORKDIR /app
 #COPY --from=builder /app/bin ./bin
 #COPY --from=builder /app/.env ./.env
-#COPY --from=builder /app/Makefile ./Makefile
+#COPY --from=builder /app/old_Makefile ./old_Makefile
 #COPY --from=builder /bin/goose /bin/goose
 #COPY --from=builder /app/migrations ./migrations
 #COPY --from=builder /app/mocks ./mocks

@@ -8,19 +8,19 @@ import (
 	"homework/internal/util"
 	"homework/internal/view"
 	"homework/pkg/hash"
-	"homework/pkg/timer"
 	"log"
 )
 
 func main() {
-	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
-
+	ctx := context.Background()
+	cfg := util.NewConfig()
+	repository := db.NewSQLRepository(ctx, cfg)
 	packageService := service.NewPackageService()
 	hashGenerator := &hash.HashGenerator{}
-	timeGenerator := &timer.TimeGenerator{}
-	orderService := service.NewOrderService(repository, packageService, hashGenerator, timeGenerator)
+	orderService := service.NewOrderService(repository, packageService, hashGenerator)
+	newOutbox := service.NewOutbox(ctx, cfg)
 
-	commands := view.NewCLI(orderService)
+	commands := view.NewCLI(orderService, newOutbox)
 	if err := commands.Run(); err != nil {
 		log.Fatal(err)
 	}

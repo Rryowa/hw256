@@ -32,8 +32,8 @@ func TestReturn_HappyPath(t *testing.T) {
 		Returned:     true,
 	}
 	mockRepo := mocks.NewMockStorage(t)
-	mockTimer := mocks.NewMockTimer(t)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mockTimer)
+
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 	mockRepo.EXPECT().Get(mock.Anything, "1").Return(order, nil)
 	mockRepo.EXPECT().Update(mock.Anything, expected).
 		Return(expected.Returned, nil)
@@ -48,7 +48,7 @@ func TestReturn_ErrOrderNotFound(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, "1").Return(models.Order{}, util.ErrOrderNotFound)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.Return(ctx, "1", "1")
 
@@ -67,7 +67,7 @@ func TestReturn_ErrOrderDoesNotBelong(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.Return(ctx, expected.ID, "10")
 
@@ -86,7 +86,7 @@ func TestReturn_ErrOrderNotIssued(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.Return(ctx, expected.ID, expected.UserID)
 
@@ -106,7 +106,7 @@ func TestReturn_ErrReturnPeriodExpired(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.Return(ctx, "1", "2")
 
@@ -126,7 +126,7 @@ func TestReturnToCourier_HappyPath(t *testing.T) {
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
 	mockRepo.EXPECT().Delete(mock.Anything, expected.ID).Return(expected.ID, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.ReturnToCourier(ctx, expected.ID)
 
@@ -138,7 +138,7 @@ func TestReturnToCourier_ErrOrderNotFound(t *testing.T) {
 	ctx := context.Background()
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, "1").Return(models.Order{}, util.ErrOrderNotFound)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.ReturnToCourier(ctx, "1")
 
@@ -157,7 +157,7 @@ func TestReturnToCourier_ErrOrderIssued(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.ReturnToCourier(ctx, expected.ID)
 
@@ -176,7 +176,7 @@ func TestReturnToCourier_ErrOrderNotExpired(t *testing.T) {
 	}
 	mockRepo := mocks.NewMockStorage(t)
 	mockRepo.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
-	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t), mocks.NewMockTimer(t))
+	orderSvc := NewOrderService(mockRepo, mocks.NewMockPackageService(t), mocks.NewMockHasher(t))
 
 	err := orderSvc.ReturnToCourier(ctx, expected.ID)
 

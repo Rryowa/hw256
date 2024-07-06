@@ -18,8 +18,3 @@ packages:
       recursive: True
     interfaces:
       Hasher:
-  homework/pkg/timer:
-    config:
-      recursive: True
-    interfaces:
-      Timer:

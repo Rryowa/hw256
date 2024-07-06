@@ -83,26 +83,17 @@ func (r *Repository) Update(ctx context.Context, order models.Order) (bool, erro
 }
 
 func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error) {
-	tx, err := r.Pool.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel:   pgx.RepeatableRead,
-		AccessMode: pgx.ReadWrite,
-	})
-	if err != nil {
-		return []bool{}, err
-	}
-	defer tx.Rollback(ctx)
-
-	query := `UPDATE orders SET issued=$1, issued_at=$2
-        WHERE id=$3
+	query := `UPDATE orders SET issued=$1, issued_at=NOW()
+        WHERE id=$2
         `
 
 	batch := &pgx.Batch{}
 	for _, order := range orders {
-		batch.Queue(query, order.Issued, order.IssuedAt, order.ID)
+		batch.Queue(query, order.Issued, order.ID)
 		log.Printf("Order with id:%s issued\n", order.ID)
 	}
 
-	br := tx.SendBatch(ctx, batch)
+	br := r.Pool.SendBatch(ctx, batch)
 	var issuedOrders []bool
 	for i, order := range orders {
 		_, err := br.Exec()
@@ -112,9 +103,11 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 		}
 		issuedOrders = append(issuedOrders, order.Issued)
 	}
-	err = br.Close()
-
-	return issuedOrders, tx.Commit(ctx)
+	err := br.Close()
+	if err != nil {
+		return []bool{}, err
+	}
+	return issuedOrders, err
 }
 
 func (r *Repository) Delete(ctx context.Context, id string) (string, error) {

@@ -21,15 +21,17 @@ import (
 
 type CLI struct {
 	orderService service.OrderService
+	kafkaBox     *service.OutboxRepo
 	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService) *CLI {
+func NewCLI(os service.OrderService, kafkaBox *service.OutboxRepo) *CLI {
 	return &CLI{
 		orderService: os,
+		kafkaBox:     kafkaBox,
 		commandList: []command{
 			{
 				name:        help,
@@ -83,8 +85,10 @@ func (c *CLI) Run() error {
 		&semaphore); err != nil {
 		return err
 	}
-
 	var wg sync.WaitGroup
+	ctx := context.Background()
+
+	go c.kafkaBox.StartProcessingEvents(ctx, done)
 
 	go signalListener(signalChannel, done)
 
@@ -97,7 +101,7 @@ func (c *CLI) Run() error {
 	}()
 
 	//Handler
-	go c.commandHandler(commandChannel, semaphore, done, &wg)
+	go c.commandHandler(commandChannel, semaphore, ctx, done, &wg)
 
 	<-done
 
@@ -118,7 +122,7 @@ func signalListener(signalChannel chan os.Signal, done chan struct{}) {
 	}
 }
 
-func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
+func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}, ctx context.Context, done chan struct{}, wg *sync.WaitGroup) {
 	for {
 		cmd := <-commandChannel
 
@@ -133,18 +137,18 @@ func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}
 			atomic.AddUint64(&c.activeGoroutines, 1)
 			id := atomic.LoadUint64(&c.activeGoroutines)
 
-			go c.worker(cmd, id, semaphore, wg)
+			go c.worker(ctx, cmd, id, semaphore, wg)
 		}
 	}
 }
 
-func (c *CLI) worker(cmd string, id uint64, semaphore chan struct{}, wg *sync.WaitGroup) {
+func (c *CLI) worker(ctx context.Context, cmd string, id uint64, semaphore chan struct{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Printf("Worker %d: Waiting to acquire semaphore\n", id)
 	semaphore <- struct{}{}
 
 	log.Printf("Worker %d: Working\n", id)
-	c.processCommand(cmd)
+	c.processCommand(ctx, cmd)
 
 	log.Printf("Worker %d: Semaphore released\n\n", id)
 	<-semaphore
@@ -178,10 +182,14 @@ func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 	return nil
 }
 
-func (c *CLI) processCommand(input string) {
+func (c *CLI) processCommand(ctx context.Context, input string) {
 	args := strings.Split(input, " ")
 	commandName := args[0]
-	ctx := context.Background()
+
+	err := c.kafkaBox.CreateEvent(ctx, input)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	switch commandName {
 	case acceptOrder:
@@ -193,6 +201,8 @@ func (c *CLI) processCommand(input string) {
 	case issueOrders:
 		if err := c.issueOrders(ctx, args[1:]); err != nil {
 			log.Println(err)
+		} else {
+			log.Println("Orders issued.")
 		}
 	case acceptReturn:
 		if err := c.acceptReturn(ctx, args[1:]); err != nil {

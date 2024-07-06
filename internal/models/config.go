@@ -10,4 +10,6 @@ type Config struct {
 	DBName   string        `env:"POSTGRES_DB"`
 	Attempts int           `env:"ATTEMPTS"`
 	Timeout  time.Duration `env:"TIMEOUT"`
+	UseKafka bool          `env:"USE_KAFKA"`
+	Brokers  []string      `env:"BROKERS"`
 }

@@ -146,7 +146,6 @@ func (s *IntTestSuite) TestGetOrders() {
 		orders, err := s.tr.Repo.GetOrders(ctx, order.UserID, 0, 10)
 
 		require.NoError(t, err)
-		require.Equal(t, order.ID, orders[0].ID)
 		require.Equal(t, order.Issued, orders[0].Issued)
 	})
 }

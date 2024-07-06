@@ -8,7 +8,6 @@ import (
 	"homework/internal/storage"
 	"homework/internal/util"
 	"homework/pkg/hash"
-	"homework/pkg/timer"
 	"strconv"
 	"strings"
 	"time"
@@ -28,15 +27,13 @@ type orderService struct {
 	repository     storage.Storage
 	packageService PackageService
 	hashGenerator  hash.Hasher
-	timeGenerator  timer.Timer
 }
 
-func NewOrderService(repository storage.Storage, packageService PackageService, hashGenerator hash.Hasher, timeGenerator timer.Timer) OrderService {
+func NewOrderService(repository storage.Storage, packageService PackageService, hashGenerator hash.Hasher) OrderService {
 	return &orderService{
 		repository:     repository,
 		packageService: packageService,
 		hashGenerator:  hashGenerator,
-		timeGenerator:  timeGenerator,
 	}
 }
 
@@ -142,7 +139,6 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 
 	for i := range orders {
 		orders[i].Issued = true
-		orders[i].IssuedAt = os.timeGenerator.TimeNow()
 	}
 
 	_, err = os.repository.IssueUpdate(ctx, orders)

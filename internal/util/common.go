@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +26,11 @@ func NewConfig() *models.Config {
 		log.Fatalf("Error parsing TIMEOUT: %v\n", err)
 	}
 
+	useKafka, err := strconv.ParseBool(os.Getenv("USE_KAFKA"))
+	if err != nil {
+		log.Fatalf("Error parsing USE_KAFKA: %v\n", err)
+	}
+
 	return &models.Config{
 		User:     os.Getenv("POSTGRES_USER"),
 		Password: os.Getenv("POSTGRES_PASSWORD"),
@@ -33,6 +39,8 @@ func NewConfig() *models.Config {
 		DBName:   os.Getenv("POSTGRES_DB"),
 		Attempts: attempts,
 		Timeout:  timeout,
+		UseKafka: useKafka,
+		Brokers:  strings.Split(os.Getenv("BROKERS"), ","),
 	}
 }
 
