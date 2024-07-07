@@ -8,8 +8,8 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"homework/broker/kafka"
 	"homework/internal/models"
+	"homework/pkg/kafka"
 	"log"
 	"strings"
 	"time"
@@ -46,7 +46,7 @@ func NewOutbox(ctx context.Context, cfg *models.Config) Outbox {
 }
 
 func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct{}) {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(kafka.Interval)
 	go func() {
 		for {
 			select {
@@ -69,15 +69,14 @@ func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct
 				}
 
 				if o.UseKafka {
+					err := o.ReceiveKafka()
+					if err != nil {
+						log.Println("Error receiving message from Kafka:", err)
+						continue
+					}
 					err = o.SendKafka(event)
 					if err != nil {
 						log.Println("Error sending message to Kafka:", err)
-						continue
-					}
-
-					err = o.ReceiveKafka()
-					if err != nil {
-						log.Println("Error receiving message from Kafka:", err)
 						continue
 					}
 				} else {
