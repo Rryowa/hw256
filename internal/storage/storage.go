@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
 	"homework/internal/models"
 )
 
@@ -20,8 +19,8 @@ type Storage interface {
 
 type Event interface {
 	CreateEvent(ctx context.Context, request string) error
-	GetEvent(ctx context.Context) (models.Event, pgx.Tx, error)
-	ProcessEvent(ctx context.Context, e models.Event, tx pgx.Tx) (models.Event, error)
+	GetEvents(ctx context.Context) ([]models.Event, error)
+	ProcessEvents(ctx context.Context, events []models.Event) ([]models.Event, error)
 }
 
 type StorageTest interface {

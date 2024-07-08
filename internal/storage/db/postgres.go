@@ -224,42 +224,44 @@ func (r *Repository) CreateEvent(ctx context.Context, request string) error {
 	return nil
 }
 
-func (r *Repository) GetEvent(ctx context.Context) (models.Event, pgx.Tx, error) {
-	const op = "GetEvent"
-	tx, _ := r.Pool.BeginTx(ctx, pgx.TxOptions{
-		IsoLevel: pgx.RepeatableRead,
-	})
-	row := tx.QueryRow(ctx,
-		`SELECT id, request, method_name, status, acquired_at
-				FROM events WHERE status = $1`, models.EventStatusAcquired)
-	var e models.Event
-	err := row.Scan(&e.ID, &e.Request, &e.MethodName, &e.Status, &e.AcquiredAt)
+func (r *Repository) GetEvents(ctx context.Context) ([]models.Event, error) {
+	const op = "GetEvents"
+	query := `SELECT id, request, method_name, status, acquired_at
+				FROM events WHERE status = $1 LIMIT 5`
+	//tx, _ := r.Pool.BeginTx(ctx, pgx.TxOptions{
+	//	IsoLevel: pgx.Serializable,
+	//})
+	rows, err := r.Pool.Query(ctx, query, models.EventStatusAcquired)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return e, nil, nil
+			return []models.Event{}, nil
 		}
-		return e, nil, fmt.Errorf("%s: %w", op, err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
+		}
+		return nil, err
 	}
+	defer rows.Close()
 
-	return e, tx, nil
+	var events []models.Event
+	if err := pgxscan.ScanAll(&events, rows); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return events, err
 }
 
-func (r *Repository) ProcessEvent(ctx context.Context, e models.Event, tx pgx.Tx) (models.Event, error) {
-	const op = "ProcessEvent"
-	e.Status = models.EventStatusProcessed
-	row := tx.QueryRow(ctx,
-		`UPDATE events SET status = $1, processed_at = NOW()
-				WHERE id = $2 returning processed_at`,
-		e.Status, e.ID)
-	err := row.Scan(&e.ProcessedAt)
-	if err != nil {
-		return models.Event{}, fmt.Errorf("%s: %w", op, err)
+func (r *Repository) ProcessEvents(ctx context.Context, events []models.Event) ([]models.Event, error) {
+	const op = "ProcessEvents"
+	query := `UPDATE events SET status = $1, processed_at = NOW()
+				WHERE id = $2 returning status, processed_at`
+
+	for i := 0; i < len(events); i++ {
+		err := r.Pool.QueryRow(ctx, query, models.EventStatusProcessed, events[i].ID).Scan(&events[i].Status, &events[i].ProcessedAt)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return models.Event{}, err
-	}
-
-	return e, nil
+	return events, nil
 }

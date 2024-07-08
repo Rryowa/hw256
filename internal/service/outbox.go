@@ -36,16 +36,16 @@ func (o *Outbox) StartProcessingEvents(ctx context.Context, done chan struct{}) 
 			case <-done:
 				return
 			case <-ticker.C:
-				event, tx, err := o.repo.GetEvent(ctx)
+				events, err := o.repo.GetEvents(ctx)
 				if err != nil {
 					log.Println("Error getting message from repo:", err)
 					continue
 				}
-				if event.ID == 0 {
+				if len(events) == 0 {
 					continue
 				}
 
-				event, err = o.repo.ProcessEvent(ctx, event, tx)
+				events, err = o.repo.ProcessEvents(ctx, events)
 				if err != nil {
 					log.Println("Error processing event:", err)
 					continue
@@ -57,13 +57,15 @@ func (o *Outbox) StartProcessingEvents(ctx context.Context, done chan struct{}) 
 						log.Println("Error receiving message from Kafka:", err)
 						continue
 					}
-					err = o.SendKafka(event)
-					if err != nil {
-						log.Println("Error sending message to Kafka:", err)
-						continue
+					for _, event := range events {
+						err = o.SendKafka(event)
+						if err != nil {
+							log.Println("Error sending message to Kafka:", err)
+							continue
+						}
 					}
 				} else {
-					o.OutputToConsole(event)
+					o.OutputToConsole(events)
 				}
 			}
 		}
@@ -113,7 +115,9 @@ func (o *Outbox) ReceiveKafka() error {
 	return nil
 }
 
-func (o *Outbox) OutputToConsole(event models.Event) {
-	fmt.Printf("\nOutput to Console: Event ID: %d, Request: %s, Status: %s, AcquiredAt: %v, ProcessedAt: %v\n",
-		event.ID, event.Request, event.Status, event.AcquiredAt, event.ProcessedAt)
+func (o *Outbox) OutputToConsole(events []models.Event) {
+	for _, event := range events {
+		fmt.Printf("\nOutput to Console: Event ID: %d, Request: %s, Status: %s, AcquiredAt: %v, ProcessedAt: %v\n",
+			event.ID, event.Request, event.Status, event.AcquiredAt, event.ProcessedAt)
+	}
 }
