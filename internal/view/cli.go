@@ -21,17 +21,17 @@ import (
 
 type CLI struct {
 	orderService service.OrderService
-	kafkaBox     service.Outbox
+	outbox       *service.Outbox
 	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, kafkaBox service.Outbox) *CLI {
+func NewCLI(os service.OrderService, outbox *service.Outbox) *CLI {
 	return &CLI{
 		orderService: os,
-		kafkaBox:     kafkaBox,
+		outbox:       outbox,
 		commandList: []command{
 			{
 				name:        help,
@@ -88,9 +88,11 @@ func (c *CLI) Run() error {
 	var wg sync.WaitGroup
 	ctx := context.Background()
 
-	go c.kafkaBox.StartProcessingEvents(ctx, done)
-
 	go signalListener(signalChannel, done)
+
+	go c.outbox.StartProcessingEvents(ctx, done)
+	//TODO: Procesing only first request, at every make all
+	//TODO: even if second input invalid it will block execution.
 
 	//Reader
 	go func() {
@@ -101,7 +103,7 @@ func (c *CLI) Run() error {
 	}()
 
 	//Handler
-	go c.commandHandler(commandChannel, semaphore, ctx, done, &wg)
+	go c.commandHandler(ctx, commandChannel, semaphore, done, &wg)
 
 	<-done
 
@@ -122,7 +124,7 @@ func signalListener(signalChannel chan os.Signal, done chan struct{}) {
 	}
 }
 
-func (c *CLI) commandHandler(commandChannel chan string, semaphore chan struct{}, ctx context.Context, done chan struct{}, wg *sync.WaitGroup) {
+func (c *CLI) commandHandler(ctx context.Context, commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
 	for {
 		cmd := <-commandChannel
 
@@ -186,10 +188,12 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 	args := strings.Split(input, " ")
 	commandName := args[0]
 
-	err := c.kafkaBox.CreateEvent(ctx, input)
+	//TODO: Second event created and processed - then forever loop
+	err := c.orderService.NewEvent(ctx, input)
 	if err != nil {
 		log.Println(err)
 	}
+	log.Println(input)
 
 	switch commandName {
 	case acceptOrder:
@@ -249,6 +253,7 @@ func (c *CLI) acceptOrder(ctx context.Context, args []string) error {
 		return err
 	}
 
+	log.Println("orderService.Accept")
 	return c.orderService.Accept(ctx, dto, dto.PackageType)
 }
 
@@ -263,7 +268,6 @@ func (c *CLI) issueOrders(ctx context.Context, args []string) error {
 	if err := ValidateIssueArgs(idsStr); err != nil {
 		return err
 	}
-
 	return c.orderService.Issue(ctx, idsStr)
 }
 

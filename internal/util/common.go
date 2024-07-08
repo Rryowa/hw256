@@ -41,6 +41,7 @@ func NewConfig() *models.Config {
 		Timeout:  timeout,
 		UseKafka: useKafka,
 		Brokers:  strings.Split(os.Getenv("BROKERS"), ","),
+		Topic:    os.Getenv("TOPIC"),
 	}
 }
 

@@ -18,7 +18,7 @@ func main() {
 	packageService := service.NewPackageService()
 	hashGenerator := &hash.HashGenerator{}
 	orderService := service.NewOrderService(repository, packageService, hashGenerator)
-	newOutbox := service.NewOutbox(ctx, cfg)
+	newOutbox := service.NewOutbox(repository, cfg)
 
 	commands := view.NewCLI(orderService, newOutbox)
 	if err := commands.Run(); err != nil {

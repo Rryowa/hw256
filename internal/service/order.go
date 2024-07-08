@@ -21,6 +21,7 @@ type OrderService interface {
 	ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error)
 	ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error)
 	PrintList(orders []models.Order)
+	NewEvent(ctx context.Context, input string) error
 }
 
 type orderService struct {
@@ -37,8 +38,15 @@ func NewOrderService(repository storage.Storage, packageService PackageService, 
 	}
 }
 
-func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
+func (os *orderService) NewEvent(ctx context.Context, input string) error {
+	err := os.repository.CreateEvent(ctx, input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
 	_, err := os.repository.Get(ctx, dto.ID)
 	if !errors.Is(err, util.ErrOrderNotFound) {
 		return util.ErrOrderExists

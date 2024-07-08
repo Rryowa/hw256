@@ -12,6 +12,7 @@ import (
 	"homework/internal/storage"
 	"homework/internal/util"
 	"log"
+	"strings"
 )
 
 type Repository struct {
@@ -206,4 +207,59 @@ func (r *Repository) Truncate(ctx context.Context, table string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *Repository) CreateEvent(ctx context.Context, request string) error {
+	const op = "CreateEvent"
+	args := strings.Split(request, " ")
+	_, err := r.Pool.Exec(ctx,
+		`INSERT INTO events (method_name, request, status, acquired_at) 
+				VALUES ($1, $2, $3, NOW())`,
+		args[0], request, models.EventStatusAcquired)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (r *Repository) GetEvent(ctx context.Context) (models.Event, pgx.Tx, error) {
+	const op = "GetEvent"
+	tx, _ := r.Pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	row := tx.QueryRow(ctx,
+		`SELECT id, request, method_name, status, acquired_at
+				FROM events WHERE status = $1`, models.EventStatusAcquired)
+	var e models.Event
+	err := row.Scan(&e.ID, &e.Request, &e.MethodName, &e.Status, &e.AcquiredAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return e, nil, nil
+		}
+		return e, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return e, tx, nil
+}
+
+func (r *Repository) ProcessEvent(ctx context.Context, e models.Event, tx pgx.Tx) (models.Event, error) {
+	const op = "ProcessEvent"
+	e.Status = models.EventStatusProcessed
+	row := tx.QueryRow(ctx,
+		`UPDATE events SET status = $1, processed_at = NOW()
+				WHERE id = $2 returning processed_at`,
+		e.Status, e.ID)
+	err := row.Scan(&e.ProcessedAt)
+	if err != nil {
+		return models.Event{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return models.Event{}, err
+	}
+
+	return e, nil
 }

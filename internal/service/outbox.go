@@ -3,49 +3,32 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/IBM/sarama"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"homework/internal/models"
+	"homework/internal/storage"
 	"homework/pkg/kafka"
 	"log"
-	"strings"
 	"time"
 )
 
-const topic = "orders"
-
-type Outbox interface {
-	CreateEvent(ctx context.Context, request string) error
-	GetEvent(ctx context.Context) (models.Event, error)
-	ProcessEvent(ctx context.Context, e models.Event) (models.Event, error)
-	StartProcessingEvents(ctx context.Context, done chan struct{})
-}
-
-type OutboxRepo struct {
-	Brokers  []string
-	Pool     *pgxpool.Pool
+type Outbox struct {
+	repo     storage.Storage
 	UseKafka bool
+	Brokers  []string
+	Topic    string
 }
 
-func NewOutbox(ctx context.Context, cfg *models.Config) Outbox {
-	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		log.Fatal(err, "db connection error")
-	}
-	log.Println("Connected to db")
-
-	return &OutboxRepo{
-		Pool:     pool,
+func NewOutbox(repo storage.Storage, cfg *models.Config) *Outbox {
+	return &Outbox{
+		repo:     repo,
 		Brokers:  cfg.Brokers,
 		UseKafka: cfg.UseKafka,
+		Topic:    cfg.Topic,
 	}
 }
 
-func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct{}) {
+func (o *Outbox) StartProcessingEvents(ctx context.Context, done chan struct{}) {
 	ticker := time.NewTicker(kafka.Interval)
 	go func() {
 		for {
@@ -53,7 +36,7 @@ func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct
 			case <-done:
 				return
 			case <-ticker.C:
-				event, err := o.GetEvent(ctx)
+				event, tx, err := o.repo.GetEvent(ctx)
 				if err != nil {
 					log.Println("Error getting message from repo:", err)
 					continue
@@ -62,7 +45,7 @@ func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct
 					continue
 				}
 
-				event, err = o.ProcessEvent(ctx, event)
+				event, err = o.repo.ProcessEvent(ctx, event, tx)
 				if err != nil {
 					log.Println("Error processing event:", err)
 					continue
@@ -87,60 +70,12 @@ func (o *OutboxRepo) StartProcessingEvents(ctx context.Context, done chan struct
 	}()
 }
 
-func (o *OutboxRepo) CreateEvent(ctx context.Context, request string) error {
-	const op = "CreateEvent"
-	args := strings.Split(request, " ")
-
-	_, err := o.Pool.Exec(ctx,
-		`INSERT INTO events (method_name, request, acquired, acquired_at) 
-				VALUES ($1, $2, true, NOW())`,
-		args[0], request)
-
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	return nil
-}
-
-func (o *OutboxRepo) GetEvent(ctx context.Context) (models.Event, error) {
-	const op = "GetEvent"
-	row := o.Pool.QueryRow(ctx,
-		`SELECT id, request, acquired, processed, acquired_at
-				FROM events WHERE acquired = true AND processed = false`)
-	var e models.Event
-	err := row.Scan(&e.ID, &e.Request, &e.Acquired, &e.Processed, &e.AcquiredAt)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return e, nil
-		}
-		return e, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return e, nil
-}
-
-func (o *OutboxRepo) ProcessEvent(ctx context.Context, e models.Event) (models.Event, error) {
-	const op = "ProcessEvent"
-	e.Processed = true
-	row := o.Pool.QueryRow(ctx,
-		`UPDATE events SET processed = $1, processed_at = NOW()
-				WHERE id = $2 returning processed_at`,
-		e.Processed, e.ID)
-	err := row.Scan(&e.ProcessedAt)
-	if err != nil {
-		return models.Event{}, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return e, nil
-}
-
-func (o *OutboxRepo) SendKafka(event models.Event) error {
+func (o *Outbox) SendKafka(event models.Event) error {
 	kafkaProducer, err := kafka.NewProducer(o.Brokers)
 	if err != nil {
 		log.Fatal(err)
 	}
-	producer := kafka.NewKafkaSender(kafkaProducer, topic)
+	producer := kafka.NewKafkaSender(kafkaProducer, o.Topic)
 	err = producer.SendMessage(event)
 	if err != nil {
 		return err
@@ -152,14 +87,14 @@ func (o *OutboxRepo) SendKafka(event models.Event) error {
 	return nil
 }
 
-func (o *OutboxRepo) ReceiveKafka() error {
+func (o *Outbox) ReceiveKafka() error {
 	kafkaConsumer, err := kafka.NewConsumer(o.Brokers)
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	handlers := map[string]kafka.HandleFunc{
-		topic: func(message *sarama.ConsumerMessage) {
+		o.Topic: func(message *sarama.ConsumerMessage) {
 			event := models.Event{}
 			err = json.Unmarshal(message.Value, &event)
 			if err != nil {
@@ -171,14 +106,14 @@ func (o *OutboxRepo) ReceiveKafka() error {
 	}
 
 	recv := kafka.NewReceiver(kafkaConsumer, handlers)
-	err = recv.Subscribe(topic)
+	err = recv.Subscribe(o.Topic)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *OutboxRepo) OutputToConsole(event models.Event) {
-	fmt.Printf("\nOutput to Console: Event ID: %d, Request: %s, Acquired: %t, Processed: %t, AcquiredAt: %v, ProcessedAt: %v\n",
-		event.ID, event.Request, event.Acquired, event.Processed, event.AcquiredAt, event.ProcessedAt)
+func (o *Outbox) OutputToConsole(event models.Event) {
+	fmt.Printf("\nOutput to Console: Event ID: %d, Request: %s, Status: %s, AcquiredAt: %v, ProcessedAt: %v\n",
+		event.ID, event.Request, event.Status, event.AcquiredAt, event.ProcessedAt)
 }

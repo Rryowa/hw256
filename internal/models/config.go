@@ -12,4 +12,5 @@ type Config struct {
 	Timeout  time.Duration `env:"TIMEOUT"`
 	UseKafka bool          `env:"USE_KAFKA"`
 	Brokers  []string      `env:"BROKERS"`
+	Topic    string        `env:"TOPIC"`
 }

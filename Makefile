@@ -20,10 +20,10 @@ up:
 down:
 	@goose -dir $(MIGRATIONS_DIR) postgres $(DB_STRING) down
 
-d-up:
+up-d:
 	docker-compose up -d db db_test zookeeper kafka1 kafka2 kafka3
 
-d-down:
+down-d:
 	docker-compose down -v
 
 up-test:
