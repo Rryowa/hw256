@@ -14,9 +14,9 @@ func main() {
 	ctx := context.Background()
 	repository := db.NewSQLRepository(ctx, util.NewConfig())
 	orderService := service.NewOrderService(repository, service.NewPackageService(), &hash.HashGenerator{})
-	kafkaService := service.NewKafkaService(util.NewKafkaConfig(), repository)
+	loggerService := service.NewLoggerService(util.NewKafkaConfig(), repository)
 
-	commands := view.NewCLI(orderService, kafkaService)
+	commands := view.NewCLI(orderService, loggerService)
 	if err := commands.Run(ctx); err != nil {
 		log.Fatal(err)
 	}

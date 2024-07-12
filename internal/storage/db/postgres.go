@@ -227,3 +227,22 @@ func (r *Repository) InsertEvent(ctx context.Context, request string) (models.Ev
 
 	return event, nil
 }
+
+func (r *Repository) UpdateEvent(ctx context.Context, event models.Event) (models.Event, error) {
+	const op = "UpdateEvent"
+	rows, err := r.Pool.Query(ctx,
+		`UPDATE events SET status = $1, processed_at = NOW()
+				WHERE id = $2 returning id, method_name, request, status, requested_at, processed_at`,
+		models.EventStatusProcessed, event.ID)
+	if err != nil {
+		return models.Event{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var updEvent models.Event
+	err = pgxscan.ScanOne(&updEvent, rows)
+	if err != nil {
+		return models.Event{}, fmt.Errorf("%s: %w", "ScanOne", err)
+	}
+
+	return updEvent, nil
+}

@@ -19,6 +19,7 @@ type Storage interface {
 
 type Event interface {
 	InsertEvent(ctx context.Context, request string) (models.Event, error)
+	UpdateEvent(ctx context.Context, event models.Event) (models.Event, error)
 }
 
 type StorageTest interface {

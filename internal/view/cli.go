@@ -3,7 +3,6 @@ package view
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,18 +20,18 @@ import (
 )
 
 type CLI struct {
-	orderService service.OrderService
-	kafkaService service.KafkaService
-	commandList  []command
+	orderService  service.OrderService
+	loggerService service.LoggerService
+	commandList   []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, k service.KafkaService) *CLI {
+func NewCLI(os service.OrderService, log service.LoggerService) *CLI {
 	return &CLI{
-		orderService: os,
-		kafkaService: k,
+		orderService:  os,
+		loggerService: log,
 		commandList: []command{
 			{
 				name:        help,
@@ -87,10 +86,8 @@ func (c *CLI) Run(ctx context.Context) error {
 
 	go c.signalHandler(ctx, cancel)
 
-	consumerCloser := c.kafkaService.StartConsumer(ctx, &wg)
-	defer consumerCloser()
-
-	go displayEvents(c.kafkaService.GetEvents())
+	loggerClose := c.loggerService.Start(ctx, &wg)
+	defer loggerClose()
 
 	//Reader
 	go func() {
@@ -183,45 +180,43 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 	args := strings.Split(input, " ")
 	commandName := args[0]
 
-	c.handleEvent(ctx, input)
+	event, err := c.loggerService.CreateEvent(ctx, input)
+	if err != nil {
+		log.Printf("error - logger Create event: %v\n", err)
+		return
+	}
 
 	switch commandName {
 	case acceptOrder:
-		if err := c.acceptOrder(ctx, args[1:]); err != nil {
-			log.Println(err)
-		} else {
+		if err = c.acceptOrder(ctx, args[1:]); err == nil {
 			log.Println("Order accepted.")
 		}
 	case issueOrders:
-		if err := c.issueOrders(ctx, args[1:]); err != nil {
-			log.Println(err)
-		} else {
+		if err = c.issueOrders(ctx, args[1:]); err == nil {
 			log.Println("Orders issued.")
 		}
 	case acceptReturn:
-		if err := c.acceptReturn(ctx, args[1:]); err != nil {
-			log.Println(err)
-		} else {
+		if err = c.acceptReturn(ctx, args[1:]); err == nil {
 			log.Println("Return accepted.")
 		}
 	case returnOrderToCourier:
-		if err := c.returnOrderToCourier(ctx, args[1:]); err != nil {
-			log.Println(err)
-		} else {
+		if err = c.returnOrderToCourier(ctx, args[1:]); err == nil {
 			log.Println("Order returned.")
 		}
 	case listReturns:
-		if err := c.listReturns(ctx, args[1:]); err != nil {
-			log.Println(err)
-		}
+		err = c.listReturns(ctx, args[1:])
 	case listOrders:
-		if err := c.listOrders(ctx, args[1:]); err != nil {
-			log.Println(err)
-		}
+		err = c.listOrders(ctx, args[1:])
 	case help:
 		c.help()
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
+	}
+
+	if err != nil {
+		log.Println(err)
+	} else if err = c.loggerService.ProcessEvent(ctx, event); err != nil {
+		log.Printf("error - logger Process event: %v\n", err)
 	}
 }
 
@@ -358,28 +353,5 @@ func (c *CLI) help() {
 			example = strings.TrimSpace(parts[1])
 		}
 		fmt.Printf("%-15s | %-30s | %s\n", cmd.name, description, example)
-	}
-}
-
-func (c *CLI) handleEvent(ctx context.Context, input string) {
-	if c.kafkaService.UseKafka() {
-		if err := c.kafkaService.ProduceEvent(ctx, input); err != nil {
-			log.Printf("error ProduceEvent: %v\n", err)
-		}
-	} else {
-		event, err := c.kafkaService.CreateEvent(ctx, input)
-		if err != nil {
-			log.Printf("error CreateEvent: %v\n", err)
-		} else {
-			log.Printf("Requested: %v\n", event)
-		}
-	}
-}
-
-func displayEvents(events chan []byte) {
-	for event := range events {
-		var v models.Event
-		json.Unmarshal(event, &v)
-		log.Printf("\nEvent received: %v\n", v)
 	}
 }
