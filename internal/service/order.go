@@ -21,7 +21,6 @@ type OrderService interface {
 	ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error)
 	ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error)
 	PrintList(orders []models.Order)
-	NewEvent(ctx context.Context, input string) error
 }
 
 type orderService struct {
@@ -30,20 +29,12 @@ type orderService struct {
 	hashGenerator  hash.Hasher
 }
 
-func NewOrderService(repository storage.Storage, packageService PackageService, hashGenerator hash.Hasher) OrderService {
+func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher) OrderService {
 	return &orderService{
-		repository:     repository,
-		packageService: packageService,
-		hashGenerator:  hashGenerator,
+		repository:     r,
+		packageService: ps,
+		hashGenerator:  hg,
 	}
-}
-
-func (os *orderService) NewEvent(ctx context.Context, input string) error {
-	err := os.repository.CreateEvent(ctx, input)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
@@ -80,30 +71,6 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 		Weight:       weight,
 	}
 
-	fmt.Print("Calculating hash.")
-
-	ticker := time.NewTicker(time.Second)
-	done := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				fmt.Print(" .")
-			}
-		}
-	}()
-
-	go func(order *models.Order, ticker *time.Ticker, done chan struct{}) {
-		order.Hash = os.hashGenerator.GenerateHash()
-		ticker.Stop()
-		done <- struct{}{}
-	}(&order, ticker, done)
-
-	<-done
-	fmt.Println()
-
 	if len(pkgTypeStr) != 0 {
 		packageType := models.PackageType(pkgTypeStr)
 		if err = os.packageService.ValidatePackage(weight, packageType); err != nil {
@@ -111,6 +78,8 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 		}
 		os.packageService.ApplyPackage(&order, models.PackageType(pkgTypeStr))
 	}
+
+	os.calculateHash(&order)
 
 	_, err = os.repository.Insert(ctx, order)
 	return err
@@ -237,4 +206,30 @@ func (os *orderService) PrintList(orders []models.Order) {
 			order.PackagePrice)
 	}
 	fmt.Printf("\n")
+}
+
+func (os *orderService) calculateHash(order *models.Order) {
+	fmt.Print("Calculating hash.")
+
+	ticker := time.NewTicker(time.Second)
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				fmt.Print(" .")
+			}
+		}
+	}()
+
+	go func(order *models.Order, ticker *time.Ticker, done chan struct{}) {
+		order.Hash = os.hashGenerator.GenerateHash()
+		ticker.Stop()
+		done <- struct{}{}
+	}(order, ticker, done)
+
+	<-done
+	fmt.Println()
 }

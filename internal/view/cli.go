@@ -3,6 +3,7 @@ package view
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,17 +22,17 @@ import (
 
 type CLI struct {
 	orderService service.OrderService
-	outbox       *service.Outbox
+	kafkaService service.KafkaService
 	commandList  []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, outbox *service.Outbox) *CLI {
+func NewCLI(os service.OrderService, k service.KafkaService) *CLI {
 	return &CLI{
 		orderService: os,
-		outbox:       outbox,
+		kafkaService: k,
 		commandList: []command{
 			{
 				name:        help,
@@ -73,26 +74,23 @@ func NewCLI(os service.OrderService, outbox *service.Outbox) *CLI {
 	}
 }
 
-func (c *CLI) Run() error {
-	semaphore := make(chan struct{}, 1)
+func (c *CLI) Run(ctx context.Context) error {
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	commandChannel := make(chan string)
-	done := make(chan struct{})
+	semaphore := make(chan struct{}, 1)
+	var wg sync.WaitGroup
 
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
 	if err := c.setMaxGoroutines(fmt.Sprintf(
-		"set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))),
-		&semaphore); err != nil {
+		"set_mg -n=%s", strconv.Itoa(runtime.GOMAXPROCS(0))), &semaphore); err != nil {
 		return err
 	}
-	var wg sync.WaitGroup
-	ctx := context.Background()
 
-	go signalListener(signalChannel, done)
+	go c.signalHandler(ctx, cancel)
 
-	go c.outbox.StartProcessingEvents(ctx, done)
-	//TODO: Procesing only first request, at every make all
-	//TODO: even if second input invalid it will block execution.
+	consumerCloser := c.kafkaService.StartConsumer(ctx, &wg)
+	defer consumerCloser()
+
+	go displayEvents(c.kafkaService.GetEvents())
 
 	//Reader
 	go func() {
@@ -102,49 +100,46 @@ func (c *CLI) Run() error {
 		}
 	}()
 
-	//Handler
-	go c.commandHandler(ctx, commandChannel, semaphore, done, &wg)
+	go c.commandHandler(ctx, &wg, cancel, commandChannel, semaphore)
 
-	<-done
+	<-ctx.Done()
 
 	wg.Wait()
 
 	//Close where created
 	close(semaphore)
-	fmt.Println("All goroutines finished. Exiting...")
+	fmt.Println("All goroutines finished. Bye!")
 
 	return nil
 }
 
-func signalListener(signalChannel chan os.Signal, done chan struct{}) {
-	for {
-		<-signalChannel
-		fmt.Println("\nReceived shutdown signal")
-		done <- struct{}{}
-	}
+func (c *CLI) signalHandler(ctx context.Context, cancel context.CancelFunc) {
+	<-ctx.Done()
+	fmt.Println("Received shutdown signal...")
+	cancel()
 }
 
-func (c *CLI) commandHandler(ctx context.Context, commandChannel chan string, semaphore chan struct{}, done chan struct{}, wg *sync.WaitGroup) {
+func (c *CLI) commandHandler(ctx context.Context, wg *sync.WaitGroup, cancel context.CancelFunc, commandChannel chan string, semaphore chan struct{}) {
 	for {
 		cmd := <-commandChannel
 
 		if strings.HasPrefix(cmd, exit) {
-			done <- struct{}{}
+			cancel()
 		} else if strings.HasPrefix(cmd, setMaxGoroutines) {
 			if err := c.setMaxGoroutines(cmd, &semaphore); err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			wg.Add(1)
 			atomic.AddUint64(&c.activeGoroutines, 1)
 			id := atomic.LoadUint64(&c.activeGoroutines)
 
-			go c.worker(ctx, cmd, id, semaphore, wg)
+			go c.worker(ctx, wg, semaphore, cmd, id)
 		}
 	}
 }
 
-func (c *CLI) worker(ctx context.Context, cmd string, id uint64, semaphore chan struct{}, wg *sync.WaitGroup) {
+func (c *CLI) worker(ctx context.Context, wg *sync.WaitGroup, semaphore chan struct{}, cmd string, id uint64) {
+	wg.Add(1)
 	defer wg.Done()
 	log.Printf("Worker %d: Waiting to acquire semaphore\n", id)
 	semaphore <- struct{}{}
@@ -188,12 +183,7 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 	args := strings.Split(input, " ")
 	commandName := args[0]
 
-	//TODO: Second event created and processed - then forever loop
-	err := c.orderService.NewEvent(ctx, input)
-	if err != nil {
-		log.Println(err)
-	}
-	log.Println(input)
+	c.handleEvent(ctx, input)
 
 	switch commandName {
 	case acceptOrder:
@@ -253,7 +243,6 @@ func (c *CLI) acceptOrder(ctx context.Context, args []string) error {
 		return err
 	}
 
-	log.Println("orderService.Accept")
 	return c.orderService.Accept(ctx, dto, dto.PackageType)
 }
 
@@ -369,5 +358,28 @@ func (c *CLI) help() {
 			example = strings.TrimSpace(parts[1])
 		}
 		fmt.Printf("%-15s | %-30s | %s\n", cmd.name, description, example)
+	}
+}
+
+func (c *CLI) handleEvent(ctx context.Context, input string) {
+	if c.kafkaService.UseKafka() {
+		if err := c.kafkaService.ProduceEvent(ctx, input); err != nil {
+			log.Printf("error ProduceEvent: %v\n", err)
+		}
+	} else {
+		event, err := c.kafkaService.CreateEvent(ctx, input)
+		if err != nil {
+			log.Printf("error CreateEvent: %v\n", err)
+		} else {
+			log.Printf("Requested: %v\n", event)
+		}
+	}
+}
+
+func displayEvents(events chan []byte) {
+	for event := range events {
+		var v models.Event
+		json.Unmarshal(event, &v)
+		log.Printf("\nEvent received: %v\n", v)
 	}
 }

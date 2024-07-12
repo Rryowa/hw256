@@ -1,88 +1,150 @@
 package kafka
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/IBM/sarama"
-	"github.com/pkg/errors"
+	"homework/internal/models"
+	"log"
+	"sync"
 )
 
-type Producer struct {
-	brokers      []string
-	syncProducer sarama.SyncProducer
+type ProducerInterface interface {
+	ProduceEvent(event models.Event) error
 }
 
-func newSyncProducer(brokers []string) (sarama.SyncProducer, error) {
-	syncProducerConfig := sarama.NewConfig()
+func (p *ProducerProvider) ProduceEvent(event models.Event) error {
+	producerTx := p.borrow()
+	defer p.release(producerTx)
 
-	// случайная партиция
-	syncProducerConfig.Producer.Partitioner = sarama.NewRandomPartitioner
-
-	// по кругу
-	// syncProducerConfig.Producer.Partitioner = sarama.NewRoundRobinPartitioner
-
-	// по ключу
-	// syncProducerConfig.Producer.Partitioner = sarama.NewHashPartitioner
-	/**
-	Кейсы:
-		- одинаковые ключи в одной партиции
-		- при cleanup.policy = compact останется только последнее сообщение по этому ключу
-	*/
-
-	// регулируем acks
-	syncProducerConfig.Producer.RequiredAcks = sarama.WaitForAll
-
-	/*
-	  Если хотим exactly once, то выставляем в true
-
-	  У продюсера есть счетчик (count)
-	  Каждое успешно отправленное сообщение учеличивает счетчик (count++)
-	  Если продюсер не смог отправить сообщение, то счетчик не меняется и отправляется в таком виде в другом сообщение
-	  Кафка это видит и начинает сравнивать (в том числе Key) сообщения с одниковыми счетчиками
-	  Далее не дает отправить дубль, если Idempotent = true
-	*/
-	syncProducerConfig.Producer.Idempotent = true
-	syncProducerConfig.Net.MaxOpenRequests = 1
-
-	// Если хотим сжимать, то задаем нужный уровень кодировщику
-	syncProducerConfig.Producer.CompressionLevel = sarama.CompressionLevelDefault
-
-	syncProducerConfig.Producer.Return.Successes = true
-	syncProducerConfig.Producer.Return.Errors = true
-
-	// И сам кодировщик
-	syncProducerConfig.Producer.Compression = sarama.CompressionGZIP
-
-	syncProducer, err := sarama.NewSyncProducer(brokers, syncProducerConfig)
-
+	err := producerTx.BeginTxn()
 	if err != nil {
-		return nil, errors.Wrap(err, "error with sync kafka-producer")
+		return err
 	}
 
-	return syncProducer, nil
-}
+	payload, _ := json.Marshal(event)
+	for _, topic := range p.topics {
+		producerTx.Input() <- &sarama.ProducerMessage{
+			Topic: topic,
+			Value: sarama.StringEncoder(payload),
+		}
+	}
 
-func NewProducer(brokers []string) (*Producer, error) {
-	syncProducer, err := newSyncProducer(brokers)
+	err = producerTx.CommitTxn()
 	if err != nil {
-		return nil, errors.Wrap(err, "error with sync kafka-producer")
+		log.Printf("Producer: unable to commit txn %s\n", err)
+		for {
+			if producerTx.TxnStatus()&sarama.ProducerTxnFlagFatalError != 0 {
+				// fatal error. need to recreate producer.
+				log.Printf("Producer: producer is in a fatal state, need to recreate it")
+				break
+			}
+			// If producer is in abortable state, try to abort current transaction.
+			if producerTx.TxnStatus()&sarama.ProducerTxnFlagAbortableError != 0 {
+				err = producerTx.AbortTxn()
+				if err != nil {
+					// If an error occured just retry it.
+					log.Printf("Producer: unable to abort transaction: %+v", err)
+					continue
+				}
+				break
+			}
+			// if not you can retry
+			err = producerTx.CommitTxn()
+			if err != nil {
+				log.Printf("Producer: unable to commit txn %s\n", err)
+				continue
+			}
+		}
+		return err
 	}
-
-	producer := &Producer{
-		brokers:      brokers,
-		syncProducer: syncProducer,
-	}
-
-	return producer, nil
-}
-
-func (p *Producer) SendSyncMessage(message *sarama.ProducerMessage) (partition int32, offset int64, err error) {
-	return p.syncProducer.SendMessage(message)
-}
-
-func (p *Producer) Close() error {
-	err := p.syncProducer.Close()
-	if err != nil {
-		return errors.Wrap(err, "kafka.Producer.Close")
-	}
-
 	return nil
+}
+
+func (p *ProducerProvider) borrow() (producer sarama.AsyncProducer) {
+	p.producersLock.Lock()
+	defer p.producersLock.Unlock()
+
+	if len(p.producers) == 0 {
+		for {
+			producer = p.ProducerProvider()
+			if producer != nil {
+				return
+			}
+		}
+	}
+
+	index := len(p.producers) - 1
+	producer = p.producers[index]
+	p.producers = p.producers[:index]
+	return
+}
+
+func (p *ProducerProvider) release(producer sarama.AsyncProducer) {
+	p.producersLock.Lock()
+	defer p.producersLock.Unlock()
+
+	// If released producer is erroneous close it and don't return it to the producer pool.
+	if producer.TxnStatus()&sarama.ProducerTxnFlagInError != 0 {
+		// Try to close it
+		_ = producer.Close()
+		return
+	}
+	p.producers = append(p.producers, producer)
+}
+
+func (p *ProducerProvider) Clear() {
+	p.producersLock.Lock()
+	defer p.producersLock.Unlock()
+
+	for _, producer := range p.producers {
+		producer.Close()
+	}
+	p.producers = p.producers[:0]
+}
+
+// pool of producers that ensure transactional-id is unique.
+type ProducerProvider struct {
+	brokers                []string
+	topics                 []string
+	transactionIdGenerator int32
+
+	producersLock sync.Mutex
+	producers     []sarama.AsyncProducer
+
+	ProducerProvider func() sarama.AsyncProducer
+}
+
+func NewProducerProvider(brokers, topics []string, producerConfigurationProvider func() *sarama.Config) *ProducerProvider {
+	provider := &ProducerProvider{
+		brokers: brokers,
+		topics:  topics,
+	}
+	provider.ProducerProvider = func() sarama.AsyncProducer {
+		config := producerConfigurationProvider()
+		suffix := provider.transactionIdGenerator
+		// Append transactionIdGenerator to current config.Producer.Transaction.ID to ensure transaction-id uniqueness.
+		if config.Producer.Transaction.ID != "" {
+			provider.transactionIdGenerator++
+			config.Producer.Transaction.ID = config.Producer.Transaction.ID + "-" + fmt.Sprint(suffix)
+		}
+		producer, err := sarama.NewAsyncProducer(provider.brokers, config)
+		if err != nil {
+			return nil
+		}
+		return producer
+	}
+	return provider
+}
+
+func NewProducerConfig() *sarama.Config {
+	producerConfig := sarama.NewConfig()
+	producerConfig.Version = sarama.DefaultVersion
+	producerConfig.Producer.RequiredAcks = sarama.WaitForAll
+	producerConfig.Producer.Partitioner = sarama.NewRandomPartitioner
+	producerConfig.Producer.Transaction.Retry.Backoff = 10
+	producerConfig.Producer.Idempotent = true
+	producerConfig.Producer.Transaction.ID = "txn_producer"
+	producerConfig.Net.MaxOpenRequests = 1
+	return producerConfig
 }

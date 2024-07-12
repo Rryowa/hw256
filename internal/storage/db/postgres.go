@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"homework/internal/models"
+	"homework/internal/models/config"
 	"homework/internal/storage"
 	"homework/internal/util"
 	"log"
@@ -19,7 +20,7 @@ type Repository struct {
 	Pool *pgxpool.Pool
 }
 
-func NewSQLRepository(ctx context.Context, cfg *models.Config) storage.Storage {
+func NewSQLRepository(ctx context.Context, cfg *config.DbConfig) storage.Storage {
 	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 	var pool *pgxpool.Pool
 	var err error
@@ -130,9 +131,9 @@ func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
 
 func (r *Repository) Get(ctx context.Context, id string) (models.Order, error) {
 	var order models.Order
-	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash FROM orders
-		WHERE id=$1
-		`
+	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
+				FROM orders
+				WHERE id=$1`
 
 	if err := pgxscan.Get(ctx, r.Pool, &order, query, id); err != nil {
 		var pgErr *pgconn.PgError
@@ -153,8 +154,7 @@ func (r *Repository) GetReturns(ctx context.Context, offset, limit int) ([]model
         WHERE returned = TRUE
         ORDER BY id
         OFFSET $1
- 		FETCH NEXT $2 ROWS ONLY
-    `
+ 		FETCH NEXT $2 ROWS ONLY`
 
 	rows, err := r.Pool.Query(ctx, query, offset, limit)
 	if err != nil {
@@ -181,8 +181,7 @@ func (r *Repository) GetOrders(ctx context.Context, userId string, offset, limit
 		WHERE user_id = $1 AND issued = FALSE
 		ORDER BY storage_until
 		OFFSET $2
-		FETCH NEXT $3 ROWS ONLY
-	`
+		FETCH NEXT $3 ROWS ONLY`
 
 	rows, err := r.Pool.Query(ctx, query, userId, offset, limit)
 	if err != nil {
@@ -209,59 +208,22 @@ func (r *Repository) Truncate(ctx context.Context, table string) error {
 	return nil
 }
 
-func (r *Repository) CreateEvent(ctx context.Context, request string) error {
-	const op = "CreateEvent"
+func (r *Repository) InsertEvent(ctx context.Context, request string) (models.Event, error) {
+	const op = "InsertEvent"
 	args := strings.Split(request, " ")
-	_, err := r.Pool.Exec(ctx,
-		`INSERT INTO events (method_name, request, status, acquired_at) 
-				VALUES ($1, $2, $3, NOW())`,
-		args[0], request, models.EventStatusAcquired)
-
+	rows, err := r.Pool.Query(ctx,
+		`INSERT INTO events (method_name, request, status, requested_at) 
+				VALUES ($1, $2, $3, NOW()) returning id, method_name, request, status, requested_at`,
+		args[0], request, models.EventStatusRequested)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return models.Event{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
-}
-
-func (r *Repository) GetEvents(ctx context.Context) ([]models.Event, error) {
-	const op = "GetEvents"
-	query := `SELECT id, request, method_name, status, acquired_at
-				FROM events WHERE status = $1 LIMIT 5`
-	//tx, _ := r.Pool.BeginTx(ctx, pgx.TxOptions{
-	//	IsoLevel: pgx.Serializable,
-	//})
-	rows, err := r.Pool.Query(ctx, query, models.EventStatusAcquired)
+	var event models.Event
+	err = pgxscan.ScanOne(&event, rows)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return []models.Event{}, nil
-		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			log.Println(fmt.Sprintf("SQL Error: %s, Detail: %s, Where: %s", pgErr.Code, pgErr.Detail, pgErr.Where))
-		}
-		return nil, err
-	}
-	defer rows.Close()
-
-	var events []models.Event
-	if err := pgxscan.ScanAll(&events, rows); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return events, err
-}
-
-func (r *Repository) ProcessEvents(ctx context.Context, events []models.Event) ([]models.Event, error) {
-	const op = "ProcessEvents"
-	query := `UPDATE events SET status = $1, processed_at = NOW()
-				WHERE id = $2 returning status, processed_at`
-
-	for i := 0; i < len(events); i++ {
-		err := r.Pool.QueryRow(ctx, query, models.EventStatusProcessed, events[i].ID).Scan(&events[i].Status, &events[i].ProcessedAt)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
+		return models.Event{}, fmt.Errorf("%s: %w", "ScanOne", err)
 	}
 
-	return events, nil
+	return event, nil
 }

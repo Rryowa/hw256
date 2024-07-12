@@ -314,6 +314,63 @@ func (_c *MockStorage_Insert_Call) RunAndReturn(run func(context.Context, models
 	return _c
 }
 
+// InsertEvent provides a mock function with given fields: ctx, request
+func (_m *MockStorage) InsertEvent(ctx context.Context, request string) (models.Event, error) {
+	ret := _m.Called(ctx, request)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InsertEvent")
+	}
+
+	var r0 models.Event
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (models.Event, error)); ok {
+		return rf(ctx, request)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) models.Event); ok {
+		r0 = rf(ctx, request)
+	} else {
+		r0 = ret.Get(0).(models.Event)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStorage_InsertEvent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertEvent'
+type MockStorage_InsertEvent_Call struct {
+	*mock.Call
+}
+
+// InsertEvent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - request string
+func (_e *MockStorage_Expecter) InsertEvent(ctx interface{}, request interface{}) *MockStorage_InsertEvent_Call {
+	return &MockStorage_InsertEvent_Call{Call: _e.mock.On("InsertEvent", ctx, request)}
+}
+
+func (_c *MockStorage_InsertEvent_Call) Run(run func(ctx context.Context, request string)) *MockStorage_InsertEvent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockStorage_InsertEvent_Call) Return(_a0 models.Event, _a1 error) *MockStorage_InsertEvent_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStorage_InsertEvent_Call) RunAndReturn(run func(context.Context, string) (models.Event, error)) *MockStorage_InsertEvent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // IssueUpdate provides a mock function with given fields: ctx, orders
 func (_m *MockStorage) IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error) {
 	ret := _m.Called(ctx, orders)

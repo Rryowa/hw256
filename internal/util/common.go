@@ -2,7 +2,7 @@ package util
 
 import (
 	"github.com/joho/godotenv"
-	"homework/internal/models"
+	"homework/internal/models/config"
 	"log"
 	"os"
 	"strconv"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func NewConfig() *models.Config {
+func NewConfig() *config.DbConfig {
 	err := godotenv.Load("./.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
@@ -26,12 +26,7 @@ func NewConfig() *models.Config {
 		log.Fatalf("Error parsing TIMEOUT: %v\n", err)
 	}
 
-	useKafka, err := strconv.ParseBool(os.Getenv("USE_KAFKA"))
-	if err != nil {
-		log.Fatalf("Error parsing USE_KAFKA: %v\n", err)
-	}
-
-	return &models.Config{
+	return &config.DbConfig{
 		User:     os.Getenv("POSTGRES_USER"),
 		Password: os.Getenv("POSTGRES_PASSWORD"),
 		Host:     os.Getenv("POSTGRES_HOST"),
@@ -39,9 +34,20 @@ func NewConfig() *models.Config {
 		DBName:   os.Getenv("POSTGRES_DB"),
 		Attempts: attempts,
 		Timeout:  timeout,
-		UseKafka: useKafka,
-		Brokers:  strings.Split(os.Getenv("BROKERS"), ","),
-		Topic:    os.Getenv("TOPIC"),
+	}
+}
+
+func NewKafkaConfig() *config.KafkaConfig {
+	kafkaUse, err := strconv.ParseBool(os.Getenv("KAFKA_USE"))
+	if err != nil {
+		log.Fatalf("Error parsing KAFKA_USE: %v\n", err)
+	}
+
+	return &config.KafkaConfig{
+		KafkaUse:     kafkaUse,
+		KafkaBrokers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
+		KafkaTopics:  strings.Split(os.Getenv("KAFKA_TOPICS"), ","),
+		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
 	}
 }
 
@@ -50,7 +56,6 @@ func DoWithTries(fn func() error, attempts int, delay time.Duration) (err error)
 		if err = fn(); err != nil {
 			time.Sleep(delay)
 			attempts--
-
 			continue
 		}
 		return nil

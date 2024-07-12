@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"homework/internal/service"
 	"homework/internal/storage/db"
 	"homework/internal/util"
@@ -13,17 +12,12 @@ import (
 
 func main() {
 	ctx := context.Background()
-	cfg := util.NewConfig()
-	repository := db.NewSQLRepository(ctx, cfg)
-	packageService := service.NewPackageService()
-	hashGenerator := &hash.HashGenerator{}
-	orderService := service.NewOrderService(repository, packageService, hashGenerator)
-	newOutbox := service.NewOutbox(repository, cfg)
+	repository := db.NewSQLRepository(ctx, util.NewConfig())
+	orderService := service.NewOrderService(repository, service.NewPackageService(), &hash.HashGenerator{})
+	kafkaService := service.NewKafkaService(util.NewKafkaConfig(), repository)
 
-	commands := view.NewCLI(orderService, newOutbox)
-	if err := commands.Run(); err != nil {
+	commands := view.NewCLI(orderService, kafkaService)
+	if err := commands.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Bye!")
 }

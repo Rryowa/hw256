@@ -1,47 +1,87 @@
 package kafka
 
 import (
-	"github.com/pkg/errors"
-	"time"
-
+	"context"
+	"errors"
 	"github.com/IBM/sarama"
+	"log"
+	"sync"
+	"time"
 )
 
-const Interval = 1 * time.Second
-
-type Consumer struct {
-	brokers        []string
-	SingleConsumer sarama.Consumer
-	initialOffset  int64
+type ConsumerInterface interface {
+	ConsumeEvents(ctx context.Context, wg *sync.WaitGroup, group sarama.ConsumerGroup)
 }
 
-func NewConsumer(brokers []string) (*Consumer, error) {
-	config := sarama.NewConfig()
-	config.Consumer.Return.Errors = false
-	config.Consumer.Offsets.AutoCommit.Enable = true
-	config.Consumer.Offsets.AutoCommit.Interval = Interval
+func (consumer *ConsumerProvider) ConsumeEvents(ctx context.Context, wg *sync.WaitGroup, group sarama.ConsumerGroup) {
+	wg.Add(1)
+	defer wg.Done()
 
-	initialOffset := sarama.OffsetOldest
-	config.Consumer.Offsets.Initial = initialOffset
-
-	consumer, err := sarama.NewConsumer(brokers, config)
-
+	err := group.Consume(ctx, consumer.Topics, consumer)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sarama.ErrClosedConsumerGroup) {
+			log.Println("ConsumerProvider group closed")
+			return
+		}
+		log.Panicf("Error from consumer: %v", err)
 	}
-
-	return &Consumer{
-		brokers:        brokers,
-		SingleConsumer: consumer,
-		initialOffset:  initialOffset,
-	}, err
+	if ctx.Err() != nil {
+		return
+	}
 }
 
-func (k *Consumer) Close() error {
-	err := k.SingleConsumer.Close()
-	if err != nil {
-		return errors.Wrap(err, "kafka.Consumer.Close")
+func (consumer *ConsumerProvider) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for {
+		select {
+		case message, ok := <-claim.Messages():
+			if !ok {
+				log.Printf("message channel was closed")
+				return nil
+			}
+			consumer.Events <- message.Value
+			session.MarkMessage(message, "")
+		case <-session.Context().Done():
+			log.Println("ConsumerProvider stopped")
+			return nil
+		}
 	}
+}
 
+// Setup is run at the beginning of a new session, before ConsumeClaim
+func (consumer *ConsumerProvider) Setup(sarama.ConsumerGroupSession) error {
+	// Mark the consumer as ready
+	consumer.Ready <- true
 	return nil
+}
+
+// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
+func (consumer *ConsumerProvider) Cleanup(sarama.ConsumerGroupSession) error {
+	close(consumer.Events)
+	return nil
+}
+
+type ConsumerProvider struct {
+	Ready   chan bool
+	GroupId string
+	Brokers []string
+	Topics  []string
+	Events  chan []byte
+}
+
+func NewConsumerProvider(brokers, topics []string) *ConsumerProvider {
+	return &ConsumerProvider{
+		Ready:   make(chan bool),
+		GroupId: "FOO",
+		Brokers: brokers,
+		Topics:  topics,
+		Events:  make(chan []byte),
+	}
+}
+
+func NewConsumerConfig() *sarama.Config {
+	consumerConfig := sarama.NewConfig()
+	consumerConfig.Version = sarama.DefaultVersion
+	consumerConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRange()}
+	consumerConfig.Consumer.MaxWaitTime = 3 * time.Second
+	return consumerConfig
 }

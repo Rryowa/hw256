@@ -3,18 +3,12 @@ dir: "mocks"
 outpkg: "mocks"
 packages:
   homework/internal/storage:
-    config:
-      recursive: True
     interfaces:
       Storage:
   homework/internal/service:
-    config:
-      recursive: True
     interfaces:
       PackageService:
       ValidationService:
   homework/pkg/hash:
-    config:
-      recursive: True
     interfaces:
       Hasher:
