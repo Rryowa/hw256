@@ -26,8 +26,8 @@ func server(t *testing.T) (proto.OrderServiceClient, *mocks.MockStorage, *mocks.
 
 	repository := mocks.NewMockStorage(t)
 	pkgService := mocks.NewMockPackageService(t)
-	hasher := mocks.NewMockHasher(t)
-	orderService := service.NewOrderService(repository, pkgService, hasher)
+	hashService := mocks.NewMockHasher(t)
+	orderService := service.NewOrderService(repository, pkgService, hashService)
 	orderGrpcService := &OrderGrpcServer{
 		OrderService: orderService,
 	}
@@ -62,12 +62,12 @@ func server(t *testing.T) (proto.OrderServiceClient, *mocks.MockStorage, *mocks.
 
 	client := proto.NewOrderServiceClient(conn)
 
-	return client, repository, pkgService, hasher, closer
+	return client, repository, pkgService, hashService, closer
 }
 
 func TestAcceptOrder(t *testing.T) {
 	ctx := context.Background()
-	client, repository, packageService, hasher, closer := server(t)
+	client, repository, packageService, hashService, closer := server(t)
 	defer closer()
 	dto := models.Dto{
 		ID:           "1",
@@ -90,7 +90,7 @@ func TestAcceptOrder(t *testing.T) {
 	repository.EXPECT().Get(mock.Anything, expected.ID).Return(models.Order{}, util.ErrOrderNotFound)
 	packageService.EXPECT().ValidatePackage(expected.Weight, models.PackageType(dto.PackageType)).Return(nil)
 	packageService.EXPECT().ApplyPackage(&expected, models.PackageType(dto.PackageType))
-	hasher.EXPECT().GenerateHash().Return(expected.Hash)
+	hashService.EXPECT().GenerateHash().Return(expected.Hash)
 	repository.EXPECT().Insert(mock.Anything, expected).Return(expected.ID, nil)
 	_, err := client.AcceptOrder(ctx, &proto.AcceptOrderRequest{
 		Id:     dto.ID,
@@ -134,6 +134,61 @@ func TestIssueOrders(t *testing.T) {
 
 	_, err := client.IssueOrders(ctx, &proto.IssueOrdersRequest{
 		Ids: "1",
+	})
+
+	require.NoError(t, err)
+}
+
+func TestReturn(t *testing.T) {
+	client, repository, _, _, closer := server(t)
+	defer closer()
+	ctx := context.Background()
+	storageUntil, _ := time.Parse(time.DateOnly, "2077-07-07")
+	issuedAt, _ := time.Parse(time.DateOnly, time.Now().Format(time.DateOnly))
+	order := models.Order{
+		ID:           "1",
+		UserID:       "1",
+		StorageUntil: storageUntil,
+		Issued:       true,
+		IssuedAt:     issuedAt,
+		Returned:     false,
+	}
+	expected := models.Order{
+		ID:           "1",
+		UserID:       "1",
+		StorageUntil: storageUntil,
+		Issued:       true,
+		IssuedAt:     issuedAt,
+		Returned:     true,
+	}
+
+	repository.EXPECT().Get(mock.Anything, "1").Return(order, nil)
+	repository.EXPECT().Update(mock.Anything, expected).Return(expected.Returned, nil)
+
+	_, err := client.AcceptReturn(ctx, &proto.AcceptReturnRequest{
+		Id:     "1",
+		UserId: "1",
+	})
+
+	require.NoError(t, err)
+}
+
+func TestReturnToCourier(t *testing.T) {
+	client, repository, _, _, closer := server(t)
+	defer closer()
+	ctx := context.Background()
+	storageUntil, _ := time.Parse(time.DateOnly, "2002-07-07")
+	expected := models.Order{
+		ID:           "1",
+		UserID:       "2",
+		StorageUntil: storageUntil,
+		Issued:       false,
+	}
+	repository.EXPECT().Get(mock.Anything, expected.ID).Return(expected, nil)
+	repository.EXPECT().Delete(mock.Anything, expected.ID).Return(expected.ID, nil)
+
+	_, err := client.ReturnOrderToCourier(ctx, &proto.ReturnOrderToCourierRequest{
+		Id: "1",
 	})
 
 	require.NoError(t, err)
