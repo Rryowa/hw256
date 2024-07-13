@@ -20,50 +20,49 @@ type LoggerService interface {
 }
 
 type loggerService struct {
-	useKafka     bool
-	kafkaService kafka.KafkaService
-	repo         storage.Storage
+	useKafka      bool
+	kafkaProvider kafka.KafkaProvider
+	repo          storage.Storage
 }
 
-// TODO: rename kafka config into logger config
 func NewLoggerService(cfg *config.KafkaConfig, repo storage.Storage) LoggerService {
 	return &loggerService{
-		useKafka:     cfg.KafkaUse,
-		kafkaService: kafka.NewKafkaService(cfg),
-		repo:         repo,
+		useKafka:      cfg.KafkaUse,
+		kafkaProvider: kafka.NewKafkaProvider(cfg),
+		repo:          repo,
 	}
 }
 
-func (l *loggerService) Start(ctx context.Context, wg *sync.WaitGroup) func() error {
-	if l.useKafka {
-		closer := l.kafkaService.StartConsumer(ctx, wg)
-		go l.DisplayKafkaEvents()
+func (logger *loggerService) Start(ctx context.Context, wg *sync.WaitGroup) func() error {
+	if logger.useKafka {
+		closer := logger.kafkaProvider.StartConsumer(ctx, wg)
+		go logger.DisplayKafkaEvents()
 		return closer
 	}
 	return nil
 }
 
-func (l *loggerService) CreateEvent(ctx context.Context, input string) (models.Event, error) {
-	event, err := l.repo.InsertEvent(ctx, input)
+func (logger *loggerService) CreateEvent(ctx context.Context, input string) (models.Event, error) {
+	event, err := logger.repo.InsertEvent(ctx, input)
 	if err != nil {
 		return models.Event{}, err
 	}
-	if l.useKafka {
-		if err := l.kafkaService.ProduceEvent(event); err != nil {
+	if logger.useKafka {
+		if err := logger.kafkaProvider.ProduceEvent(event); err != nil {
 			return models.Event{}, err
 		}
 	}
 	return event, nil
 }
 
-func (l *loggerService) ProcessEvent(ctx context.Context, event models.Event) error {
-	event, err := l.repo.UpdateEvent(ctx, event)
+func (logger *loggerService) ProcessEvent(ctx context.Context, event models.Event) error {
+	event, err := logger.repo.UpdateEvent(ctx, event)
 	if err != nil {
 		return err
 	}
 
-	if l.useKafka {
-		if err := l.kafkaService.ProduceEvent(event); err != nil {
+	if logger.useKafka {
+		if err := logger.kafkaProvider.ProduceEvent(event); err != nil {
 			return err
 		}
 	} else {
@@ -72,8 +71,8 @@ func (l *loggerService) ProcessEvent(ctx context.Context, event models.Event) er
 	return nil
 }
 
-func (l *loggerService) DisplayKafkaEvents() {
-	for event := range l.kafkaService.GetEvents() {
+func (logger *loggerService) DisplayKafkaEvents() {
+	for event := range logger.kafkaProvider.GetEvents() {
 		var v models.Event
 		json.Unmarshal(event, &v)
 		log.Printf("\nEvent received: %v\n", v)

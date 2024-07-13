@@ -39,8 +39,10 @@ func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher) Order
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
 	_, err := os.repository.Get(ctx, dto.ID)
-	if !errors.Is(err, util.ErrOrderNotFound) {
+	if err == nil {
 		return util.ErrOrderExists
+	} else if !errors.Is(err, util.ErrOrderNotFound) {
+		return err
 	}
 
 	storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)

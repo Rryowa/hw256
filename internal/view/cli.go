@@ -209,8 +209,10 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 		err = c.listOrders(ctx, args[1:])
 	case help:
 		c.help()
+		return
 	default:
 		fmt.Println("Unknown command. Type 'help' for a list of commands.")
+		return
 	}
 
 	if err != nil {

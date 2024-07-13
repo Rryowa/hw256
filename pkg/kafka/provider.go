@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-type KafkaService interface {
+type KafkaProvider interface {
 	StartConsumer(ctx context.Context, wg *sync.WaitGroup) func() error
 	ProduceEvent(event models.Event) error
 	GetEvents() chan []byte
@@ -21,7 +21,7 @@ type kafkaProvider struct {
 	consumerGroup sarama.ConsumerGroup
 }
 
-func NewKafkaService(cfg *config.KafkaConfig) KafkaService {
+func NewKafkaProvider(cfg *config.KafkaConfig) KafkaProvider {
 	group, err := sarama.NewConsumerGroup(cfg.KafkaBrokers, cfg.KafkaGroupID, NewConsumerConfig())
 	if err != nil {
 		log.Fatalf("Error creating consumer group: %v", err)

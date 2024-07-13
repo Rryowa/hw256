@@ -534,6 +534,63 @@ func (_c *MockStorage_Update_Call) RunAndReturn(run func(context.Context, models
 	return _c
 }
 
+// UpdateEvent provides a mock function with given fields: ctx, event
+func (_m *MockStorage) UpdateEvent(ctx context.Context, event models.Event) (models.Event, error) {
+	ret := _m.Called(ctx, event)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateEvent")
+	}
+
+	var r0 models.Event
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, models.Event) (models.Event, error)); ok {
+		return rf(ctx, event)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, models.Event) models.Event); ok {
+		r0 = rf(ctx, event)
+	} else {
+		r0 = ret.Get(0).(models.Event)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, models.Event) error); ok {
+		r1 = rf(ctx, event)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockStorage_UpdateEvent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateEvent'
+type MockStorage_UpdateEvent_Call struct {
+	*mock.Call
+}
+
+// UpdateEvent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - event models.Event
+func (_e *MockStorage_Expecter) UpdateEvent(ctx interface{}, event interface{}) *MockStorage_UpdateEvent_Call {
+	return &MockStorage_UpdateEvent_Call{Call: _e.mock.On("UpdateEvent", ctx, event)}
+}
+
+func (_c *MockStorage_UpdateEvent_Call) Run(run func(ctx context.Context, event models.Event)) *MockStorage_UpdateEvent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(models.Event))
+	})
+	return _c
+}
+
+func (_c *MockStorage_UpdateEvent_Call) Return(_a0 models.Event, _a1 error) *MockStorage_UpdateEvent_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockStorage_UpdateEvent_Call) RunAndReturn(run func(context.Context, models.Event) (models.Event, error)) *MockStorage_UpdateEvent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockStorage creates a new instance of MockStorage. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockStorage(t interface {

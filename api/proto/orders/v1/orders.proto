@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "homework/pkg/grpc/orders;orders";
+
+service OrderService {
+  rpc AcceptOrder(AcceptOrderRequest) returns (OrderResponse) {
+    option(google.api.http) = {
+      post: "/v1/accept-order"
+      body: "*"
+    };
+  };
+  rpc IssueOrders(IssueOrdersRequest) returns (OrderResponse) {
+    option(google.api.http) = {
+      patch: "/v1/issue/{ids}"
+      body: "*"
+    };
+  };
+  rpc AcceptReturn(AcceptReturnRequest) returns (OrderResponse) {
+    option(google.api.http) = {
+      patch: "/v1/accept-return/{id}/{user_id}"
+      body: "*"
+    };
+  };
+  rpc ReturnOrderToCourier(ReturnOrderToCourierRequest) returns (OrderResponse) {
+    option(google.api.http) = {
+      delete: "/v1/return/{id}"
+    };
+  };
+  rpc ListReturns (ListReturnsRequest) returns (ListReturnsResponse) {
+    option(google.api.http) = {
+      get: "/v1/list-returns"
+    };
+  };
+  rpc ListOrders (ListOrdersRequest) returns (ListOrdersResponse) {
+    option(google.api.http) = {
+      get: "/v1/list-orders/{user_id}"
+    };
+  };
+}
+
+message AcceptOrderRequest {
+  string id = 1 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string user_id = 2 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string date = 3 [(validate.rules).string.pattern = "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"];
+  string price = 4 [(validate.rules).string.pattern = "^[0-9]+(\\.[0-9]{1,2})?$"];
+  string weight = 5 [(validate.rules).string.pattern = "^[0-9]+(\\.[0-9]{1,2})?$"];
+}
+
+message IssueOrdersRequest {
+  string ids = 1 [(validate.rules).string.pattern = "^([0-9]+)(,[0-9]+)*$"];
+}
+
+message AcceptReturnRequest {
+  string id = 1 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string user_id = 2 [(validate.rules).string.pattern = "^[0-9]+$"];
+}
+
+message ReturnOrderToCourierRequest {
+  string id = 1 [(validate.rules).string.pattern = "^[0-9]+$"];
+}
+
+message ListReturnsRequest {
+  string offset = 1 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string limit = 2 [(validate.rules).string.pattern = "^[0-9]+$"];
+}
+
+message ListOrdersRequest {
+  string user_id = 1 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string offset = 2 [(validate.rules).string.pattern = "^[0-9]+$"];
+  string limit = 3 [(validate.rules).string.pattern = "^[0-9]+$"];
+}
+
+message OrderResponse {
+  string message = 1;
+}
+
+message ListReturnsResponse {
+  repeated Order orders = 1;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+}
+
+message Order {
+  string id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp storage_until = 3;
+  bool issued = 4;
+  google.protobuf.Timestamp issued_at = 5;
+  bool returned = 6;
+  double order_price = 7;
+  double weight = 8;
+  string package_type = 9;
+  double package_price = 10;
+  string hash = 11;
+}
