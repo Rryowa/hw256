@@ -2,6 +2,7 @@ package orders_api
 
 import (
 	"context"
+	"errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -103,6 +104,37 @@ func TestAcceptOrder(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestAcceptOrder_InvalidRequest(t *testing.T) {
+	ctx := context.Background()
+	client, _, _, _, closer := server(t)
+	defer closer()
+
+	_, err := client.AcceptOrder(ctx, &proto.AcceptOrderRequest{
+		Id:     "",
+		UserId: "2",
+		Date:   "2077-07-07",
+		Price:  "100",
+		Weight: "20",
+	})
+
+	require.EqualError(t, err, errors.New("rpc error: code = InvalidArgument desc = invalid AcceptOrderRequest.Id: value does not match regex pattern \"^[0-9]+$\"").Error())
+}
+func TestAcceptOrder_InvalidRequest_Non_numeric_argument(t *testing.T) {
+	ctx := context.Background()
+	client, _, _, _, closer := server(t)
+	defer closer()
+
+	_, err := client.AcceptOrder(ctx, &proto.AcceptOrderRequest{
+		Id:     "abc",
+		UserId: "2",
+		Date:   "2077-07-07",
+		Price:  "100",
+		Weight: "20",
+	})
+
+	require.EqualError(t, err, errors.New("rpc error: code = InvalidArgument desc = invalid AcceptOrderRequest.Id: value does not match regex pattern \"^[0-9]+$\"").Error())
+}
+
 func TestIssueOrders(t *testing.T) {
 	ctx := context.Background()
 	client, repository, _, _, closer := server(t)
@@ -139,6 +171,18 @@ func TestIssueOrders(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestIssueOrders_InvalidRequest(t *testing.T) {
+	ctx := context.Background()
+	client, _, _, _, closer := server(t)
+	defer closer()
+
+	_, err := client.IssueOrders(ctx, &proto.IssueOrdersRequest{
+		Ids: "",
+	})
+
+	require.EqualError(t, err, errors.New("rpc error: code = InvalidArgument desc = invalid IssueOrdersRequest.Ids: value length must be at least 1 runes").Error())
+}
+
 func TestReturn(t *testing.T) {
 	client, repository, _, _, closer := server(t)
 	defer closer()
@@ -154,8 +198,8 @@ func TestReturn(t *testing.T) {
 		Returned:     false,
 	}
 	expected := models.Order{
-		ID:           "1",
-		UserID:       "1",
+		ID:           order.ID,
+		UserID:       order.UserID,
 		StorageUntil: storageUntil,
 		Issued:       true,
 		IssuedAt:     issuedAt,
@@ -166,11 +210,24 @@ func TestReturn(t *testing.T) {
 	repository.EXPECT().Update(mock.Anything, expected).Return(expected.Returned, nil)
 
 	_, err := client.AcceptReturn(ctx, &proto.AcceptReturnRequest{
-		Id:     "1",
-		UserId: "1",
+		Id:     order.ID,
+		UserId: order.UserID,
 	})
 
 	require.NoError(t, err)
+}
+
+func TestReturn_InvalidRequest(t *testing.T) {
+	client, _, _, _, closer := server(t)
+	defer closer()
+	ctx := context.Background()
+
+	_, err := client.AcceptReturn(ctx, &proto.AcceptReturnRequest{
+		Id:     "",
+		UserId: "1",
+	})
+
+	require.EqualError(t, err, errors.New("rpc error: code = InvalidArgument desc = invalid AcceptReturnRequest.Id: value does not match regex pattern \"^[0-9]+$\"").Error())
 }
 
 func TestReturnToCourier(t *testing.T) {
@@ -188,8 +245,20 @@ func TestReturnToCourier(t *testing.T) {
 	repository.EXPECT().Delete(mock.Anything, expected.ID).Return(expected.ID, nil)
 
 	_, err := client.ReturnOrderToCourier(ctx, &proto.ReturnOrderToCourierRequest{
-		Id: "1",
+		Id: expected.ID,
 	})
 
 	require.NoError(t, err)
+}
+
+func TestReturnToCourier_InvalidRequest(t *testing.T) {
+	client, _, _, _, closer := server(t)
+	defer closer()
+	ctx := context.Background()
+
+	_, err := client.ReturnOrderToCourier(ctx, &proto.ReturnOrderToCourierRequest{
+		Id: "",
+	})
+
+	require.EqualError(t, err, errors.New("rpc error: code = InvalidArgument desc = invalid ReturnOrderToCourierRequest.Id: value does not match regex pattern \"^[0-9]+$\"").Error())
 }

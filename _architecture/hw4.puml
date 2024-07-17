@@ -1,0 +1,236 @@
+@startuml
+skinparam linetype ortho
+class main {
+    - orderService service.OrderService
+    - repository storage.db.Repository
+    - loggerService service.LoggerService
+}
+namespace view {
+    class CLI << (S,Aquamarine) >> {
+        - orderService service.OrderService
+        - loggerService service.LoggerService
+        - commandList []command
+        - maxGoroutines uint64
+        - activeGoroutines uint64
+
+        - commandHandler(commandChannel <font color=blue>chan</font> string, semaphore <font color=blue>chan</font> <font color=blue>struct</font>{}, done <font color=blue>chan</font> <font color=blue>struct</font>{}, wg *sync.WaitGroup)
+        - worker(cmd string, id uint64, semaphore <font color=blue>chan</font> <font color=blue>struct</font>{}, wg *sync.WaitGroup)
+        - setMaxGoroutines(input string, semaphore *<font color=blue>chan</font> <font color=blue>struct</font>{}) error
+        - processCommand(input string)
+        - acceptOrder(args []string) error
+        - issueOrders(args []string) error
+        - acceptReturn(args []string) error
+        - returnOrderToCourier(args []string) error
+        - listReturns(args []string) error
+        - listOrders(args []string) error
+        - help()
+
+        + Run() error
+    }
+
+    class command << (S,Aquamarine) >> {
+        - name string
+        - description string
+    }
+}
+namespace service {
+    interface OrderService  {
+        + Accept(id string, userId string, dateStr string, orderPrice string, weight string, packageType string) error
+        + ReturnToCourier(id string) error
+        + Issue(ids []string) error
+        + Return(id string, userId string) error
+        + ListReturns(offset string, limit string) ([]models.Order, error)
+        + ListOrders(userId string, offset string, limit string) ([]models.Order, error)
+        + PrintList(orders []models.Order)
+
+    }
+    class orderService << (S,Aquamarine) >> {
+        - repository storage.Storage
+
+        + Accept(id string, userId string, dateStr string, orderPrice string, weight string, packageType string) error
+        + Issue(ids []string) error
+        + Return(id string, userId string) error
+        + ReturnToCourier(id string) error
+        + ListReturns(offset string, limit string) ([]models.Order, error)
+        + ListOrders(userId string, offset string, limit string) ([]models.Order, error)
+        + PrintList(orders []models.Order)
+    }
+    interface PackageInterface  {
+        + ValidatePackage(weight float64) error
+        + GetType() string
+        + GetPrice() float64
+    }
+    class Package << (S,Aquamarine) >> {
+        + Validate(weight float64) error
+    }
+    class FilmPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
+        + GetType() string
+        + GetPrice() float64
+    }
+    class PacketPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
+        + GetType() string
+        + GetPrice() float64
+    }
+    class BoxPackage << (S,Aquamarine) >> {
+        + ValidatePackage(weight float64) error
+        + GetType() string
+        + GetPrice() float64
+    }
+    interface LoggerService {
+        + Start(ctx context.Context, wg *sync.WaitGroup) func() error
+        + DisplayKafkaEvents()
+        + CreateEvent(ctx context.Context, input string) (models.Event, error)
+        + ProcessEvent(ctx context.Context, event models.Event) error
+    }
+    class loggerService << (S,Aquamarine) >> {
+        + useKafka bool
+        + kafkaProvider kafka.KafkaProvider
+        + repo storage.Storage
+    }
+}
+
+namespace storage {
+    interface Storage  {
+        + Insert(ctx context.Context, order models.Order) (string, error)
+        + Update(ctx context.Context, order models.Order) (bool, error)
+        + IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error)
+        + Delete(ctx context.Context, id string) (string, error)
+        + Get(ctx context.Context, id string) (models.Order, error)
+        + GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error)
+        + GetOrders(ctx context.Context, userId string, offset, limit int) ([]models.Order, error)
+        + StorageTest
+        + Event
+    }
+    interface StorageTest {
+        + Truncate(ctx context.Context, table string) error
+    }
+    interface Event {
+        + InsertEvent(ctx context.Context, request string) (models.Event, error)
+        + UpdateEvent(ctx context.Context, event models.Event) (models.Event, error)
+    }
+    namespace db {
+        class Repository << (S,Aquamarine) >> {
+            - pool *pgxpool.Pool
+            - ctx context.Context
+
+            + Insert(ctx context.Context, order models.Order) (string, error)
+            + Update(ctx context.Context, order models.Order) (bool, error)
+            + IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error)
+            + Delete(ctx context.Context, id string) (string, error)
+            + Get(ctx context.Context, id string) (models.Order, error)
+            + GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error)
+            + GetOrders(ctx context.Context, userId string, offset, limit int) ([]models.Order, error)
+            + Truncate(ctx context.Context, table string) error
+            + InsertEvent(ctx context.Context, request string) (models.Event, error)
+            + UpdateEvent(ctx context.Context, event models.Event) (models.Event, error)
+        }
+    }
+}
+namespace models {
+    class Order << (S,Aquamarine) >> {
+        + ID string
+        + UserID string
+        + StorageUntil time.Time
+        + Issued bool
+        + IssuedAt time.Time
+        + Returned bool
+        + OrderPrice float64
+        + Weight float64
+        + PackageType string
+        + PackagePrice float64
+        + Hash string
+    }
+    class Dto << (S,Aquamarine) >> {
+        + ID string
+        + UserID string
+        + StorageUntil string
+        + OrderPrice string
+        + Weight string
+        + PackageType string
+    }
+    class Event << (S,Aquamarine) >> {
+        + ID int
+        + MethodName string
+       	+ Request string
+        + Status EventStatus
+        + RequestedAt time.Time
+        + ProcessedAt time.Time
+    }
+    class DbConfig << (S,Aquamarine) >> {
+        + User string
+        + Password string
+        + Host string
+        + Port string
+        + DBName string
+        + Attempts int
+        + Timeout time.Duration
+    }
+    class KafkaConfig << (S,Aquamarine) >> {
+        + KafkaUse     bool
+        + KafkaBrokers []string
+        + KafkaTopics  []string
+        + KafkaGroupID string
+    }
+}
+
+namespace schema {
+    class Orders {
+        PK id________  VARCHAR
+        user_id_______VARCHAR
+        storage_until__ TIMESTAMPTZ
+        issued_______ BOOLEAN
+        issued_at____  TIMESTAMPTZ,
+        returned_____  BOOLEAN
+        order_price___ FLOAT
+        weight_______ FLOAT
+        package_type_  VARCHAR
+        package_price_FLOAT
+        hash________   VARCHAR
+    }
+    class Events {
+        id___________________SERIAL PRIMARY KEY,
+        method_name__________TEXT NOT NULL,
+        request______________TEXT NOT NULL,
+        status event_status____DEFAULT 'none',
+        requested_at_________TIMESTAMPTZ,
+        processed_at_________TIMESTAMPTZ
+    }
+    class event_status {
+        ENUM ('none', 'requested', 'processed');
+    }
+}
+
+
+main "has a" --* view.CLI
+view.CLI -->service.OrderService: uses
+view.CLI -->service.LoggerService: uses
+view.CLI -->models.Dto: uses
+view.CLI --* command: has a
+
+service.OrderService <|-- orderService: implements
+orderService --> storage.Storage: uses
+orderService --> Package: uses
+orderService *-- models.Order: has a
+
+service.LoggerService <|-- loggerService: implements
+loggerService --> models.KafkaConfig: uses
+service.Package --* service.PackageInterface: extends
+
+service.BoxPackage --|> service.PackageInterface: implements
+service.FilmPackage --|> service.PackageInterface: implements
+service.PacketPackage --|> service.PackageInterface: implements
+
+storage.Storage <|-- storage.db.Repository: implement
+storage.Storage *-- storage.Event: has a
+storage.Storage *-- storage.StorageTest: has a
+storage.StorageTest <|-- storage.db.Repository: implements
+storage.Event <|- storage.db.Repository: implements
+storage.db.Repository --> models.DbConfig: uses
+storage.db.Repository --> models.Order: uses
+storage.db.Repository --> models.Event: uses
+models.Order <-[dashed]- schema.Orders: realises
+models.Event <-[dashed]- schema.Events: realises
+schema.event_status  *-- schema.Events: has a
+@enduml

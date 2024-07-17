@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
+	"homework/internal/util"
 	proto "homework/pkg/api/proto/orders/v1/orders/v1"
 	"log"
 	"time"
@@ -16,16 +17,14 @@ const (
 	userId string = "1"
 )
 
-var addr = flag.String("addr", "localhost:50051", "the address to connect to")
-
 func main() {
-	flag.Parse()
+	cfg := util.NewGrpcConfig()
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	conn, err := grpc.NewClient(
-		*addr,
+		fmt.Sprintf("%s:%s", cfg.Host, cfg.GrpcPort),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 	)
@@ -47,7 +46,7 @@ func main() {
 
 func acceptOrder(ctx context.Context, client proto.OrderServiceClient) {
 	_, err := client.AcceptOrder(ctx, &proto.AcceptOrderRequest{
-		Id:     "5",
+		Id:     id,
 		UserId: userId,
 		Date:   "2077-07-07",
 		Price:  "100",

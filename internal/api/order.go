@@ -35,6 +35,9 @@ func (ogs *OrderGrpcServer) AcceptOrder(ctx context.Context, req *proto.AcceptOr
 }
 
 func (ogs *OrderGrpcServer) IssueOrders(ctx context.Context, req *proto.IssueOrdersRequest) (*proto.OrderResponse, error) {
+	if err := req.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	err := ogs.OrderService.Issue(ctx, req.Ids)
 	if err != nil {
 		return nil, err
@@ -44,6 +47,9 @@ func (ogs *OrderGrpcServer) IssueOrders(ctx context.Context, req *proto.IssueOrd
 }
 
 func (ogs *OrderGrpcServer) AcceptReturn(ctx context.Context, req *proto.AcceptReturnRequest) (*proto.OrderResponse, error) {
+	if err := req.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	err := ogs.OrderService.Return(ctx, req.Id, req.UserId)
 	if err != nil {
 		return nil, err
@@ -53,6 +59,9 @@ func (ogs *OrderGrpcServer) AcceptReturn(ctx context.Context, req *proto.AcceptR
 }
 
 func (ogs *OrderGrpcServer) ReturnOrderToCourier(ctx context.Context, req *proto.ReturnOrderToCourierRequest) (*proto.OrderResponse, error) {
+	if err := req.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	err := ogs.OrderService.ReturnToCourier(ctx, req.Id)
 	if err != nil {
 		return nil, err
@@ -62,6 +71,9 @@ func (ogs *OrderGrpcServer) ReturnOrderToCourier(ctx context.Context, req *proto
 }
 
 func (ogs *OrderGrpcServer) ListReturns(ctx context.Context, req *proto.ListReturnsRequest) (*proto.ListReturnsResponse, error) {
+	if err := req.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	orders, err := ogs.OrderService.ListReturns(ctx, req.Offset, req.Limit)
 	if err != nil {
 		return nil, err
@@ -76,6 +88,9 @@ func (ogs *OrderGrpcServer) ListReturns(ctx context.Context, req *proto.ListRetu
 }
 
 func (ogs *OrderGrpcServer) ListOrders(ctx context.Context, req *proto.ListOrdersRequest) (*proto.ListOrdersResponse, error) {
+	if err := req.ValidateAll(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 	orders, err := ogs.OrderService.ListOrders(ctx, req.UserId, req.Offset, req.Limit)
 	if err != nil {
 		return nil, err

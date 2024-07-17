@@ -38,6 +38,10 @@ func NewConfig() *config.DbConfig {
 }
 
 func NewKafkaConfig() *config.KafkaConfig {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
 	kafkaUse, err := strconv.ParseBool(os.Getenv("KAFKA_USE"))
 	if err != nil {
 		log.Fatalf("Error parsing KAFKA_USE: %v\n", err)
@@ -48,6 +52,18 @@ func NewKafkaConfig() *config.KafkaConfig {
 		KafkaBrokers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
 		KafkaTopics:  strings.Split(os.Getenv("KAFKA_TOPICS"), ","),
 		KafkaGroupID: os.Getenv("KAFKA_GROUP_ID"),
+	}
+}
+
+func NewGrpcConfig() *config.GrpcConfig {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
+	return &config.GrpcConfig{
+		Host:     os.Getenv("GRPC_HOST"),
+		HttpPort: os.Getenv("GRPC_HTTP_PORT"),
+		GrpcPort: os.Getenv("GRPC_PORT"),
 	}
 }
 

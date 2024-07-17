@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"homework/internal/service"
@@ -25,12 +24,6 @@ func Logging() grpc.UnaryServerInterceptor {
 		if !ok {
 			log.Printf("[interceptor.Logging] no logger found in context")
 			return handler(ctx, req)
-		}
-
-		md, ok := metadata.FromIncomingContext(ctx)
-		if ok {
-			header := md.Get("x-my-header")
-			log.Printf("[interceptor.Logging] header: %v", header)
 		}
 
 		raw, _ := protojson.Marshal((req).(proto.Message))

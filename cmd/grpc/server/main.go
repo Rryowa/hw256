@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -20,18 +19,8 @@ import (
 	"sync"
 )
 
-const (
-	host     = "localhost"
-	grpcPort = 50051
-	httpPort = ":44444"
-)
-
-var (
-	grpcServerEndpoint = flag.String("grpc-server-endpoint", host+httpPort, "gRPC server endpoint")
-)
-
 func main() {
-	flag.Parse()
+	cfg := util.NewGrpcConfig()
 	ctx := context.Background()
 	var wg sync.WaitGroup
 
@@ -46,7 +35,7 @@ func main() {
 	defer loggerClose()
 	go logger.DisplayKafkaEvents()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.GrpcPort))
 	if err != nil {
 		log.Fatalf("failed to listen grpc: %v", err)
 	}
@@ -63,7 +52,7 @@ func main() {
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	err = proto.RegisterOrderServiceHandlerFromEndpoint(ctx, mux, *grpcServerEndpoint, opts)
+	err = proto.RegisterOrderServiceHandlerFromEndpoint(ctx, mux, fmt.Sprintf("%s:%s", cfg.Host, cfg.HttpPort), opts)
 	if err != nil {
 		log.Fatalf("failed to RegisterOrderServiceHandlerFromEndpoint: %v", err)
 		return
@@ -71,7 +60,7 @@ func main() {
 
 	go func() {
 		gwServer := &http.Server{
-			Addr:    httpPort,
+			Addr:    fmt.Sprintf(":%s", cfg.HttpPort),
 			Handler: middleware.WithHTTPLoggingMiddleware(mux),
 		}
 

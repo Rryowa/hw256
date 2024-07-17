@@ -224,10 +224,10 @@ func (m *IssueOrdersRequest) validate(all bool) error {
 
 	var errors []error
 
-	if !_IssueOrdersRequest_Ids_Pattern.MatchString(m.GetIds()) {
+	if utf8.RuneCountInString(m.GetIds()) < 1 {
 		err := IssueOrdersRequestValidationError{
 			field:  "Ids",
-			reason: "value does not match regex pattern \"^([0-9]+)(,[0-9]+)*$\"",
+			reason: "value length must be at least 1 runes",
 		}
 		if !all {
 			return err
@@ -314,8 +314,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = IssueOrdersRequestValidationError{}
-
-var _IssueOrdersRequest_Ids_Pattern = regexp.MustCompile("^([0-9]+)(,[0-9]+)*$")
 
 // Validate checks the field values on AcceptReturnRequest with the rules
 // defined in the proto definition for this message. If any rules are
