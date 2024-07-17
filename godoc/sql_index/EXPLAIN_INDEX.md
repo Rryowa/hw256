@@ -1,10 +1,10 @@
 # Анализ использования индексов в данном проекте на основе 1000 запросов каждого вида
 **Запуск анализа:**  
 ```sh
-cd _sql_index
+cd sql_index
 ./explain_up.sh
-# Выбрать вид запроса в _sql_index.go и запустить
-make _sql_index
+# Выбрать вид запроса в sql_index.go и запустить
+make sql_index
 ./explain_down.sh
 ```
 
