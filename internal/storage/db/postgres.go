@@ -6,19 +6,20 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
 	"homework/internal/models"
 	"homework/internal/models/config"
 	"homework/internal/storage"
 	"homework/internal/util"
-	"log"
 	"strings"
 )
 
 type Repository struct {
-	Pool *pgxpool.Pool
+	Pool      *pgxpool.Pool
+	zapLogger *zap.SugaredLogger
 }
 
-func NewSQLRepository(ctx context.Context, cfg *config.DbConfig) storage.Storage {
+func NewSQLRepository(ctx context.Context, cfg *config.DbConfig, zap *zap.SugaredLogger) storage.Storage {
 	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName)
 	var pool *pgxpool.Pool
 	var err error
@@ -29,19 +30,20 @@ func NewSQLRepository(ctx context.Context, cfg *config.DbConfig) storage.Storage
 
 		pool, err = pgxpool.New(ctxTimeout, connStr)
 		if err != nil {
-			log.Fatal(err, "db connection error")
+			zap.Fatalln(err, "db connection error")
 		}
 
 		return nil
 	}, cfg.Attempts, cfg.Timeout)
 
 	if err != nil {
-		log.Fatal(err, "DoWithTries error")
+		zap.Fatalln(err, "DoWithTries error")
 	}
-	log.Println("Connected to db")
+	zap.Infoln("Connected to db")
 
 	return &Repository{
-		Pool: pool,
+		Pool:      pool,
+		zapLogger: zap,
 	}
 }
 
@@ -97,7 +99,7 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 	batch := &pgx.Batch{}
 	for _, order := range orders {
 		batch.Queue(query, order.Issued, order.ID)
-		log.Printf("Order with id:%s issued\n", order.ID)
+		r.zapLogger.Infof("Order with id:%s issued\n", order.ID)
 	}
 
 	br := r.Pool.SendBatch(ctx, batch)

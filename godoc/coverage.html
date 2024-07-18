@@ -111,7 +111,7 @@ import (
         "homework/internal/storage/db"
         "homework/internal/util"
         "homework/internal/view"
-        "log"
+        log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -628,7 +628,7 @@ import (
         "homework/internal/models"
         "homework/internal/storage"
         "homework/internal/util"
-        "log"
+        log "github.com/sirupsen/logrus"
 )
 
 type Repository struct {
@@ -854,7 +854,7 @@ func AddSchemaPrefix(schemaName, query string) string <span class="cov0" title="
 import (
         "github.com/joho/godotenv"
         "homework/internal/models"
-        "log"
+        log "github.com/sirupsen/logrus"
         "os"
         "strconv"
         "time"
@@ -925,7 +925,7 @@ import (
         "fmt"
         "homework/internal/models"
         "homework/internal/service"
-        "log"
+        log "github.com/sirupsen/logrus"
         "os"
         "os/signal"
         "runtime"
@@ -2605,7 +2605,7 @@ import (
         "github.com/jackc/pgx/v5/pgxpool"
         "homework/internal/models"
         "homework/internal/storage/db"
-        "log"
+        log "github.com/sirupsen/logrus"
 )
 
 type TestRepository struct {

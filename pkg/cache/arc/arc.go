@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"encoding/gob"
 	"homework/internal/util"
-	"log"
 	"sync"
 )
 
@@ -41,7 +40,6 @@ func (a *ARC[K, V]) Get(key K) (value V, ok bool) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	log.Printf("get: %v\n", key)
 	ent, ok := a.cache[key]
 	if ok {
 		a.reconstruct(ent)

@@ -3,6 +3,7 @@ package orders_api
 import (
 	"context"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -13,7 +14,6 @@ import (
 	"homework/internal/util"
 	"homework/mocks"
 	proto "homework/pkg/api/proto/orders/v1/orders/v1"
-	"log"
 	"net"
 	"strconv"
 	"testing"

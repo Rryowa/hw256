@@ -1,14 +1,12 @@
-package service
+package kafka
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"go.uber.org/zap"
 	"homework/internal/models"
 	"homework/internal/models/config"
 	"homework/internal/storage"
-	"homework/pkg/kafka"
-	"log"
 	"sync"
 )
 
@@ -21,15 +19,17 @@ type LoggerService interface {
 
 type loggerService struct {
 	useKafka      bool
-	kafkaProvider kafka.KafkaProvider
+	kafkaProvider KafkaProvider
 	repo          storage.Storage
+	zapLogger     *zap.SugaredLogger
 }
 
-func NewLoggerService(cfg *config.KafkaConfig, repo storage.Storage) LoggerService {
+func NewLoggerService(cfg *config.KafkaConfig, repo storage.Storage, zap *zap.SugaredLogger) LoggerService {
 	return &loggerService{
 		useKafka:      cfg.KafkaUse,
-		kafkaProvider: kafka.NewKafkaProvider(cfg),
+		kafkaProvider: NewKafkaProvider(cfg, zap),
 		repo:          repo,
+		zapLogger:     zap,
 	}
 }
 
@@ -66,7 +66,7 @@ func (logger *loggerService) ProcessEvent(ctx context.Context, event models.Even
 			return err
 		}
 	} else {
-		fmt.Printf("Received event: %v\n", event)
+		logger.displayEvent(event)
 	}
 	return nil
 }
@@ -75,6 +75,10 @@ func (logger *loggerService) DisplayKafkaEvents() {
 	for event := range logger.kafkaProvider.GetEvents() {
 		var v models.Event
 		json.Unmarshal(event, &v)
-		log.Printf("\nEvent received: %v\n", v)
+		logger.zapLogger.Infof("Kafka: Received event: %v\n", v)
 	}
+}
+
+func (logger *loggerService) displayEvent(event models.Event) {
+	logger.zapLogger.Infof("IO: Received event: %v\n", event)
 }

@@ -1,10 +1,10 @@
 package cache
 
 import (
+	log "github.com/sirupsen/logrus"
 	"homework/internal/models"
 	"homework/internal/models/config"
 	"homework/pkg/cache/arc"
-	"log"
 )
 
 // CacheService is a wrapper for [string, order] cache
@@ -20,7 +20,7 @@ type Cache struct {
 }
 
 func NewCache(cfg *config.CacheConfig) CacheService {
-	log.Println("Cache SIZE:", cfg.Size)
+	log.Debugln("Cache SIZE:", cfg.Size)
 	return &Cache{
 		arc: arc.NewArcCache[string, models.Order](cfg.Size),
 	}

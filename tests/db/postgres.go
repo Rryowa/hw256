@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
+	log "github.com/sirupsen/logrus"
 	"homework/internal/models"
 	"homework/internal/storage"
 	"homework/internal/storage/db"
-	"log"
 )
 
 type TestRepository struct {

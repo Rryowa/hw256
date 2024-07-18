@@ -2,8 +2,8 @@ package tests
 
 import (
 	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 	"homework/internal/models"
-	"log"
 	"os"
 )
 

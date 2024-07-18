@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/IBM/sarama"
-	"log"
+	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -20,10 +20,10 @@ func (consumer *ConsumerProvider) ConsumeEvents(ctx context.Context, wg *sync.Wa
 	err := group.Consume(ctx, consumer.Topics, consumer)
 	if err != nil {
 		if errors.Is(err, sarama.ErrClosedConsumerGroup) {
-			log.Println("ConsumerProvider group closed")
+			consumer.zapLogger.Debugln("ConsumerProvider group closed")
 			return
 		}
-		log.Panicf("Error from consumer: %v", err)
+		consumer.zapLogger.Fatalf("Error from consumer: %v", err)
 	}
 	if ctx.Err() != nil {
 		return
@@ -35,13 +35,13 @@ func (consumer *ConsumerProvider) ConsumeClaim(session sarama.ConsumerGroupSessi
 		select {
 		case message, ok := <-claim.Messages():
 			if !ok {
-				log.Printf("message channel was closed")
+				consumer.zapLogger.Debugln("message channel was closed")
 				return nil
 			}
 			consumer.Events <- message.Value
 			session.MarkMessage(message, "")
 		case <-session.Context().Done():
-			log.Println("ConsumerProvider stopped")
+			consumer.zapLogger.Debugln("ConsumerProvider stopped")
 			return nil
 		}
 	}
@@ -61,20 +61,22 @@ func (consumer *ConsumerProvider) Cleanup(sarama.ConsumerGroupSession) error {
 }
 
 type ConsumerProvider struct {
-	Ready   chan bool
-	GroupId string
-	Brokers []string
-	Topics  []string
-	Events  chan []byte
+	Ready     chan bool
+	GroupId   string
+	Brokers   []string
+	Topics    []string
+	Events    chan []byte
+	zapLogger *zap.SugaredLogger
 }
 
-func NewConsumerProvider(brokers, topics []string) *ConsumerProvider {
+func NewConsumerProvider(brokers, topics []string, zap *zap.SugaredLogger) *ConsumerProvider {
 	return &ConsumerProvider{
-		Ready:   make(chan bool),
-		GroupId: "FOO",
-		Brokers: brokers,
-		Topics:  topics,
-		Events:  make(chan []byte),
+		Ready:     make(chan bool),
+		GroupId:   "FOO",
+		Brokers:   brokers,
+		Topics:    topics,
+		Events:    make(chan []byte),
+		zapLogger: zap,
 	}
 }
 

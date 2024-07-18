@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"homework/internal/service"
-	"log"
+	"homework/pkg/kafka"
 )
 
 type contextKey string
@@ -20,7 +20,7 @@ func Logging() grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp any, err error) {
-		logger, ok := ctx.Value(loggerKey).(service.LoggerService)
+		logger, ok := ctx.Value(loggerKey).(kafka.LoggerService)
 		if !ok {
 			log.Printf("[interceptor.Logging] no logger found in context")
 			return handler(ctx, req)
@@ -56,7 +56,7 @@ func Logging() grpc.UnaryServerInterceptor {
 }
 
 // AddLoggerToContext provides access to kafka service
-func AddLoggerToContext(logger service.LoggerService) grpc.UnaryServerInterceptor {
+func AddLoggerToContext(logger kafka.LoggerService) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,

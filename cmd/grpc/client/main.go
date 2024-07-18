@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/encoding/gzip"
 	"homework/internal/util"
 	proto "homework/pkg/api/proto/orders/v1/orders/v1"
-	"log"
 	"time"
 )
 

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/IBM/sarama"
+	log "github.com/sirupsen/logrus"
 	"homework/internal/models"
-	"log"
 	"sync"
 )
 

@@ -3,9 +3,9 @@ package kafka
 import (
 	"context"
 	"github.com/IBM/sarama"
+	"go.uber.org/zap"
 	"homework/internal/models"
 	"homework/internal/models/config"
-	"log"
 	"sync"
 )
 
@@ -19,17 +19,19 @@ type kafkaProvider struct {
 	consumer      *ConsumerProvider
 	producer      *ProducerProvider
 	consumerGroup sarama.ConsumerGroup
+	zapLogger     *zap.SugaredLogger
 }
 
-func NewKafkaProvider(cfg *config.KafkaConfig) KafkaProvider {
+func NewKafkaProvider(cfg *config.KafkaConfig, zap *zap.SugaredLogger) KafkaProvider {
 	group, err := sarama.NewConsumerGroup(cfg.KafkaBrokers, cfg.KafkaGroupID, NewConsumerConfig())
 	if err != nil {
-		log.Fatalf("Error creating consumer group: %v", err)
+		zap.Fatalf("Error creating consumer group: %v", err)
 	}
 	return &kafkaProvider{
-		consumer:      NewConsumerProvider(cfg.KafkaBrokers, cfg.KafkaTopics),
+		consumer:      NewConsumerProvider(cfg.KafkaBrokers, cfg.KafkaTopics, zap),
 		producer:      NewProducerProvider(cfg.KafkaBrokers, cfg.KafkaTopics, NewProducerConfig),
 		consumerGroup: group,
+		zapLogger:     zap,
 	}
 }
 
@@ -39,7 +41,7 @@ func (k *kafkaProvider) StartConsumer(ctx context.Context, wg *sync.WaitGroup) f
 	<-k.consumer.Ready
 
 	return func() error {
-		log.Println("Closing consumer")
+		k.zapLogger.Debugln("Closing consumer")
 		return k.consumerGroup.Close()
 	}
 }

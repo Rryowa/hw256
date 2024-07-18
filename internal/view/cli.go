@@ -6,9 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go.uber.org/zap"
 	"homework/internal/models"
 	"homework/internal/service"
-	"log"
+	"homework/pkg/kafka"
 	"os"
 	"os/signal"
 	"runtime"
@@ -21,17 +22,19 @@ import (
 
 type CLI struct {
 	orderService  service.OrderService
-	loggerService service.LoggerService
+	loggerService kafka.LoggerService
+	zapLogger     *zap.SugaredLogger
 	commandList   []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
 }
 
-func NewCLI(os service.OrderService, log service.LoggerService) *CLI {
+func NewCLI(os service.OrderService, log kafka.LoggerService, zap *zap.SugaredLogger) *CLI {
 	return &CLI{
 		orderService:  os,
 		loggerService: log,
+		zapLogger:     zap,
 		commandList: []command{
 			{
 				name:        help,
@@ -105,14 +108,14 @@ func (c *CLI) Run(ctx context.Context) error {
 
 	//Close where created
 	close(semaphore)
-	fmt.Println("All goroutines finished. Bye!")
+	c.zapLogger.Infoln("All goroutines finished. Bye!")
 
 	return nil
 }
 
 func (c *CLI) signalHandler(ctx context.Context, cancel context.CancelFunc) {
 	<-ctx.Done()
-	fmt.Println("Received shutdown signal...")
+	c.zapLogger.Debugln("Received shutdown signal...")
 	cancel()
 }
 
@@ -124,7 +127,7 @@ func (c *CLI) commandHandler(ctx context.Context, wg *sync.WaitGroup, cancel con
 			cancel()
 		} else if strings.HasPrefix(cmd, setMaxGoroutines) {
 			if err := c.setMaxGoroutines(cmd, &semaphore); err != nil {
-				log.Fatal(err)
+				c.zapLogger.Fatalf("setMaxGoroutines error: %v", err)
 			}
 		} else {
 			atomic.AddUint64(&c.activeGoroutines, 1)
@@ -138,13 +141,13 @@ func (c *CLI) commandHandler(ctx context.Context, wg *sync.WaitGroup, cancel con
 func (c *CLI) worker(ctx context.Context, wg *sync.WaitGroup, semaphore chan struct{}, cmd string, id uint64) {
 	wg.Add(1)
 	defer wg.Done()
-	log.Printf("Worker %d: Waiting to acquire semaphore\n", id)
+	c.zapLogger.Infof("Worker %d: Waiting to acquire semaphore\n", id)
 	semaphore <- struct{}{}
 
-	log.Printf("Worker %d: Working\n", id)
+	c.zapLogger.Infof("Worker %d: Working\n", id)
 	c.processCommand(ctx, cmd)
 
-	log.Printf("Worker %d: Semaphore released\n\n", id)
+	c.zapLogger.Infof("Worker %d: Semaphore released\n", id)
 	<-semaphore
 }
 
@@ -172,7 +175,7 @@ func (c *CLI) setMaxGoroutines(input string, semaphore *chan struct{}) error {
 	atomic.StoreUint64(&c.maxGoroutines, uint64(n))
 	*semaphore = make(chan struct{}, n)
 
-	fmt.Printf("Number of goroutines set to %d\n", n)
+	c.zapLogger.Infof("Number of goroutines set to %d\n", n)
 	return nil
 }
 
@@ -182,26 +185,26 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 
 	event, err := c.loggerService.CreateEvent(ctx, input)
 	if err != nil {
-		log.Printf("error - logger Create event: %v\n", err)
+		c.zapLogger.Errorf("error - logger Create event: %v\n", err)
 		return
 	}
 
 	switch commandName {
 	case acceptOrder:
 		if err = c.acceptOrder(ctx, args[1:]); err == nil {
-			log.Println("Order accepted.")
+			c.zapLogger.Infoln("Order accepted")
 		}
 	case issueOrders:
 		if err = c.issueOrders(ctx, args[1:]); err == nil {
-			log.Println("Orders issued.")
+			c.zapLogger.Infoln("Orders issued")
 		}
 	case acceptReturn:
 		if err = c.acceptReturn(ctx, args[1:]); err == nil {
-			log.Println("Return accepted.")
+			c.zapLogger.Infoln("Return accepted")
 		}
 	case returnOrderToCourier:
 		if err = c.returnOrderToCourier(ctx, args[1:]); err == nil {
-			log.Println("Order returned.")
+			c.zapLogger.Infoln("Order returned.")
 		}
 	case listReturns:
 		err = c.listReturns(ctx, args[1:])
@@ -211,14 +214,14 @@ func (c *CLI) processCommand(ctx context.Context, input string) {
 		c.help()
 		return
 	default:
-		fmt.Println("Unknown command. Type 'help' for a list of commands.")
+		c.zapLogger.Warnln("Unknown command. Type 'help' for a list of commands.")
 		return
 	}
 
 	if err != nil {
-		log.Println(err)
+		c.zapLogger.Errorln(err)
 	} else if err = c.loggerService.ProcessEvent(ctx, event); err != nil {
-		log.Printf("error - logger Process event: %v\n", err)
+		c.zapLogger.Errorf("error - logger Process event: %v\n", err)
 	}
 }
 
@@ -310,7 +313,7 @@ func (c *CLI) listReturns(ctx context.Context, args []string) error {
 		return err
 	}
 
-	c.orderService.PrintList(orderIDs)
+	printList(orderIDs)
 
 	return nil
 }

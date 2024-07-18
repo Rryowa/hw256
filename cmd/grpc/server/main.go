@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"homework/internal/api"
@@ -13,7 +14,7 @@ import (
 	"homework/internal/util"
 	proto "homework/pkg/api/proto/orders/v1/orders/v1"
 	"homework/pkg/hash"
-	"log"
+	"homework/pkg/kafka"
 	"net"
 	"net/http"
 	"sync"
@@ -30,7 +31,7 @@ func main() {
 		OrderService: orderService,
 	}
 
-	logger := service.NewLoggerService(util.NewKafkaConfig(), repository)
+	logger := kafka.NewLoggerService(util.NewKafkaConfig(), repository)
 	loggerClose := logger.Start(ctx, &wg)
 	defer loggerClose()
 	go logger.DisplayKafkaEvents()

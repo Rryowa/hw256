@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"regexp"
 	"sort"
 	"strconv"
