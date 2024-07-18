@@ -28,4 +28,5 @@ var (
 	ErrReturnPeriodExpired = errors.New("error - order cant be returned (period is expired)")
 	ErrOffsetNotProvided   = errors.New("error - offset not provided")
 	ErrLimitNotProvided    = errors.New("error - limit not provided")
+	ErrCacheDelete         = errors.New("error - cant delete from cache")
 )

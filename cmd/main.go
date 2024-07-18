@@ -6,14 +6,18 @@ import (
 	"homework/internal/storage/db"
 	"homework/internal/util"
 	"homework/internal/view"
+	"homework/pkg/cache"
 	"homework/pkg/hash"
 	"log"
 )
 
+// TODO: logrus
+// TODO: prometheus collects data - grafana displays
 func main() {
 	ctx := context.Background()
-	repository := db.NewSQLRepository(ctx, util.NewConfig())
-	orderService := service.NewOrderService(repository, service.NewPackageService(), &hash.HashGenerator{})
+	repository := db.NewSQLRepository(ctx, util.NewDbConfig())
+	cacheService := cache.NewCache(util.NewCacheConfig())
+	orderService := service.NewOrderService(repository, cacheService, service.NewPackageService(), &hash.HashGenerator{})
 	loggerService := service.NewLoggerService(util.NewKafkaConfig(), repository)
 
 	commands := view.NewCLI(orderService, loggerService)

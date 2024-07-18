@@ -45,37 +45,51 @@ func NewSQLRepository(ctx context.Context, cfg *config.DbConfig) storage.Storage
 	}
 }
 
-func (r *Repository) Insert(ctx context.Context, order models.Order) (string, error) {
+func (r *Repository) Insert(ctx context.Context, order models.Order) (models.Order, error) {
 	const op = "storage.Insert"
 	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id`
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash`
 
-	var id string
-	err := r.Pool.QueryRow(ctx, query, order.ID, order.UserID,
+	rows, err := r.Pool.Query(ctx, query, order.ID, order.UserID,
 		order.StorageUntil, order.Issued, order.IssuedAt, order.Returned,
 		order.OrderPrice, order.Weight, order.PackageType, order.PackagePrice,
-		order.Hash).Scan(&id)
+		order.Hash)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", op, err)
+		return models.Order{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return id, nil
+
+	const op2 = op + "pgxscan"
+	var insertedOrder models.Order
+	err = pgxscan.ScanOne(&insertedOrder, rows)
+	if err != nil {
+		return models.Order{}, fmt.Errorf("%s: %w", op2, err)
+	}
+
+	return insertedOrder, nil
 }
 
-func (r *Repository) Update(ctx context.Context, order models.Order) (bool, error) {
+func (r *Repository) Update(ctx context.Context, order models.Order) (models.Order, error) {
 	const op = "storage.Update"
 	query := `UPDATE orders SET returned=$1
-        WHERE id=$2 RETURNING returned
+        WHERE id=$2 RETURNING id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
         `
 
-	var returned bool
-	err := r.Pool.QueryRow(ctx, query, order.Returned, order.ID).Scan(&returned)
+	rows, err := r.Pool.Query(ctx, query, order.Returned, order.ID)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", op, err)
+		return models.Order{}, fmt.Errorf("%s: %w", op, err)
 	}
-	return returned, nil
+
+	const op2 = op + "pgxscan"
+	var updatedOrder models.Order
+	err = pgxscan.ScanOne(&updatedOrder, rows)
+	if err != nil {
+		return models.Order{}, fmt.Errorf("%s: %w", op2, err)
+	}
+
+	return updatedOrder, nil
 }
 
-func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]bool, error) {
+func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]models.Order, error) {
 	query := `UPDATE orders SET issued=$1, issued_at=NOW()
         WHERE id=$2
         `
@@ -87,19 +101,27 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 	}
 
 	br := r.Pool.SendBatch(ctx, batch)
-	var issuedOrders []bool
-	for i, order := range orders {
+	for i, _ := range orders {
 		_, err := br.Exec()
 		if err != nil {
 			br.Close()
-			return []bool{}, fmt.Errorf("error executing batch at order index %d: %w", i, err)
+			return []models.Order{}, fmt.Errorf("error executing batch at order index %d: %w", i, err)
 		}
-		issuedOrders = append(issuedOrders, order.Issued)
 	}
 	err := br.Close()
 	if err != nil {
-		return []bool{}, err
+		return []models.Order{}, err
 	}
+
+	var issuedOrders []models.Order
+	for i, order := range orders {
+		o, err := r.get(ctx, order.ID)
+		if err != nil {
+			return []models.Order{}, fmt.Errorf("error getting issued order by index %d: %w", i, err)
+		}
+		issuedOrders = append(issuedOrders, o)
+	}
+
 	return issuedOrders, err
 }
 
@@ -115,23 +137,6 @@ func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
 	}
 
 	return idd, nil
-}
-
-func (r *Repository) Get(ctx context.Context, id string) (models.Order, error) {
-	const op = "storage.Get"
-	var order models.Order
-	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
-				FROM orders
-				WHERE id=$1`
-
-	if err := pgxscan.Get(ctx, r.Pool, &order, query, id); err != nil {
-		if pgxscan.NotFound(err) {
-			return models.Order{}, util.ErrOrderNotFound
-		} else {
-			return models.Order{}, fmt.Errorf("%s: %w", op, err)
-		}
-	}
-	return order, nil
 }
 
 func (r *Repository) GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error) {
@@ -228,4 +233,21 @@ func (r *Repository) UpdateEvent(ctx context.Context, event models.Event) (model
 	}
 
 	return updEvent, nil
+}
+
+func (r *Repository) get(ctx context.Context, id string) (models.Order, error) {
+	const op = "storage.Get"
+	var order models.Order
+	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
+				FROM orders
+				WHERE id=$1`
+
+	if err := pgxscan.Get(ctx, r.Pool, &order, query, id); err != nil {
+		if pgxscan.NotFound(err) {
+			return models.Order{}, util.ErrOrderNotFound
+		} else {
+			return models.Order{}, fmt.Errorf("%s: %w", op, err)
+		}
+	}
+	return order, nil
 }

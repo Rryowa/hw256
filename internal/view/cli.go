@@ -335,9 +335,30 @@ func (c *CLI) listOrders(ctx context.Context, args []string) error {
 		return err
 	}
 
-	c.orderService.PrintList(orders)
+	printList(orders)
 
 	return nil
+}
+
+func printList(orders []models.Order) {
+	if len(orders) == 0 {
+		defer fmt.Printf("\n\n")
+	}
+	fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n", "id", "user_id", "storage_until", "issued_at", "returned", "order_price", "weight", "package_type", "package_price")
+	fmt.Println(strings.Repeat("-", 100))
+	for _, order := range orders {
+		fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n",
+			order.ID,
+			order.UserID,
+			order.StorageUntil.Format("2006-01-02"),
+			order.IssuedAt.Format("2006-01-02"),
+			order.Returned,
+			order.OrderPrice,
+			order.Weight,
+			order.PackageType,
+			order.PackagePrice)
+	}
+	fmt.Printf("\n")
 }
 
 func (c *CLI) help() {

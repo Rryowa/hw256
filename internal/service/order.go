@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"homework/internal/models"
 	"homework/internal/storage"
 	"homework/internal/util"
+	"homework/pkg/cache"
 	"homework/pkg/hash"
 	"strconv"
 	"strings"
@@ -20,29 +20,28 @@ type OrderService interface {
 	ReturnToCourier(ctx context.Context, id string) error
 	ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error)
 	ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error)
-	PrintList(orders []models.Order)
 }
 
 type orderService struct {
 	repository     storage.Storage
 	packageService PackageService
 	hashGenerator  hash.Hasher
+	cache          cache.CacheService
 }
 
-func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher) OrderService {
+func NewOrderService(r storage.Storage, c cache.CacheService, ps PackageService, hg hash.Hasher) OrderService {
 	return &orderService{
 		repository:     r,
 		packageService: ps,
 		hashGenerator:  hg,
+		cache:          c,
 	}
 }
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
-	_, err := os.repository.Get(ctx, dto.ID)
-	if err == nil {
+	_, ok := os.cache.Get(dto.ID)
+	if ok {
 		return util.ErrOrderExists
-	} else if !errors.Is(err, util.ErrOrderNotFound) {
-		return err
 	}
 
 	storageUntil, err := time.Parse(time.DateOnly, dto.StorageUntil)
@@ -83,22 +82,27 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 
 	os.calculateHash(&order)
 
-	_, err = os.repository.Insert(ctx, order)
-	return err
+	order, err = os.repository.Insert(ctx, order)
+	if err != nil {
+		return err
+	}
+
+	return os.putInCache(order)
 }
 
 func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 	ids := strings.Split(idsStr, ",")
-	order, err := os.repository.Get(ctx, ids[0])
-	if err != nil {
+
+	order, ok := os.cache.Get(ids[0])
+	if !ok {
 		return util.ErrOrderNotFound
 	}
-	recipientID := order.UserID
 
+	recipientID := order.UserID
 	var orders []models.Order
 	for _, id := range ids {
-		order, err := os.repository.Get(ctx, id)
-		if err != nil {
+		order, ok = os.cache.Get(id)
+		if !ok {
 			return util.ErrOrderNotFound
 		}
 		if order.Issued {
@@ -120,15 +124,26 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 		orders[i].Issued = true
 	}
 
-	_, err = os.repository.IssueUpdate(ctx, orders)
-	return err
+	orders, err := os.repository.IssueUpdate(ctx, orders)
+	if err != nil {
+		return err
+	}
+
+	for _, order := range orders {
+		if err := os.putInCache(order); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (os *orderService) Return(ctx context.Context, id, userId string) error {
-	order, err := os.repository.Get(ctx, id)
-	if err != nil {
+	order, ok := os.cache.Get(id)
+	if !ok {
 		return util.ErrOrderNotFound
 	}
+
 	if order.UserID != userId {
 		return util.ErrOrderDoesNotBelong
 	}
@@ -140,14 +155,21 @@ func (os *orderService) Return(ctx context.Context, id, userId string) error {
 	}
 
 	order.Returned = true
+	order, err := os.repository.Update(ctx, order)
+	if err != nil {
+		return err
+	}
 
-	_, err = os.repository.Update(ctx, order)
-	return err
+	if err := os.putInCache(order); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
-	order, err := os.repository.Get(ctx, id)
-	if err != nil {
+	order, ok := os.cache.Get(id)
+	if !ok {
 		return util.ErrOrderNotFound
 	}
 
@@ -159,8 +181,15 @@ func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 		return util.ErrOrderNotExpired
 	}
 
-	_, err = os.repository.Delete(ctx, id)
-	return err
+	if _, err := os.repository.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := os.cache.Delete(id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error) {
@@ -189,27 +218,6 @@ func (os *orderService) ListOrders(ctx context.Context, userId, offsetStr, limit
 	return os.repository.GetOrders(ctx, userId, offset, limit)
 }
 
-func (os *orderService) PrintList(orders []models.Order) {
-	if len(orders) == 0 {
-		defer fmt.Printf("\n\n")
-	}
-	fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n", "id", "user_id", "storage_until", "issued_at", "returned", "order_price", "weight", "package_type", "package_price")
-	fmt.Println(strings.Repeat("-", 100))
-	for _, order := range orders {
-		fmt.Printf("%-5s%-10s%-15s%-15v%-10v%-13v%-10v%-13s%-13v\n",
-			order.ID,
-			order.UserID,
-			order.StorageUntil.Format("2006-01-02"),
-			order.IssuedAt.Format("2006-01-02"),
-			order.Returned,
-			order.OrderPrice,
-			order.Weight,
-			order.PackageType,
-			order.PackagePrice)
-	}
-	fmt.Printf("\n")
-}
-
 func (os *orderService) calculateHash(order *models.Order) {
 	fmt.Print("Calculating hash.")
 
@@ -234,4 +242,12 @@ func (os *orderService) calculateHash(order *models.Order) {
 
 	<-done
 	fmt.Println()
+}
+
+func (os *orderService) putInCache(order models.Order) error {
+	err := os.cache.Put(order.ID, order)
+	if err != nil {
+		return err
+	}
+	return nil
 }

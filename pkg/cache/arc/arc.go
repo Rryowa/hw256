@@ -1,11 +1,15 @@
 package arc
 
 import (
+	"bytes"
 	"container/list"
+	"encoding/gob"
+	"homework/internal/util"
+	"log"
 	"sync"
 )
 
-type ARC struct {
+type ARC[K comparable, V any] struct {
 	p     int        // p Target (dynamic) size of cache
 	c     int        // c Defines the maximum number of entries stored.
 	l1    *list.List // l1 List of pages that have been seen only 1 recently (capturing recency).
@@ -14,12 +18,13 @@ type ARC struct {
 	b2    *list.List // b2 List of evicted from l2 that seen at least 2 recently
 	mutex sync.RWMutex
 	len   int
-	cache map[any]*entry
+	cache map[K]*entry[K]
 }
 
-// New returns a new Adaptive Replacement Cache (ARC).
-func New(c int) *ARC {
-	return &ARC{
+// NewArcCache returns a new Adaptive Replacement Cache (ARC).
+// c defines the maximum number of entries stored.
+func NewArcCache[K comparable, V any](c int) *ARC[K, V] {
+	return &ARC[K, V]{
 		p:     0,
 		c:     c,
 		l1:    list.New(),
@@ -27,63 +32,87 @@ func New(c int) *ARC {
 		l2:    list.New(),
 		b2:    list.New(),
 		len:   0,
-		cache: make(map[interface{}]*entry, c),
+		cache: make(map[K]*entry[K], c),
 	}
 }
 
-// Put inserts a new key-value pair into the cache.
-func (a *ARC) Put(key, value interface{}) bool {
+// Get retrieves a previous via Set inserted entry.
+func (a *ARC[K, V]) Get(key K) (value V, ok bool) {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
+
+	log.Printf("get: %v\n", key)
+	ent, ok := a.cache[key]
+	if ok {
+		a.reconstruct(ent)
+		val, err := a.bytesToV(ent.value)
+		if err != nil {
+			return zeroValue[V](), false
+		}
+		return val, !ent.ghost
+	}
+	return zeroValue[V](), false
+}
+
+// Put inserts a new key-value pair into the cache.
+func (a *ARC[K, V]) Put(key K, value V) error {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	byteValue, err := a.VToBytes(value)
+	if err != nil {
+		return err
+	}
 
 	ent, ok := a.cache[key]
 	if ok != true {
 		a.len++
-
-		ent = &entry{
+		ent = &entry[K]{
 			key:   key,
-			value: value,
+			value: byteValue,
 			ghost: false,
 		}
-
-		a.req(ent)
+		a.reconstruct(ent)
 		a.cache[key] = ent
 	} else {
 		if ent.ghost {
 			a.len++
 		}
-		ent.value = value
+		ent.value = byteValue
 		ent.ghost = false
-		a.req(ent)
+		a.reconstruct(ent)
 	}
-	return ok
+	return nil
 }
 
-// Get retrieves a previous via Set inserted entry.
-func (a *ARC) Get(key interface{}) (value interface{}, ok bool) {
+// Delete removes an entry
+func (a *ARC[K, V]) Delete(key K) error {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
-	ent, ok := a.cache[key]
-	if ok {
-		a.req(ent)
-		return ent.value, !ent.ghost
+	_, ok := a.cache[key]
+	if !ok {
+		return util.ErrCacheDelete
 	}
-	return nil, false
+
+	delete(a.cache, key)
+	a.len--
+
+	return nil
 }
 
 // Len determines the number of currently cached entries.
-func (a *ARC) Len() int {
+func (a *ARC[K, V]) Len() int {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 
 	return a.len
 }
 
-// req Dynamically adjusts sizes of l1, l2 based on the workload.
+// reconstruct Dynamically adjusts sizes of l1, l2 based on the workload.
 // A hit in b1 increases p, shifting the balance towards recency (increasing the size of l1).
 // A hit in b2 decreases p, shifting the balance towards frequency (increasing the size of l2).
-func (a *ARC) req(ent *entry) {
+func (a *ARC[K, V]) reconstruct(ent *entry[K]) {
 	// comparing the pointer
 	if ent.ll == a.l1 || ent.ll == a.l2 {
 		// Case I	- Hit in l1 or l2
@@ -138,28 +167,96 @@ func (a *ARC) req(ent *entry) {
 }
 
 // delLRU remove the Least Recently Used (LRU) entry
-func (a *ARC) delLRU(list *list.List) {
+func (a *ARC[K, V]) delLRU(list *list.List) {
 	lru := list.Back()
 	list.Remove(lru)
 	a.len--
-	delete(a.cache, lru.Value.(*entry).key)
+	delete(a.cache, lru.Value.(*entry[K]).key)
 }
 
 // replace provides balance between recency and frequency when:
 // 1. new entry needs to be added.
 // 2. cache has reached its capacity
-func (a *ARC) replace(ent *entry) {
+func (a *ARC[K, V]) replace(ent *entry[K]) {
 	if a.l1.Len() > 0 && ((a.l1.Len() > a.p) || (ent.ll == a.b2 && a.l1.Len() == a.p)) {
-		lru := a.l1.Back().Value.(*entry)
+		lru := a.l1.Back().Value.(*entry[K])
 		lru.value = nil
 		lru.ghost = true
 		a.len--
 		lru.setMRU(a.b1)
 	} else {
-		lru := a.l2.Back().Value.(*entry)
+		lru := a.l2.Back().Value.(*entry[K])
 		lru.value = nil
 		lru.ghost = true
 		a.len--
 		lru.setMRU(a.b2)
 	}
 }
+
+func (a *ARC[K, V]) VToBytes(val V) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(val)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (a *ARC[K, V]) bytesToV(data []byte) (value V, err error) {
+	buf := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(buf)
+	err = dec.Decode(&value)
+	if err != nil {
+		return zeroValue[V](), err
+	}
+	return value, nil
+}
+
+func zeroValue[V any]() V {
+	var zero V
+	return zero
+}
+
+//// calculateCacheSize percentage - % of available memory
+//func calculateCacheSize(percentage uint64) int {
+//	// Get available system memory
+//	v, _ := mem.VirtualMemory()
+//	availableMemory := v.Available
+//	storageUntil, _ := time.Parse(time.DateOnly, "2077-07-07")
+//	order := models.Order{
+//		ID:           "1234",
+//		UserID:       "1234",
+//		StorageUntil: storageUntil,
+//		Issued:       true,
+//		IssuedAt:     storageUntil,
+//		Returned:     false,
+//		OrderPrice:   models.Price(9999),
+//		Weight:       models.Weight(9999),
+//		PackageType:  models.PackageType("box"),
+//		PackagePrice: models.Price(9999),
+//		Hash:         "qwertyuiopasdfghjklzxcvbnm123456789qwertyuiopasdfghjklzxcvbnm123456789",
+//	}
+//	var buf bytes.Buffer
+//	enc := gob.NewEncoder(&buf)
+//	err := enc.Encode(order)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	ent := entry[string]{
+//		key:   "1234",
+//		value: buf.Bytes(),
+//		ghost: false,
+//	}
+//	// Estimate the size of each cache entry
+//	keySize := unsafe.Sizeof(ent.key)
+//	valueSize := unsafe.Sizeof(ent.value)
+//	entrySize := keySize + valueSize
+//
+//	// Calculate the number of entries that fit into the available memory
+//	// using the specified percentage of available memory
+//	cacheMemory := (availableMemory * percentage) / 10000
+//	cacheSize := int(cacheMemory / uint64(entrySize))
+//
+//	return cacheSize
+//}

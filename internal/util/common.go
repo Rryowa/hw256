@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func NewConfig() *config.DbConfig {
+func NewDbConfig() *config.DbConfig {
 	err := godotenv.Load("./.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
@@ -64,6 +64,21 @@ func NewGrpcConfig() *config.GrpcConfig {
 		Host:     os.Getenv("GRPC_HOST"),
 		HttpPort: os.Getenv("GRPC_HTTP_PORT"),
 		GrpcPort: os.Getenv("GRPC_PORT"),
+	}
+}
+
+func NewCacheConfig() *config.CacheConfig {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
+	size, err := strconv.Atoi(os.Getenv("CACHE_SIZE"))
+	if err != nil {
+		log.Fatalf("Error parsing CACHE_SIZE: %v\n", err)
+	}
+
+	return &config.CacheConfig{
+		Size: size,
 	}
 }
 
