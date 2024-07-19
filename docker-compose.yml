@@ -82,6 +82,25 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  prometheus:
+    container_name: prom
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin1
+      GF_SECURITY_ADMIN_PASSWORD: admin1
+    ports:
+      - "3000:3000"
+
 networks:
   postgres:
     driver: bridge

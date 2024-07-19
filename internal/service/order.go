@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"homework/internal/metrics"
 	"homework/internal/models"
 	"homework/internal/storage"
 	"homework/internal/util"
@@ -27,18 +28,22 @@ type orderService struct {
 	packageService PackageService
 	hashGenerator  hash.Hasher
 	cache          cache.CacheService
+	serverMetrics  metrics.Metrics
 }
 
-func NewOrderService(r storage.Storage, c cache.CacheService, ps PackageService, hg hash.Hasher) OrderService {
+func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher, c cache.CacheService, sm metrics.Metrics) OrderService {
 	return &orderService{
 		repository:     r,
 		packageService: ps,
 		hashGenerator:  hg,
 		cache:          c,
+		serverMetrics:  sm,
 	}
 }
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
+	os.serverMetrics.IncrementMethodCallCounter("Accept")
+
 	_, ok := os.cache.Get(dto.ID)
 	if ok {
 		return util.ErrOrderExists
@@ -91,6 +96,9 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 }
 
 func (os *orderService) Issue(ctx context.Context, idsStr string) error {
+	os.serverMetrics.IncrementMethodCallCounter("Issue")
+
+	start := time.Now()
 	ids := strings.Split(idsStr, ",")
 
 	order, ok := os.cache.Get(ids[0])
@@ -124,21 +132,25 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 		orders[i].Issued = true
 	}
 
-	orders, err := os.repository.IssueUpdate(ctx, orders)
+	issuedOrders, err := os.repository.IssueUpdate(ctx, orders)
 	if err != nil {
 		return err
 	}
 
-	for _, order := range orders {
+	for _, order := range issuedOrders {
 		if err := os.putInCache(order); err != nil {
 			return err
 		}
+		os.serverMetrics.IncrementIssuedCounter()
 	}
+	os.serverMetrics.ObserveRequestDuration("200", time.Since(start))
 
 	return nil
 }
 
 func (os *orderService) Return(ctx context.Context, id, userId string) error {
+	os.serverMetrics.IncrementMethodCallCounter("Return")
+
 	order, ok := os.cache.Get(id)
 	if !ok {
 		return util.ErrOrderNotFound
@@ -168,6 +180,8 @@ func (os *orderService) Return(ctx context.Context, id, userId string) error {
 }
 
 func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
+	os.serverMetrics.IncrementMethodCallCounter("ReturnToCourier")
+
 	order, ok := os.cache.Get(id)
 	if !ok {
 		return util.ErrOrderNotFound
@@ -193,6 +207,8 @@ func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 }
 
 func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error) {
+	os.serverMetrics.IncrementMethodCallCounter("ListReturns")
+
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
 		return []models.Order{}, util.ErrOffsetInvalid
@@ -206,6 +222,8 @@ func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr str
 }
 
 func (os *orderService) ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error) {
+	os.serverMetrics.IncrementMethodCallCounter("ListOrders")
+
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
 		return []models.Order{}, util.ErrOffsetInvalid

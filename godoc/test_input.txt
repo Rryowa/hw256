@@ -12,15 +12,32 @@ accept -id=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
 accept -id=5 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
 accept -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
 
+accept -id=11 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=21 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=31 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+accept -id=41 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=51 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=61 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+
 return_courier -id=1
 
 list_orders -u_id=1 -ofs=0 -lmt=10
+list_orders -u_id=1 -ofs=2 -lmt=10
+list_orders -u_id=1 -ofs=4 -lmt=10
+list_orders -u_id=1 -ofs=6 -lmt=10
+list_orders -u_id=1 -ofs=7 -lmt=10
+list_orders -u_id=1 -ofs=0 -lmt=10
+list_orders -u_id=1 -ofs=2 -lmt=10
+list_orders -u_id=1 -ofs=4 -lmt=10
+list_orders -u_id=1 -ofs=6 -lmt=10
+list_orders -u_id=1 -ofs=7 -lmt=10
 
-issue -ids=2,3,4,5,6
+issue -ids=1,2,3,4,5,6
+issue -ids=11,21,31,41,51,61
 
-accept_return -id=4 -u_id=1
-accept_return -id=5 -u_id=1
-accept_return -id=6 -u_id=1
+accept_return -id=1 -u_id=1
+accept_return -id=2 -u_id=1
+accept_return -id=3 -u_id=1
 
 list_returns -ofs=0 -lmt=1
 list_returns -ofs=1 -lmt=2

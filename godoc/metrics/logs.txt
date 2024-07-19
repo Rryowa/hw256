@@ -1,0 +1,573 @@
+2024/07/20 00:26:25 goose: no migrations to run. current version: 20240707192956
+2024-07-20T00:26:25.448+0300    INFO    Connected to db
+INFO[0000] Listening on localhost:9080
+2024-07-20T00:26:25.452+0300    INFO    Number of goroutines set to 12
+
+accept -id=1 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=2 -u_id=2024-07-20T00:33:05.812+0300 INFO    Worker 1: Waiting to acquire semaphore
+
+2024-07-20T00:33:05.812+0300    INFO    Worker 1: Working
+
+1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=3 -2024-07-20T00:33:05.813+0300      INFO    Worker 2: Waiting to acquire semaphore
+
+2024-07-20T00:33:05.813+0300    INFO    Worker 2: Working
+
+u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+accept -id2024-07-20T00:33:05.814+0300  INFO    Worker 3: Waiting to acquire semaphore
+
+2024-07-20T00:33:05.815+0300    INFO    Worker 3: Working
+
+=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=5 -2024-07-20T00:33:05.816+0300      INFO    Worker 4: Waiting to acquire semaphore
+
+2024-07-20T00:33:05.816+0300    INFO    Worker 4: Working
+
+u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -2024-07-20T00:33:05.817+0300    INFO    Worker 5: Waiting to acquire semaphore
+
+2024-07-20T00:33:05.817+0300    INFO    Worker 5: Working
+
+id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box2024-07-20T00:33:05.858+0300  INFO    Kafka: Received event: {1 accept accep
+t -id=2 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet requested 2024-07-20 00:33:05.838172 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:05.867+0300    INFO    Kafka: Received event: {3 accept accept -id=3 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box requested 2024-07-20 00:33:05.838225 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:05.878+0300    INFO    Kafka: Received event: {2 accept accept -id=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film requested 2024-07-20 00:33:05.838229 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:05.887+0300    INFO    Kafka: Received event: {5 accept accept -id=1 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film requested 2024-07-20 00:33:05.838249 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash.Calculating hash.Calculating hash.Calculating hash.2024-07-20T00:33:05.896+0300        INFO    Kafka: Received event:
+ {4 accept accept -id=5 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet requested 2024-07-20 00:33:05.838247 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash. . . . . . . . . . . . . . . . . . . . .
+
+ . .
+ . .
+
+ .2024-07-20T00:33:10.908+0300  INFO    Order accepted
+2024-07-20T00:33:10.909+0300    INFO    Order accepted
+2024-07-20T00:33:10.909+0300    INFO    Order accepted
+2024-07-20T00:33:10.909+0300    INFO    Order accepted
+2024-07-20T00:33:10.910+0300    INFO    Order accepted
+2024-07-20T00:33:10.921+0300    INFO    Kafka: Received event: {1 accept accept -id=2 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet processed 2024-07-20 00:33:05.838172 +0300 MSK 2024-07-20 00:33:10.911359 +0300 MSK}
+
+2024-07-20T00:33:10.922+0300    INFO    Kafka: Received event: {3 accept accept -id=3 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box processed 2024-07-20 00:33:05.838225 +0300 MSK 2024-07-20 00:33:10.911325 +0300 MSK}
+
+2024-07-20T00:33:10.922+0300    INFO    Kafka: Received event: {2 accept accept -id=4 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film processed 2024-07-20 00:33:05.838229 +0300 MSK 2024-07-20 00:33:10.911347 +0300 MSK}
+
+2024-07-20T00:33:10.922+0300    INFO    Kafka: Received event: {4 accept accept -id=5 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet processed 2024-07-20 00:33:05.838247 +0300 MSK 2024-07-20 00:33:10.910301 +0300 MSK}
+
+2024-07-20T00:33:10.924+0300    INFO    Kafka: Received event: {5 accept accept -id=1 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film processed 2024-07-20 00:33:05.838249 +0300 MSK 2024-07-20 00:33:10.911366 +0300 MSK}
+
+2024-07-20T00:33:10.924+0300    INFO    Worker 3: Semaphore released
+
+2024-07-20T00:33:10.924+0300    INFO    Worker 1: Semaphore released
+
+2024-07-20T00:33:10.924+0300    INFO    Worker 5: Semaphore released
+
+2024-07-20T00:33:10.924+0300    INFO    Worker 2: Semaphore released
+
+2024-07-20T00:33:10.928+0300    INFO    Worker 4: Semaphore released
+
+accept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=0 -p=film
+accept -id=2 -2024-07-20T00:33:12.466+0300      INFO    Worker 6: Waiting to acquire semaphore
+
+2024-07-20T00:33:12.466+0300    INFO    Worker 6: Working
+
+u_id=1 -date=2062-07-07 -price=399.99 -w=10.0 -p=packet
+accept -id=3 -u2024-07-20T00:33:12.467+0300     INFO    Worker 7: Waiting to acquire semaphore
+
+2024-07-20T00:33:12.467+0300    INFO    Worker 7: Working
+
+_id=1 -date=2063-07-07 -price=599.99 -w=30.0 -p=box
+accept -id=2024-07-20T00:33:12.468+0300 INFO    Worker 8: Waiting to acquire semaphore
+
+2024-07-20T00:33:12.468+0300    INFO    Worker 8: Working
+
+5 -u_id=1 -date=2064-07-07 -price=999.99 -w=10.0 -p=LOL2024-07-20T00:33:12.483+0300     INFO    Kafka: Received event: {6 accept accep
+t -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=boxaccept -id=1 -u_id=1 -date=2061-07-07 -price=199.99 -w=0 -p=film requested 2024-07-20 00:33:12.467742 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:12.485+0300    INFO    Kafka: Received event: {7 accept accept -id=2 -u_id=1 -date=2062-07-07 -price=399.99 -w=10.0 -p=packet requested 2024-07-20 00:33:12.469087 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:12.485+0300    INFO    Kafka: Received event: {8 accept accept -id=3 -u_id=1 -date=2063-07-07 -price=599.99 -w=30.0 -p=box requested 2024-07-20 00:33:12.469838 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:12.486+0300    ERROR   error - order already exists
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:33:12.486+0300    INFO    Worker 7: Semaphore released
+
+2024-07-20T00:33:12.486+0300    ERROR   error - order already exists
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:33:12.486+0300    INFO    Worker 6: Semaphore released
+
+2024-07-20T00:33:12.487+0300    ERROR   error - order already exists
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:33:12.487+0300    INFO    Worker 8: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:33:22.482+0300    INFO    Worker 9: Waiting to acquire semaphore
+
+2024-07-20T00:33:22.482+0300    INFO    Worker 9: Working
+
+2024-07-20T00:33:22.498+0300    INFO    Kafka: Received event: {9 accept accept -id=5 -u_id=1 -date=2064-07-07 -price=999.99 -w=10.0 -p=LOLlist_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:33:22.483911 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+flag provided but not defined: -ofs
+Usage of accept:
+  -date string
+        use -date=2024-06-06
+  -id string
+        use -id=12345
+  -p string
+        use -p=box
+  -price string
+        use -price=999.99
+  -u_id string
+        use -u_id=54321
+  -w string
+        use -w=10.0
+2024-07-20T00:33:22.499+0300    ERROR   flag provided but not defined: -ofs
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:33:22.499+0300    INFO    Worker 9: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:33:26.555+0300    INFO    Worker 10: Waiting to acquire semaphore
+
+2024-07-20T00:33:26.556+0300    INFO    Worker 10: Working
+
+2024-07-20T00:33:26.564+0300    INFO    Kafka: Received event: {10 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:33:26.557123 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+4    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+2    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+5    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:33:26.576+0300    INFO    Kafka: Received event: {10 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:33:26.557123 +0300 MSK 2024-07-20 00:33:26.569731 +0300 MSK}
+
+2024-07-20T00:33:26.577+0300    INFO    Worker 10: Semaphore released
+
+accept -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+2024-07-20T00:33:46.296+0300    INFO    Worker 11: Waiting to acquire semaphore
+
+2024-07-20T00:33:46.296+0300    INFO    Worker 11: Working
+
+2024-07-20T00:33:46.312+0300    INFO    Kafka: Received event: {11 accept accept -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box requested 2024-07-20 00:33:46.29843 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash. . . . .
+ .2024-07-20T00:33:51.326+0300  INFO    Order accepted
+2024-07-20T00:33:51.335+0300    INFO    Kafka: Received event: {11 accept accept -id=6 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box processed 2024-07-20 00:33:46.29843 +0300 MSK 2024-07-20 00:33:51.327476 +0300 MSK}
+
+2024-07-20T00:33:51.336+0300    INFO    Worker 11: Semaphore released
+
+return_courier -id=1
+2024-07-20T00:33:59.313+0300    INFO    Worker 12: Waiting to acquire semaphore
+
+2024-07-20T00:33:59.313+0300    INFO    Worker 12: Working
+
+2024-07-20T00:33:59.322+0300    INFO    Kafka: Received event: {12 return_courier return_courier -id=1 requested 2024-07-20 00:33:59.314664 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:33:59.323+0300    ERROR   error - order cant be returned (not expired)
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:33:59.323+0300    INFO    Worker 12: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:34:13.037+0300    INFO    Worker 13: Waiting to acquire semaphore
+
+2024-07-20T00:34:13.037+0300    INFO    Worker 13: Working
+
+2024-07-20T00:34:13.052+0300    INFO    Kafka: Received event: {13 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:34:13.038711 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+4    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+2    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+5    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+6    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:34:13.063+0300    INFO    Kafka: Received event: {13 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:34:13.038711 +0300 MSK 2024-07-20 00:34:13.057832 +0300 MSK}
+
+2024-07-20T00:34:13.065+0300    INFO    Worker 13: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:34:17.121+0300    INFO    Worker 14: Waiting to acquire semaphore
+
+2024-07-20T00:34:17.121+0300    INFO    Worker 14: Working
+
+2024-07-20T00:34:17.136+0300    INFO    Kafka: Received event: {14 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:34:17.122497 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+4    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+2    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+5    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+6    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:34:17.146+0300    INFO    Kafka: Received event: {14 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:34:17.122497 +0300 MSK 2024-07-20 00:34:17.139932 +0300 MSK}
+
+2024-07-20T00:34:17.148+0300    INFO    Worker 14: Semaphore released
+
+list_orders -u_id=1 -ofs=2 -lmt=10
+2024-07-20T00:34:21.518+0300    INFO    Worker 15: Waiting to acquire semaphore
+
+2024-07-20T00:34:21.518+0300    INFO    Worker 15: Working
+
+2024-07-20T00:34:21.534+0300    INFO    Kafka: Received event: {15 list_orders list_orders -u_id=1 -ofs=2 -lmt=10 requested 2024-07-20 00:34:21.519951 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+2    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+5    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+6    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:34:21.545+0300    INFO    Kafka: Received event: {15 list_orders list_orders -u_id=1 -ofs=2 -lmt=10 processed 2024-07-20 00:34:21.519951 +0300 MSK 2024-07-20 00:34:21.537937 +0300 MSK}
+
+2024-07-20T00:34:21.547+0300    INFO    Worker 15: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:34:27.115+0300    INFO    Worker 16: Waiting to acquire semaphore
+
+2024-07-20T00:34:27.115+0300    INFO    Worker 16: Working
+
+2024-07-20T00:34:27.130+0300    INFO    Kafka: Received event: {16 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:34:27.116587 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+4    1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+2    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+5    1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+6    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:34:27.139+0300    INFO    Kafka: Received event: {16 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:34:27.116587 +0300 MSK 2024-07-20 00:34:27.133853 +0300 MSK}
+
+2024-07-20T00:34:27.141+0300    INFO    Worker 16: Semaphore released
+
+list_orders -u_id=1 -ofs=6 -lmt=10
+2024-07-20T00:34:32.560+0300    INFO    Worker 17: Waiting to acquire semaphore
+
+2024-07-20T00:34:32.560+0300    INFO    Worker 17: Working
+
+2024-07-20T00:34:32.575+0300    INFO    Kafka: Received event: {17 list_orders list_orders -u_id=1 -ofs=6 -lmt=10 requested 2024-07-20 00:34:32.5617 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+
+
+
+2024-07-20T00:34:32.585+0300    INFO    Kafka: Received event: {17 list_orders list_orders -u_id=1 -ofs=6 -lmt=10 processed 2024-07-20 00:34:32.5617 +0300 MSK 2024-07-20 00:34:32.579384 +0300 MSK}
+
+2024-07-20T00:34:32.586+0300    INFO    Worker 17: Semaphore released
+
+list_orders -u_id=1 -ofs=4 -lmt=10
+2024-07-20T00:34:38.927+0300    INFO    Worker 18: Waiting to acquire semaphore
+
+2024-07-20T00:34:38.927+0300    INFO    Worker 18: Working
+
+2024-07-20T00:34:38.942+0300    INFO    Kafka: Received event: {18 list_orders list_orders -u_id=1 -ofs=4 -lmt=10 requested 2024-07-20 00:34:38.929038 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+3    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+6    1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:34:38.952+0300    INFO    Kafka: Received event: {18 list_orders list_orders -u_id=1 -ofs=4 -lmt=10 processed 2024-07-20 00:34:38.929038 +0300 MSK 2024-07-20 00:34:38.94557 +0300 MSK}
+
+2024-07-20T00:34:38.954+0300    INFO    Worker 18: Semaphore released
+
+issue -ids=1,2,3,4,5,6
+2024-07-20T00:34:55.976+0300    INFO    Worker 19: Waiting to acquire semaphore
+
+2024-07-20T00:34:55.976+0300    INFO    Worker 19: Working
+
+2024-07-20T00:34:55.985+0300    INFO    Kafka: Received event: {19 issue issue -ids=1,2,3,4,5,6 requested 2024-07-20 00:34:55.977534 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:1 issued
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:2 issued
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:3 issued
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:4 issued
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:5 issued
+
+2024-07-20T00:34:55.988+0300    INFO    Order with id:6 issued
+
+2024-07-20T00:34:55.997+0300    INFO    Orders issued
+2024-07-20T00:34:56.004+0300    INFO    Kafka: Received event: {19 issue issue -ids=1,2,3,4,5,6 processed 2024-07-20 00:34:55.977534 +0300 MSK 2024-07-20 00:34:55.997759 +0300 MSK}
+
+2024-07-20T00:34:56.006+0300    INFO    Worker 19: Semaphore released
+
+accept_return -id=1 -u_id=1
+accept_re2024-07-20T00:35:19.878+0300   INFO    Worker 20: Waiting to acquire semaphore
+
+2024-07-20T00:35:19.878+0300    INFO    Worker 20: Working
+
+turn -id=2 -u_id=1
+accept_retu2024-07-20T00:35:19.878+0300 INFO    Worker 21: Waiting to acquire semaphore
+
+2024-07-20T00:35:19.878+0300    INFO    Worker 21: Working
+
+rn -id=3 -u_id=1
+2024-07-20T00:35:19.879+0300    INFO    Worker 22: Waiting to acquire semaphore
+
+2024-07-20T00:35:19.879+0300    INFO    Worker 22: Working
+
+2024-07-20T00:35:19.894+0300    INFO    Kafka: Received event: {20 accept_return accept_return -id=1 -u_id=1 requested 2024-07-20 00:35:19.879426 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:35:19.897+0300    INFO    Kafka: Received event: {22 accept_return accept_return -id=3 -u_id=1 requested 2024-07-20 00:35:19.880758 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:35:19.897+0300    INFO    Kafka: Received event: {21 accept_return accept_return -id=2 -u_id=1 requested 2024-07-20 00:35:19.880023 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:35:19.902+0300    INFO    Return accepted
+2024-07-20T00:35:19.904+0300    INFO    Return accepted
+2024-07-20T00:35:19.907+0300    INFO    Return accepted
+2024-07-20T00:35:19.911+0300    INFO    Kafka: Received event: {20 accept_return accept_return -id=1 -u_id=1 processed 2024-07-20 00:35:19.879426 +0300 MSK 2024-07-20 00:35:19.90353 +0300 MSK}
+
+2024-07-20T00:35:19.914+0300    INFO    Worker 20: Semaphore released
+
+2024-07-20T00:35:19.914+0300    INFO    Kafka: Received event: {22 accept_return accept_return -id=3 -u_id=1 processed 2024-07-20 00:35:19.880758 +0300 MSK 2024-07-20 00:35:19.905034 +0300 MSK}
+
+2024-07-20T00:35:19.916+0300    INFO    Worker 22: Semaphore released
+
+2024-07-20T00:35:19.917+0300    INFO    Kafka: Received event: {21 accept_return accept_return -id=2 -u_id=1 processed 2024-07-20 00:35:19.880023 +0300 MSK 2024-07-20 00:35:19.908074 +0300 MSK}
+
+2024-07-20T00:35:19.919+0300    INFO    Worker 21: Semaphore released
+
+list_returns -ofs=0 -lmt=10
+2024-07-20T00:35:34.250+0300    INFO    Worker 23: Waiting to acquire semaphore
+
+2024-07-20T00:35:34.250+0300    INFO    Worker 23: Working
+
+2024-07-20T00:35:34.265+0300    INFO    Kafka: Received event: {23 list_returns list_returns -ofs=0 -lmt=10 requested 2024-07-20 00:35:34.251313 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     2024-07-20     true      200.99       1.9       film         1
+2    1         2065-07-07     2024-07-20     true      404.99       9.9       packet       5
+3    1         2066-07-07     2024-07-20     true      619.99       29.9      box          20
+
+2024-07-20T00:35:34.275+0300    INFO    Kafka: Received event: {23 list_returns list_returns -ofs=0 -lmt=10 processed 2024-07-20 00:35:34.251313 +0300 MSK 2024-07-20 00:35:34.269223 +0300 MSK}
+
+2024-07-20T00:35:34.276+0300    INFO    Worker 23: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:35:41.816+0300    INFO    Worker 24: Waiting to acquire semaphore
+
+2024-07-20T00:35:41.816+0300    INFO    Worker 24: Working
+
+2024-07-20T00:35:41.824+0300    INFO    Kafka: Received event: {24 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:35:41.817996 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+
+
+
+2024-07-20T00:35:41.833+0300    INFO    Kafka: Received event: {24 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:35:41.817996 +0300 MSK 2024-07-20 00:35:41.82774 +0300 MSK}
+
+2024-07-20T00:35:41.835+0300    INFO    Worker 24: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:35:45.811+0300    INFO    Worker 25: Waiting to acquire semaphore
+
+2024-07-20T00:35:45.811+0300    INFO    Worker 25: Working
+
+2024-07-20T00:35:45.826+0300    INFO    Kafka: Received event: {25 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:35:45.812487 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+
+
+
+2024-07-20T00:35:45.836+0300    INFO    Kafka: Received event: {25 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:35:45.812487 +0300 MSK 2024-07-20 00:35:45.829833 +0300 MSK}
+
+2024-07-20T00:35:45.838+0300    INFO    Worker 25: Semaphore released
+
+accept -id=11 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id=2024-07-20T00:36:00.270+0300 INFO    Worker 26: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.270+0300    INFO    Worker 26: Working
+
+21 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=32024-07-20T00:36:00.271+0300        INFO    Worker 27: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.271+0300    INFO    Worker 27: Working
+
+1 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+accept -id=41 -2024-07-20T00:36:00.272+0300     INFO    Worker 28: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.273+0300    INFO    Worker 28: Working
+
+u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film
+accept -id2024-07-20T00:36:00.274+0300  INFO    Worker 29: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.274+0300    INFO    Worker 29: Working
+
+=51 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet
+accept -id=2024-07-20T00:36:00.275+0300 INFO    Worker 30: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.275+0300    INFO    Worker 30: Working
+
+61 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box
+2024-07-20T00:36:00.277+0300    INFO    Worker 31: Waiting to acquire semaphore
+
+2024-07-20T00:36:00.277+0300    INFO    Worker 31: Working
+
+2024-07-20T00:36:00.279+0300    INFO    Kafka: Received event: {26 accept accept -id=11 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film requested 2024-07-20 00:36:00.271452 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash.2024-07-20T00:36:00.282+0300   INFO    Kafka: Received event: {27 accept accept -id=21 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet requested 2024-07-20 00:36:00.272811 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash.2024-07-20T00:36:00.290+0300   INFO    Kafka: Received event: {28 accept accept -id=31 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box requested 2024-07-20 00:36:00.274121 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:36:00.291+0300    INFO    Kafka: Received event: {29 accept accept -id=41 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film requested 2024-07-20 00:36:00.275148 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash.Calculating hash.2024-07-20T00:36:00.293+0300  INFO    Kafka: Received event: {30 accept accept -id=51 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet requested 2024-07-20 00:36:00.276308 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash.2024-07-20T00:36:00.297+0300   INFO    Kafka: Received event: {31 accept accept -id=61 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box requested 2024-07-20 00:36:00.277982 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+Calculating hash. . . . . . . . . . . . . . . . . . . . . . . . .
+ .2024-07-20T00:36:05.287+0300  INFO    Order accepted
+
+ .
+2024-07-20T00:36:05.292+0300    INFO    Order accepted
+ .
+ .2024-07-20T00:36:05.295+0300  INFO    Kafka: Received event: {26 accept accept -id=11 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film processed 2024-07-20 00:36:00.271452 +0300 MSK 2024-07-20 00:36:05.287683 +0300 MSK}
+
+
+2024-07-20T00:36:05.295+0300    INFO    Order accepted
+ .2024-07-20T00:36:05.297+0300  INFO    Worker 26: Semaphore released
+
+2024-07-20T00:36:05.300+0300    INFO    Order accepted
+ .2024-07-20T00:36:05.300+0300  INFO    Order accepted
+
+2024-07-20T00:36:05.303+0300    INFO    Kafka: Received event: {27 accept accept -id=21 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet processed 2024-07-20 00:36:00.272811 +0300 MSK 2024-07-20 00:36:05.29338 +0300 MSK}
+
+2024-07-20T00:36:05.305+0300    INFO    Order accepted
+2024-07-20T00:36:05.306+0300    INFO    Worker 27: Semaphore released
+
+2024-07-20T00:36:05.310+0300    INFO    Kafka: Received event: {29 accept accept -id=41 -u_id=1 -date=2064-07-07 -price=199.99 -w=1.9 -p=film processed 2024-07-20 00:36:00.275148 +0300 MSK 2024-07-20 00:36:05.296934 +0300 MSK}
+
+2024-07-20T00:36:05.311+0300    INFO    Worker 29: Semaphore released
+
+2024-07-20T00:36:05.313+0300    INFO    Kafka: Received event: {28 accept accept -id=31 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box processed 2024-07-20 00:36:00.274121 +0300 MSK 2024-07-20 00:36:05.300887 +0300 MSK}
+
+2024-07-20T00:36:05.313+0300    INFO    Kafka: Received event: {30 accept accept -id=51 -u_id=1 -date=2065-07-07 -price=399.99 -w=9.9 -p=packet processed 2024-07-20 00:36:00.276308 +0300 MSK 2024-07-20 00:36:05.300763 +0300 MSK}
+
+2024-07-20T00:36:05.314+0300    INFO    Worker 28: Semaphore released
+
+2024-07-20T00:36:05.316+0300    INFO    Kafka: Received event: {31 accept accept -id=61 -u_id=1 -date=2066-07-07 -price=599.99 -w=29.9 -p=box processed 2024-07-20 00:36:00.277982 +0300 MSK 2024-07-20 00:36:05.306129 +0300 MSK}
+
+2024-07-20T00:36:05.317+0300    INFO    Worker 30: Semaphore released
+
+2024-07-20T00:36:05.319+0300    INFO    Worker 31: Semaphore released
+
+list_orders -u_id=1 -ofs=0 -lmt=10
+2024-07-20T00:36:08.357+0300    INFO    Worker 32: Waiting to acquire semaphore
+
+2024-07-20T00:36:08.357+0300    INFO    Worker 32: Working
+
+2024-07-20T00:36:08.372+0300    INFO    Kafka: Received event: {32 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 requested 2024-07-20 00:36:08.35855 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+11   1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+41   1         2064-07-07     0001-01-01     false     200.99       1.9       film         1
+21   1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+51   1         2065-07-07     0001-01-01     false     404.99       9.9       packet       5
+31   1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+61   1         2066-07-07     0001-01-01     false     619.99       29.9      box          20
+
+2024-07-20T00:36:08.382+0300    INFO    Kafka: Received event: {32 list_orders list_orders -u_id=1 -ofs=0 -lmt=10 processed 2024-07-20 00:36:08.35855 +0300 MSK 2024-07-20 00:36:08.376486 +0300 MSK}
+
+2024-07-20T00:36:08.384+0300    INFO    Worker 32: Semaphore released
+
+return_courier -id=11
+2024-07-20T00:36:23.956+0300    INFO    Worker 33: Waiting to acquire semaphore
+
+2024-07-20T00:36:23.956+0300    INFO    Worker 33: Working
+
+2024-07-20T00:36:23.971+0300    INFO    Kafka: Received event: {33 return_courier return_courier -id=11 requested 2024-07-20 00:36:23.958004 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:36:23.972+0300    ERROR   error - order cant be returned (not expired)
+homework/internal/view.(*CLI).processCommand
+        /home/rryowa/route256/homework/internal/view/cli.go:222
+homework/internal/view.(*CLI).worker
+        /home/rryowa/route256/homework/internal/view/cli.go:148
+2024-07-20T00:36:23.972+0300    INFO    Worker 33: Semaphore released
+
+issue -ids=11,21,31,41,51,61
+2024-07-20T00:36:30.587+0300    INFO    Worker 34: Waiting to acquire semaphore
+
+2024-07-20T00:36:30.587+0300    INFO    Worker 34: Working
+
+2024-07-20T00:36:30.605+0300    INFO    Kafka: Received event: {34 issue issue -ids=11,21,31,41,51,61 requested 2024-07-20 00:36:30.588703 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:11 issued
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:21 issued
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:31 issued
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:41 issued
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:51 issued
+
+2024-07-20T00:36:30.607+0300    INFO    Order with id:61 issued
+
+2024-07-20T00:36:30.614+0300    INFO    Orders issued
+2024-07-20T00:36:30.620+0300    INFO    Kafka: Received event: {34 issue issue -ids=11,21,31,41,51,61 processed 2024-07-20 00:36:30.588703 +0300 MSK 2024-07-20 00:36:30.614598 +0300 MSK}
+
+2024-07-20T00:36:30.621+0300    INFO    Worker 34: Semaphore released
+
+accept_return -id=11 -u_id=1
+2024-07-20T00:36:45.811+0300    INFO    Worker 35: Waiting to acquire semaphore
+
+2024-07-20T00:36:45.811+0300    INFO    Worker 35: Working
+
+2024-07-20T00:36:45.826+0300    INFO    Kafka: Received event: {35 accept_return accept_return -id=11 -u_id=1 requested 2024-07-20 00:36:45.813041 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+2024-07-20T00:36:45.831+0300    INFO    Return accepted
+2024-07-20T00:36:45.838+0300    INFO    Kafka: Received event: {35 accept_return accept_return -id=11 -u_id=1 processed 2024-07-20 00:36:45.813041 +0300 MSK 2024-07-20 00:36:45.832458 +0300 MSK}
+
+2024-07-20T00:36:45.839+0300    INFO    Worker 35: Semaphore released
+
+list_returns -ofs=0 -lmt=10
+2024-07-20T00:36:51.642+0300    INFO    Worker 36: Waiting to acquire semaphore
+
+2024-07-20T00:36:51.642+0300    INFO    Worker 36: Working
+
+2024-07-20T00:36:51.656+0300    INFO    Kafka: Received event: {36 list_returns list_returns -ofs=0 -lmt=10 requested 2024-07-20 00:36:51.643342 +0300 MSK 0001-01-01 00:00:00 +0000 UTC}
+
+id   user_id   storage_until  issued_at      returned  order_price  weight    package_type package_price
+----------------------------------------------------------------------------------------------------
+1    1         2064-07-07     2024-07-20     true      200.99       1.9       film         1
+11   1         2064-07-07     2024-07-20     true      200.99       1.9       film         1
+2    1         2065-07-07     2024-07-20     true      404.99       9.9       packet       5
+3    1         2066-07-07     2024-07-20     true      619.99       29.9      box          20
+
+2024-07-20T00:36:51.666+0300    INFO    Kafka: Received event: {36 list_returns list_returns -ofs=0 -lmt=10 processed 2024-07-20 00:36:51.643342 +0300 MSK 2024-07-20 00:36:51.6601 +0300 MSK}
+
+2024-07-20T00:36:51.667+0300    INFO    Worker 36: Semaphore released
