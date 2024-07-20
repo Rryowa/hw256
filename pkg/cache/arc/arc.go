@@ -63,7 +63,7 @@ func (a *ARC[K, V]) Put(key K, value V) error {
 	}
 
 	ent, ok := a.cache[key]
-	if ok != true {
+	if !ok {
 		a.len++
 		ent = &entry[K]{
 			key:   key,

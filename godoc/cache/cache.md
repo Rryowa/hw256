@@ -1,4 +1,12 @@
-Adaptive Replacement Cache (ARC), a novel cache management policy designed for demand paging systems.  
+TL;DR - Арк совмещает в себе LRU и MRU, а также учитывает возможность того, что нам пригодится кешированный  
+запрос независимо от того сколько времени прошло с момента последнего такого запроса (условно - отгрузка  
+заказов в пункт выдачи происходит утром, иногда может задерживаться, значит нам выгоднее инвалидировать кеш по популярности запросов)
+
+TL;DR2 - Фактическое использование кэша в ARC ограничено размером кэша c. Этот адаптивный механизм гарантирует,  
+что ARC динамически балансирует между recency(свежестью?{я не лингвист}) и частотой(frequency) данных, не превышая предварительно определенного размера кэша, 
+что, по сути, ограничивает потребление ресурсов кэша.
+
+Adaptive Replacement Cache (ARC), a novel cache management policy designed for demand paging systems.
 
 The goal of ARC is to improve cache performance by dynamically balancing between recency and frequency in an online, self-tuning manner
 

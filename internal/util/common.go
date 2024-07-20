@@ -79,8 +79,13 @@ func NewCacheConfig() *config.CacheConfig {
 	if err != nil {
 		log.Fatalf("Error parsing CACHE_SIZE: %v\n", err)
 	}
-
+	ttl, err := time.ParseDuration(os.Getenv("CACHE_TTL"))
+	if err != nil {
+		log.Fatalf("Error parsing CACHE_TTL: %v\n", err)
+	}
 	return &config.CacheConfig{
+		Type: os.Getenv("CACHE_TYPE"),
+		TTL:  ttl,
 		Size: size,
 	}
 }
