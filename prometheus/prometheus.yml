@@ -1,9 +1,0 @@
-scrape_configs:
-#  - job_name: cli
-#    scrape_interval: 5s
-#    static_configs:
-#      - targets: ['localhost:9090']
-  - job_name: doc-cli
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['host.docker.internal:9080']

@@ -7,6 +7,7 @@ import (
 	"homework/internal/metrics"
 	"homework/internal/service"
 	"homework/internal/storage/db"
+	"homework/internal/telemetry"
 	"homework/internal/util"
 	"homework/internal/view"
 	"homework/pkg/cache"
@@ -14,7 +15,6 @@ import (
 	"homework/pkg/kafka"
 )
 
-// TODO: prometheus collects data - grafana displays
 func main() {
 	ctx := context.Background()
 	zapLogger := util.NewZapLogger()
@@ -25,6 +25,7 @@ func main() {
 	cacheService := cache.NewCache(util.NewCacheConfig())
 	serverMetrics := metrics.NewServerMetrics(prometheus.NewRegistry())
 	go metrics.Listen("localhost:9080")
+	telemetry.MustSetup(ctx, "cli")
 
 	orderService := service.NewOrderService(repository, packageService,
 		&hash.HashGenerator{}, cacheService, serverMetrics)

@@ -6,6 +6,7 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"homework/internal/models"
 	"homework/internal/models/config"
@@ -49,6 +50,9 @@ func NewSQLRepository(ctx context.Context, cfg *config.DbConfig, zap *zap.Sugare
 
 func (r *Repository) Insert(ctx context.Context, order models.Order) (models.Order, error) {
 	const op = "storage.Insert"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.Insert")
+	defer span.Finish()
+
 	query := `INSERT INTO orders (id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash`
 
@@ -72,6 +76,9 @@ func (r *Repository) Insert(ctx context.Context, order models.Order) (models.Ord
 
 func (r *Repository) Update(ctx context.Context, order models.Order) (models.Order, error) {
 	const op = "storage.Update"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.Update")
+	defer span.Finish()
+
 	query := `UPDATE orders SET returned=$1
         WHERE id=$2 RETURNING id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
         `
@@ -92,6 +99,9 @@ func (r *Repository) Update(ctx context.Context, order models.Order) (models.Ord
 }
 
 func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]models.Order, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.IssueUpdate")
+	defer span.Finish()
+
 	query := `UPDATE orders SET issued=$1, issued_at=NOW()
         WHERE id=$2
         `
@@ -103,7 +113,7 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 	}
 
 	br := r.Pool.SendBatch(ctx, batch)
-	for i, _ := range orders {
+	for i := range orders {
 		_, err := br.Exec()
 		if err != nil {
 			br.Close()
@@ -129,6 +139,9 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 
 func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
 	const op = "storage.Delete"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.Delete")
+	defer span.Finish()
+
 	query := `DELETE FROM orders WHERE id=$1 RETURNING id
 		`
 
@@ -143,6 +156,9 @@ func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
 
 func (r *Repository) GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error) {
 	const op = "storage.GetReturns"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.GetReturns")
+	defer span.Finish()
+
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
         FROM orders
         WHERE returned = TRUE
@@ -167,6 +183,9 @@ func (r *Repository) GetReturns(ctx context.Context, offset, limit int) ([]model
 
 func (r *Repository) GetOrders(ctx context.Context, userId string, offset, limit int) ([]models.Order, error) {
 	const op = "storage.GetOrders"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.GetOrders")
+	defer span.Finish()
+
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
 		FROM orders
 		WHERE user_id = $1 AND issued = FALSE
@@ -188,16 +207,9 @@ func (r *Repository) GetOrders(ctx context.Context, userId string, offset, limit
 	return userOrders, err
 }
 
-func (r *Repository) Truncate(ctx context.Context, table string) error {
-	_, err := r.Pool.Exec(ctx, fmt.Sprintf(`truncate table %s`, table))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (r *Repository) InsertEvent(ctx context.Context, request string) (models.Event, error) {
 	const op = "storage.InsertEvent"
+
 	args := strings.Split(request, " ")
 	rows, err := r.Pool.Query(ctx,
 		`INSERT INTO events (method_name, request, status, requested_at) 
@@ -219,6 +231,7 @@ func (r *Repository) InsertEvent(ctx context.Context, request string) (models.Ev
 
 func (r *Repository) UpdateEvent(ctx context.Context, event models.Event) (models.Event, error) {
 	const op = "UpdateEvent"
+
 	rows, err := r.Pool.Query(ctx,
 		`UPDATE events SET status = $1, processed_at = NOW()
 				WHERE id = $2 returning id, method_name, request, status, requested_at, processed_at`,
@@ -239,6 +252,9 @@ func (r *Repository) UpdateEvent(ctx context.Context, event models.Event) (model
 
 func (r *Repository) get(ctx context.Context, id string) (models.Order, error) {
 	const op = "storage.Get"
+	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.get")
+	defer span.Finish()
+
 	var order models.Order
 	query := `SELECT id, user_id, storage_until, issued, issued_at, returned, order_price, weight, package_type, package_price, hash
 				FROM orders
@@ -252,4 +268,12 @@ func (r *Repository) get(ctx context.Context, id string) (models.Order, error) {
 		}
 	}
 	return order, nil
+}
+
+func (r *Repository) Truncate(ctx context.Context, table string) error {
+	_, err := r.Pool.Exec(ctx, fmt.Sprintf(`truncate table %s`, table))
+	if err != nil {
+		return err
+	}
+	return nil
 }

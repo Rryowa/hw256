@@ -82,25 +82,66 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks:
+     -  telemetry
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./godoc/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./godoc/grafana/provisioning:/etc/grafana/provisioning
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    networks:
+      - telemetry
+    ports:
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "16686:16686"
+    healthcheck:
+      test: [ "CMD", "curl", "-X", "GET", "localhost:14268/health" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
   prometheus:
-    container_name: prom
     image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - telemetry
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus/:/etc/prometheus/
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-  grafana:
-    container_name: grafana
-    image: grafana/grafana:latest
-    environment:
-      GF_SECURITY_ADMIN_USER: admin1
-      GF_SECURITY_ADMIN_PASSWORD: admin1
+      - ./godoc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib-dev:latest
+    container_name: otel-collector
+    networks:
+      - telemetry
+    command: [ "--config=/opentelemetry/otel-collector-config.yml" ]
+    volumes:
+      - ./godoc/opentelemetry/otel-collector-config.yml:/opentelemetry/otel-collector-config.yml
     ports:
-      - "3000:3000"
+      - "1888:1888"   # pprof extension
+      - "8888:8888"   # Prometheus's metrics exposed by the collector
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP http receiver
+      - "55679:55679" # zpages extension
+    depends_on:
+      - jaeger
+      - prometheus
 
 networks:
   postgres:
     driver: bridge
+  telemetry:

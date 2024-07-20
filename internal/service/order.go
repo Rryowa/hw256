@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"homework/internal/metrics"
 	"homework/internal/models"
 	"homework/internal/storage"
@@ -43,6 +44,8 @@ func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher, c cac
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
 	os.serverMetrics.IncrementMethodCallCounter("Accept")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Accept")
+	defer span.Finish()
 
 	_, ok := os.cache.Get(dto.ID)
 	if ok {
@@ -97,6 +100,8 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 
 func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 	os.serverMetrics.IncrementMethodCallCounter("Issue")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Issue")
+	defer span.Finish()
 
 	start := time.Now()
 	ids := strings.Split(idsStr, ",")
@@ -150,6 +155,8 @@ func (os *orderService) Issue(ctx context.Context, idsStr string) error {
 
 func (os *orderService) Return(ctx context.Context, id, userId string) error {
 	os.serverMetrics.IncrementMethodCallCounter("Return")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Return")
+	defer span.Finish()
 
 	order, ok := os.cache.Get(id)
 	if !ok {
@@ -181,6 +188,8 @@ func (os *orderService) Return(ctx context.Context, id, userId string) error {
 
 func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 	os.serverMetrics.IncrementMethodCallCounter("ReturnToCourier")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ReturnToCourier")
+	defer span.Finish()
 
 	order, ok := os.cache.Get(id)
 	if !ok {
@@ -208,6 +217,8 @@ func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 
 func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error) {
 	os.serverMetrics.IncrementMethodCallCounter("ListReturns")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ListReturns")
+	defer span.Finish()
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
@@ -223,6 +234,8 @@ func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr str
 
 func (os *orderService) ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error) {
 	os.serverMetrics.IncrementMethodCallCounter("ListOrders")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ListOrders")
+	defer span.Finish()
 
 	offset, err := strconv.Atoi(offsetStr)
 	if err != nil {
