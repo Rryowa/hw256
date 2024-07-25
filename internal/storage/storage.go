@@ -12,15 +12,11 @@ type Storage interface {
 	Delete(ctx context.Context, id string) (string, error)
 	GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error)
 	GetOrders(ctx context.Context, userId string, offset, limit int) ([]models.Order, error)
-	StorageTest
+	Exists(ctx context.Context, id string) (models.Order, bool)
 	Event
 }
 
 type Event interface {
 	InsertEvent(ctx context.Context, request string) (models.Event, error)
 	UpdateEvent(ctx context.Context, event models.Event) (models.Event, error)
-}
-
-type StorageTest interface {
-	Truncate(ctx context.Context, table string) error
 }

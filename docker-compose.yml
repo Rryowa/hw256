@@ -92,7 +92,6 @@ services:
       - "3000:3000"
     volumes:
       - ./godoc/grafana/grafana.ini:/etc/grafana/grafana.ini
-      - ./godoc/grafana/provisioning:/etc/grafana/provisioning
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -120,26 +119,6 @@ services:
       - "9090:9090"
     volumes:
       - ./godoc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib-dev:latest
-    container_name: otel-collector
-    networks:
-      - telemetry
-    command: [ "--config=/opentelemetry/otel-collector-config.yml" ]
-    volumes:
-      - ./godoc/opentelemetry/otel-collector-config.yml:/opentelemetry/otel-collector-config.yml
-    ports:
-      - "1888:1888"   # pprof extension
-      - "8888:8888"   # Prometheus's metrics exposed by the collector
-      - "8889:8889"   # Prometheus exporter metrics
-      - "13133:13133" # health_check extension
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP http receiver
-      - "55679:55679" # zpages extension
-    depends_on:
-      - jaeger
-      - prometheus
 
 networks:
   postgres:

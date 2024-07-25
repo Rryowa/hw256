@@ -11,13 +11,15 @@ import (
 	"homework/internal/models"
 	"homework/internal/models/config"
 	"homework/internal/storage"
+	"homework/internal/storage/cache"
 	"homework/internal/util"
 	"strings"
 )
 
 type Repository struct {
-	Pool      *pgxpool.Pool
-	zapLogger *zap.SugaredLogger
+	Pool         *pgxpool.Pool
+	zapLogger    *zap.SugaredLogger
+	cacheService cache.Cacher
 }
 
 func NewSQLRepository(ctx context.Context, cfg *config.DbConfig, zap *zap.SugaredLogger) storage.Storage {
@@ -43,8 +45,9 @@ func NewSQLRepository(ctx context.Context, cfg *config.DbConfig, zap *zap.Sugare
 	zap.Infoln("Connected to db")
 
 	return &Repository{
-		Pool:      pool,
-		zapLogger: zap,
+		Pool:         pool,
+		zapLogger:    zap,
+		cacheService: cache.NewCache(util.NewCacheConfig()),
 	}
 }
 
@@ -71,6 +74,10 @@ func (r *Repository) Insert(ctx context.Context, order models.Order) (models.Ord
 		return models.Order{}, fmt.Errorf("%s: %w", op2, err)
 	}
 
+	if err = r.cacheService.Put(order.ID, insertedOrder); err != nil {
+		return models.Order{}, err
+	}
+
 	return insertedOrder, nil
 }
 
@@ -95,6 +102,10 @@ func (r *Repository) Update(ctx context.Context, order models.Order) (models.Ord
 		return models.Order{}, fmt.Errorf("%s: %w", op2, err)
 	}
 
+	if err = r.cacheService.Put(order.ID, updatedOrder); err != nil {
+		return models.Order{}, err
+	}
+
 	return updatedOrder, nil
 }
 
@@ -117,21 +128,24 @@ func (r *Repository) IssueUpdate(ctx context.Context, orders []models.Order) ([]
 		_, err := br.Exec()
 		if err != nil {
 			br.Close()
-			return []models.Order{}, fmt.Errorf("error executing batch at order index %d: %w", i, err)
+			return nil, fmt.Errorf("error executing batch at order index %d: %w", i, err)
 		}
 	}
 	err := br.Close()
 	if err != nil {
-		return []models.Order{}, err
+		return nil, err
 	}
 
 	var issuedOrders []models.Order
 	for i, order := range orders {
 		o, err := r.get(ctx, order.ID)
 		if err != nil {
-			return []models.Order{}, fmt.Errorf("error getting issued order by index %d: %w", i, err)
+			return nil, fmt.Errorf("error getting issued order by index %d: %w", i, err)
 		}
 		issuedOrders = append(issuedOrders, o)
+		if err = r.cacheService.Put(order.ID, o); err != nil {
+			return nil, err
+		}
 	}
 
 	return issuedOrders, err
@@ -149,6 +163,10 @@ func (r *Repository) Delete(ctx context.Context, id string) (string, error) {
 	err := r.Pool.QueryRow(ctx, query, id).Scan(&idd)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err = r.cacheService.Delete(idd); err != nil {
+		return "", err
 	}
 
 	return idd, nil
@@ -250,6 +268,17 @@ func (r *Repository) UpdateEvent(ctx context.Context, event models.Event) (model
 	return updEvent, nil
 }
 
+// Exists returns true if order exists in cache or repository
+func (r *Repository) Exists(ctx context.Context, id string) (models.Order, bool) {
+	if order, ok := r.cacheService.Get(id); ok {
+		return order, true
+	}
+	if order, err := r.get(ctx, id); err == nil {
+		return order, true
+	}
+	return models.Order{}, false
+}
+
 func (r *Repository) get(ctx context.Context, id string) (models.Order, error) {
 	const op = "storage.Get"
 	span, ctx := opentracing.StartSpanFromContext(ctx, "storage.get")
@@ -268,12 +297,4 @@ func (r *Repository) get(ctx context.Context, id string) (models.Order, error) {
 		}
 	}
 	return order, nil
-}
-
-func (r *Repository) Truncate(ctx context.Context, table string) error {
-	_, err := r.Pool.Exec(ctx, fmt.Sprintf(`truncate table %s`, table))
-	if err != nil {
-		return err
-	}
-	return nil
 }

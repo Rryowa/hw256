@@ -1,35 +1,22 @@
 package metrics
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"homework/internal/models/config"
+	"homework/internal/telemetry"
 	"net/http"
 )
 
-func Listen(addr string) {
+func Listen(ctx context.Context, cfg *config.MetricsConfig, zap *zap.SugaredLogger) {
+	telemetry.MustSetup(ctx, cfg.ServiceName)
+
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
-	//server := &http.Server{Addr: addr, Handler: mux}
-
-	//go func() {
-	//	<-ctx.Done()
-	//
-	//	log.Warnf("Shutting down server with duration %0.3fs", shutdownDuration.Seconds())
-	//	<-time.After(shutdownDuration)
-	//
-	//	if err := server.Shutdown(context.Background()); err != nil {
-	//		log.Errorf("HTTP handler Shutdown: %s", err)
-	//	}
-	//}()
-	//
-	//if err := server.ListenAndServe(); err != nil {
-	//	log.Errorf("HTTP server ListenAndServe: %s", err)
-	//	return err
-	//}
-	log.Infof("Listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Errorln(err)
+	zap.Infof("Listening on %s", cfg.Addr)
+	if err := http.ListenAndServe(cfg.Addr, mux); err != nil {
+		zap.Errorln(err)
 	}
-	return
 }

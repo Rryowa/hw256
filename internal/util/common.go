@@ -83,10 +83,27 @@ func NewCacheConfig() *config.CacheConfig {
 	if err != nil {
 		log.Fatalf("Error parsing CACHE_TTL: %v\n", err)
 	}
+	period, err := time.ParseDuration(os.Getenv("CACHE_CLEAN_PERIOD"))
+	if err != nil {
+		log.Fatalf("Error parsing CACHE_CLEAN_PERIOD: %v\n", err)
+	}
 	return &config.CacheConfig{
-		Type: os.Getenv("CACHE_TYPE"),
-		TTL:  ttl,
-		Size: size,
+		Type:   os.Getenv("CACHE_TYPE"),
+		TTL:    ttl,
+		Period: period,
+		Size:   size,
+	}
+}
+
+func NewMetricsConfig() *config.MetricsConfig {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
+
+	return &config.MetricsConfig{
+		Addr:        os.Getenv("METRICS_ADDR"),
+		ServiceName: os.Getenv("METRICS_NAME"),
 	}
 }
 

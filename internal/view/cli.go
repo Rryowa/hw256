@@ -21,10 +21,11 @@ import (
 )
 
 type CLI struct {
-	orderService  service.OrderService
-	loggerService kafka.LoggerService
-	zapLogger     *zap.SugaredLogger
-	commandList   []command
+	orderService   service.OrderService
+	metricsService *service.MetricsService
+	loggerService  kafka.LoggerService
+	zapLogger      *zap.SugaredLogger
+	commandList    []command
 
 	maxGoroutines    uint64
 	activeGoroutines uint64
@@ -32,9 +33,10 @@ type CLI struct {
 
 func NewCLI(os service.OrderService, log kafka.LoggerService, zap *zap.SugaredLogger) *CLI {
 	return &CLI{
-		orderService:  os,
-		loggerService: log,
-		zapLogger:     zap,
+		orderService:   os,
+		metricsService: service.NewMetricsService(os),
+		loggerService:  log,
+		zapLogger:      zap,
 		commandList: []command{
 			{
 				name:        help,
@@ -243,7 +245,7 @@ func (c *CLI) acceptOrder(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return c.orderService.Accept(ctx, dto, dto.PackageType)
+	return c.metricsService.Accept(ctx, dto, dto.PackageType)
 }
 
 func (c *CLI) issueOrders(ctx context.Context, args []string) error {
@@ -257,7 +259,8 @@ func (c *CLI) issueOrders(ctx context.Context, args []string) error {
 	if err := ValidateIssueArgs(idsStr); err != nil {
 		return err
 	}
-	return c.orderService.Issue(ctx, idsStr)
+	_, err := c.metricsService.Issue(ctx, idsStr)
+	return err
 }
 
 func (c *CLI) acceptReturn(ctx context.Context, args []string) error {
@@ -274,7 +277,7 @@ func (c *CLI) acceptReturn(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return c.orderService.Return(ctx, id, userId)
+	return c.metricsService.Return(ctx, id, userId)
 }
 
 func (c *CLI) returnOrderToCourier(ctx context.Context, args []string) error {
@@ -290,7 +293,7 @@ func (c *CLI) returnOrderToCourier(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return c.orderService.ReturnToCourier(ctx, id)
+	return c.metricsService.ReturnToCourier(ctx, id)
 }
 
 func (c *CLI) listReturns(ctx context.Context, args []string) error {
@@ -308,7 +311,7 @@ func (c *CLI) listReturns(ctx context.Context, args []string) error {
 		return err
 	}
 
-	orderIDs, err := c.orderService.ListReturns(ctx, offsetStr, limitStr)
+	orderIDs, err := c.metricsService.ListReturns(ctx, offsetStr, limitStr)
 	if err != nil {
 		return err
 	}
@@ -333,7 +336,7 @@ func (c *CLI) listOrders(ctx context.Context, args []string) error {
 		return err
 	}
 
-	orders, err := c.orderService.ListOrders(ctx, userId, offsetStr, limitStr)
+	orders, err := c.metricsService.ListOrders(ctx, userId, offsetStr, limitStr)
 	if err != nil {
 		return err
 	}

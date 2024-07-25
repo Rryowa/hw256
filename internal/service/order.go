@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
-	"homework/internal/metrics"
 	"homework/internal/models"
 	"homework/internal/storage"
 	"homework/internal/util"
-	"homework/pkg/cache"
 	"homework/pkg/hash"
 	"strconv"
 	"strings"
@@ -17,7 +15,7 @@ import (
 
 type OrderService interface {
 	Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error
-	Issue(ctx context.Context, idsStr string) error
+	Issue(ctx context.Context, idsStr string) ([]models.Order, error)
 	Return(ctx context.Context, id, userId string) error
 	ReturnToCourier(ctx context.Context, id string) error
 	ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error)
@@ -28,26 +26,21 @@ type orderService struct {
 	repository     storage.Storage
 	packageService PackageService
 	hashGenerator  hash.Hasher
-	cache          cache.CacheService
-	serverMetrics  metrics.Metrics
 }
 
-func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher, c cache.CacheService, sm metrics.Metrics) OrderService {
+func NewOrderService(r storage.Storage, ps PackageService, hg hash.Hasher) OrderService {
 	return &orderService{
 		repository:     r,
 		packageService: ps,
 		hashGenerator:  hg,
-		cache:          c,
-		serverMetrics:  sm,
 	}
 }
 
 func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr string) error {
-	os.serverMetrics.IncrementMethodCallCounter("Accept")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Accept")
 	defer span.Finish()
 
-	_, ok := os.cache.Get(dto.ID)
+	_, ok := os.repository.Exists(ctx, dto.ID)
 	if ok {
 		return util.ErrOrderExists
 	}
@@ -90,75 +83,57 @@ func (os *orderService) Accept(ctx context.Context, dto models.Dto, pkgTypeStr s
 
 	os.calculateHash(&order)
 
-	order, err = os.repository.Insert(ctx, order)
+	_, err = os.repository.Insert(ctx, order)
 	if err != nil {
 		return err
 	}
 
-	return os.putInCache(order)
+	return nil
 }
 
-func (os *orderService) Issue(ctx context.Context, idsStr string) error {
-	os.serverMetrics.IncrementMethodCallCounter("Issue")
+func (os *orderService) Issue(ctx context.Context, idsStr string) ([]models.Order, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Issue")
 	defer span.Finish()
 
-	start := time.Now()
 	ids := strings.Split(idsStr, ",")
-
-	order, ok := os.cache.Get(ids[0])
+	order, ok := os.repository.Exists(ctx, ids[0])
 	if !ok {
-		return util.ErrOrderNotFound
+		return nil, util.ErrOrderNotFound
 	}
 
 	recipientID := order.UserID
 	var orders []models.Order
 	for _, id := range ids {
-		order, ok = os.cache.Get(id)
+		order, ok = os.repository.Exists(ctx, id)
 		if !ok {
-			return util.ErrOrderNotFound
+			return nil, util.ErrOrderNotFound
 		}
 		if order.Issued {
-			return util.ErrOrderIssued
+			return nil, util.ErrOrderIssued
 		}
 		if time.Now().After(order.StorageUntil) {
-			return util.ErrOrderExpired
+			return nil, util.ErrOrderExpired
 		}
 
 		//Check if users are equal
 		if order.UserID != recipientID {
-			return util.ErrOrdersUserDiffers
+			return nil, util.ErrOrdersUserDiffers
 		}
 
 		orders = append(orders, order)
 	}
-
 	for i := range orders {
 		orders[i].Issued = true
 	}
 
-	issuedOrders, err := os.repository.IssueUpdate(ctx, orders)
-	if err != nil {
-		return err
-	}
-
-	for _, order := range issuedOrders {
-		if err := os.putInCache(order); err != nil {
-			return err
-		}
-		os.serverMetrics.IncrementIssuedCounter()
-	}
-	os.serverMetrics.ObserveRequestDuration("200", time.Since(start))
-
-	return nil
+	return os.repository.IssueUpdate(ctx, orders)
 }
 
 func (os *orderService) Return(ctx context.Context, id, userId string) error {
-	os.serverMetrics.IncrementMethodCallCounter("Return")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.Return")
 	defer span.Finish()
 
-	order, ok := os.cache.Get(id)
+	order, ok := os.repository.Exists(ctx, id)
 	if !ok {
 		return util.ErrOrderNotFound
 	}
@@ -174,12 +149,8 @@ func (os *orderService) Return(ctx context.Context, id, userId string) error {
 	}
 
 	order.Returned = true
-	order, err := os.repository.Update(ctx, order)
+	_, err := os.repository.Update(ctx, order)
 	if err != nil {
-		return err
-	}
-
-	if err := os.putInCache(order); err != nil {
 		return err
 	}
 
@@ -187,11 +158,10 @@ func (os *orderService) Return(ctx context.Context, id, userId string) error {
 }
 
 func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
-	os.serverMetrics.IncrementMethodCallCounter("ReturnToCourier")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ReturnToCourier")
 	defer span.Finish()
 
-	order, ok := os.cache.Get(id)
+	order, ok := os.repository.Exists(ctx, id)
 	if !ok {
 		return util.ErrOrderNotFound
 	}
@@ -208,15 +178,10 @@ func (os *orderService) ReturnToCourier(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err := os.cache.Delete(id); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr string) ([]models.Order, error) {
-	os.serverMetrics.IncrementMethodCallCounter("ListReturns")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ListReturns")
 	defer span.Finish()
 
@@ -233,7 +198,6 @@ func (os *orderService) ListReturns(ctx context.Context, offsetStr, limitStr str
 }
 
 func (os *orderService) ListOrders(ctx context.Context, userId, offsetStr, limitStr string) ([]models.Order, error) {
-	os.serverMetrics.IncrementMethodCallCounter("ListOrders")
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.ListOrders")
 	defer span.Finish()
 
@@ -273,12 +237,4 @@ func (os *orderService) calculateHash(order *models.Order) {
 
 	<-done
 	fmt.Println()
-}
-
-func (os *orderService) putInCache(order models.Order) error {
-	err := os.cache.Put(order.ID, order)
-	if err != nil {
-		return err
-	}
-	return nil
 }

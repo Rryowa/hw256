@@ -12,42 +12,36 @@ type Metrics interface {
 	IncrementMethodCallCounter(methodName string)
 }
 
-type serverMetrics struct {
-	requestDuration *prometheus.HistogramVec
-	counterVec      *prometheus.CounterVec
-}
+var (
+	methodCallCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "cli",
+		Name:      "method_calls_total",
+		Help:      "Total number of method calls",
+	}, []string{"method"})
 
-func NewServerMetrics(reg prometheus.Registerer) Metrics {
-	rd := promauto.NewHistogramVec(prometheus.HistogramOpts{
+	issuedOrdersCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Namespace: "cli",
 		Subsystem: "http",
-		Name:      "cli_duration",
+		Name:      "issued_orders_total",
+		Help:      "Total number of issued orders",
+	})
+
+	requestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "cli",
+		Name:      "request_duration_seconds",
 		Help:      "Request latency histogram",
 		Buckets:   prometheus.DefBuckets,
 	}, []string{"status"})
+)
 
-	cv := promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: "cli",
-		Subsystem: "http",
-		Name:      "cli_total",
-		Help:      "Total number of method calls and issued orders",
-	}, []string{"type"})
-	reg.MustRegister(rd)
-	reg.MustRegister(cv)
-	return &serverMetrics{
-		requestDuration: rd,
-		counterVec:      cv,
-	}
+func IncrementMethodCallCounter(methodName string) {
+	methodCallCounter.WithLabelValues(methodName).Inc()
 }
 
-func (sm *serverMetrics) ObserveRequestDuration(status string, duration time.Duration) {
-	sm.requestDuration.WithLabelValues(status).Observe(duration.Seconds())
+func IncrementIssuedOrdersCounter() {
+	issuedOrdersCounter.Inc()
 }
 
-func (sm *serverMetrics) IncrementIssuedCounter() {
-	sm.counterVec.WithLabelValues("Issued").Inc()
-}
-
-func (sm *serverMetrics) IncrementMethodCallCounter(methodName string) {
-	sm.counterVec.WithLabelValues(methodName).Inc()
+func ObserveRequestDuration(status string, duration time.Duration) {
+	requestDuration.WithLabelValues(status).Observe(duration.Seconds())
 }
