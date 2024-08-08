@@ -2,26 +2,28 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"homework/internal/metrics"
 	"homework/internal/service"
-	pkg "homework/internal/service/package"
 	"homework/internal/storage/db"
 	"homework/internal/util"
 	"homework/internal/view"
-	"log"
+	"homework/pkg/hash"
+	"homework/pkg/kafka"
 )
 
 func main() {
-	repository := db.NewSQLRepository(context.Background(), util.NewConfig())
+	ctx := context.Background()
+	zapLogger := util.NewZapLogger()
 
-	packageService := pkg.NewPackageService()
-	orderService := service.NewOrderService(repository, packageService)
-	validationService := service.NewValidationService(repository, packageService)
+	repository := db.NewSQLRepository(ctx, util.NewDbConfig(), zapLogger)
+	packageService := service.NewPackageService()
+	loggerService := kafka.NewLoggerService(util.NewKafkaConfig(), repository, zapLogger)
+	go metrics.Listen(ctx, util.NewMetricsConfig(), zapLogger)
+	orderService := service.NewOrderService(repository, packageService, &hash.HashGenerator{})
 
-	commands := view.NewCLI(orderService, validationService)
-	if err := commands.Run(); err != nil {
-		log.Fatal(err)
+	commands := view.NewCLI(orderService, loggerService, zapLogger)
+
+	if err := commands.Run(ctx); err != nil {
+		zapLogger.Fatalln(err)
 	}
-
-	fmt.Println("Bye!")
 }

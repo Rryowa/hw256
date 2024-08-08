@@ -14,12 +14,12 @@ CREATE TABLE IF NOT EXISTS orders (
     hash VARCHAR(255) NOT NULL
 );
 
-CREATE INDEX user_id_storage_asc ON orders (user_id, storage_until ASC);
-CREATE INDEX id_asc ON orders (id ASC);
+CREATE INDEX IF NOT EXISTS user_id_storage_asc ON orders (user_id, storage_until ASC);
+CREATE INDEX IF NOT EXISTS id_asc ON orders (id ASC);
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin
-DROP INDEX user_id_storage_asc;
-DROP INDEX id_asc;
+DROP INDEX IF EXISTS user_id_storage_asc;
+DROP INDEX IF EXISTS id_asc;
 DROP TABLE IF EXISTS orders;
 -- +goose StatementEnd

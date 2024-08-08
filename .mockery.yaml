@@ -1,0 +1,15 @@
+with-expecter: true
+dir: "mocks"
+outpkg: "mocks"
+packages:
+  homework/internal/storage:
+    interfaces:
+      Storage:
+  homework/internal/service:
+    interfaces:
+      OrderService:
+      PackageService:
+      ValidationService:
+  homework/pkg/hash:
+    interfaces:
+      Hasher:

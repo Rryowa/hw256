@@ -1,14 +1,22 @@
 package storage
 
-import "homework/internal/models"
+import (
+	"context"
+	"homework/internal/models"
+)
 
-//go:generate mockery --name Storage
 type Storage interface {
-	Insert(order models.Order) error
-	Update(order models.Order) error
-	IssueUpdate(orders []models.Order) error
-	Delete(id string) error
-	Get(id string) (models.Order, error)
-	GetReturns(offset, limit int) ([]models.Order, error)
-	GetOrders(userId string, offset, limit int) ([]models.Order, error)
+	Insert(ctx context.Context, order models.Order) (models.Order, error)
+	Update(ctx context.Context, order models.Order) (models.Order, error)
+	IssueUpdate(ctx context.Context, orders []models.Order) ([]models.Order, error)
+	Delete(ctx context.Context, id string) (string, error)
+	GetReturns(ctx context.Context, offset, limit int) ([]models.Order, error)
+	GetOrders(ctx context.Context, userId string, offset, limit int) ([]models.Order, error)
+	Exists(ctx context.Context, id string) (models.Order, bool)
+	Event
+}
+
+type Event interface {
+	InsertEvent(ctx context.Context, request string) (models.Event, error)
+	UpdateEvent(ctx context.Context, event models.Event) (models.Event, error)
 }
